@@ -136,7 +136,7 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
  <div class="mbuttons"><button class="mbtn primary" onclick="createLife()">Doğ</button></div>
 </div></div>
 
-<div class="modalwrap" id="eventModal"><div class="modal"><h2>Karar</h2><p id="eventText"></p><div id="eventChoices" class="grid2"></div></div></div>
+<div class="modalwrap" id="eventModal"><div class="modal"><h2>Hayat Olayı</h2><p id="eventText"></p><div id="eventChoices" class="grid2"></div></div></div>
 
 <div class="modalwrap" id="heirModal"><div class="modal">
  <h2>Yazgı Sona Erdi</h2><p id="heirText"></p><div id="heirChoices" class="grid2"></div>
@@ -186,6 +186,178 @@ const MONTH_LABELS=[
  "1. Ay","2. Ay","3. Ay","4. Ay","5. Ay","6. Ay",
  "7. Ay","8. Ay","9. Ay","10. Ay","11. Ay","12. Ay"
 ];
+const EVENT_DECK=[
+ {id:"baby_fever",cat:"Sağlık",min:0,max:3,w:5,cool:24,text:"Gece ateşin yükseldi. Ailen başında bekliyor.",choices:[
+   ["Sıcak tutul ve dinlen",{health:4,happiness:1}],["Otacı çağrılsın",{health:7,wealth:-2}]
+ ]},
+ {id:"first_steps",cat:"Çocukluk",min:1,max:3,w:7,once:true,text:"Çadırın önünde ilk kez tek başına birkaç adım attın.",choices:[
+   ["Ailene doğru yürü",{happiness:5,prestige:1}],["Etrafı keşfet",{skill:2,happiness:3}]
+ ]},
+ {id:"foal_friend",cat:"Çocukluk",min:4,max:9,w:6,once:true,text:"Obada yeni doğmuş bir tay sana alıştı.",choices:[
+   ["Onunla ilgilen",{skill:3,happiness:5}],["Büyüklerin yanında izle",{skill:2}]
+ ]},
+ {id:"river_crossing",cat:"Oba",min:5,max:14,w:5,cool:36,text:"Göç sırasında oba kabaran bir ırmağın kıyısında durdu.",choices:[
+   ["Hayvanların geçişine yardım et",{skill:3,health:-1,prestige:2}],["Ailenin yanında kal",{happiness:2}]
+ ]},
+ {id:"lost_lamb",cat:"Oba",min:6,max:16,w:7,cool:18,text:"Sürüden bir kuzu kayboldu.",choices:[
+   ["İzini sür",{skill:4,wealth:2,health:-1}],["Büyüklere haber ver",{prestige:1}]
+ ]},
+ {id:"small_bow",cat:"Yetişme",min:7,max:13,w:7,once:true,text:"Sana boyuna uygun küçük bir yay verildi.",choices:[
+   ["Her gün çalış",{skill:6,happiness:3}],["Önce at binmeye ağırlık ver",{skill:4,health:2}]
+ ]},
+ {id:"story_night",cat:"Kültür",min:5,max:15,w:6,cool:20,text:"Gece ateş başında yaşlılardan eski bir destan dinledin.",choices:[
+   ["Sözleri ezberle",{skill:3,prestige:2}],["Savaş hikâyelerine kulak ver",{skill:2,prestige:3}]
+ ]},
+ {id:"wrestling",cat:"Yetişme",min:10,max:22,w:6,cool:14,text:"Toyda yaşıtların güreş tutuyor.",choices:[
+   ["Meydana çık",{health:2,skill:3,prestige:3}],["Seyret ve öğren",{skill:2,happiness:2}]
+ ]},
+ {id:"smith_offer",cat:"Yetişme",min:11,max:18,w:5,once:true,text:"Obanın demircisi seni birkaç ay ocağın yanında görmek istedi.",choices:[
+   ["Çıraklığı dene",{skill:6,wealth:2,path:"craft"}],["Kendi yolunda kal",{happiness:2}]
+ ]},
+ {id:"scribe_offer",cat:"Yetişme",min:12,max:20,w:4,once:true,text:"Kağanlık hizmetinde bulunan bir bitigçi, yazıya yatkın olduğunu söyledi.",choices:[
+   ["Yazıyı öğren",{skill:7,prestige:2,path:"state"}],["Savaş talimine dön",{skill:4,path:"military"}]
+ ]},
+ {id:"horse_race",cat:"Toy",min:12,max:35,w:6,cool:18,text:"Yakındaki toyda gençler arasında at yarışı düzenleniyor.",choices:[
+   ["Yarışa katıl",{skill:4,prestige:4,health:-1}],["Bahis yerine yardım et",{wealth:2,happiness:2}]
+ ]},
+ {id:"friend_quarrel",cat:"İlişkiler",min:10,max:70,w:4,cool:24,text:"Yakın olduğun biri sözlerinden alındı ve aranıza soğukluk girdi.",choices:[
+   ["Gidip konuş",{happiness:2,prestige:1}],["Gurur yap",{happiness:-2,prestige:-1}]
+ ]},
+ {id:"family_debt",cat:"Aile",min:14,max:60,w:4,cool:30,text:"Ailenden biri zor durumda kaldı ve senden mal desteği istedi.",choices:[
+   ["Destek ol",{wealth:-5,happiness:4,prestige:3}],["Bu kez yardım etme",{happiness:-2}]
+ ]},
+ {id:"winter_shortage",cat:"Kış",min:8,max:70,w:5,cool:30,text:"Kış beklenenden sert geçti; oba yiyecek ve yem hesabı yapıyor.",choices:[
+   ["Kendi payından kıs",{health:-2,prestige:4}],["Malından harca",{wealth:-5,happiness:2}]
+ ]},
+ {id:"summer_drought",cat:"Doğa",min:10,max:70,w:4,cool:36,text:"Yaz kurak geçti, otlaklar erken sarardı.",choices:[
+   ["Uzak otlak ara",{skill:3,wealth:-2}],["Sürüyü küçült",{wealth:-4,health:2}]
+ ]},
+ {id:"wolf_attack",cat:"Oba",min:12,max:55,w:4,cool:30,text:"Gece sürüye kurtlar yaklaştı.",choices:[
+   ["Yayını al",{skill:4,health:-3,prestige:4}],["Sürüyü güvenli yere çek",{skill:2,wealth:-1}]
+ ]},
+ {id:"merchant_offer",cat:"Ticaret",min:16,max:60,w:5,cool:20,text:"Uzak yoldan gelen tüccar, elindeki malları takas etmek istiyor.",choices:[
+   ["Riskli takasa gir",{wealth:7,skill:2}],["Küçük ve güvenli takas yap",{wealth:3,happiness:1}]
+ ]},
+ {id:"caravan_invite",cat:"Ticaret",min:17,max:50,w:4,once:true,text:"Bir kervanbaşı seni yolculuğa katılmaya çağırdı.",choices:[
+   ["Kervana katıl",{wealth:6,skill:5,path:"trade"}],["Obada kal",{happiness:2}]
+ ]},
+ {id:"bandit_tracks",cat:"Yol",min:16,max:55,w:3,cool:28,text:"Yolda taze at izleri gördün; bunların yağmacılara ait olabileceği konuşuluyor.",choices:[
+   ["İzleri araştır",{skill:4,health:-3,prestige:2}],["Yolu değiştir",{wealth:-2,health:1}]
+ ]},
+ {id:"minor_wound",cat:"Sağlık",min:12,max:70,w:5,cool:18,text:"Günlük iş sırasında kötü bir düşüş yaşadın.",choices:[
+   ["Dinlen",{health:5,happiness:-1}],["İşe devam et",{health:-5,prestige:2,wound:1}]
+ ]},
+ {id:"sickness",cat:"Sağlık",min:8,max:75,w:4,cool:30,text:"Birkaç gündür halsizsin; ateş ve öksürük başladı.",choices:[
+   ["Dinlen ve sıcak kal",{health:4,happiness:-1}],["Otacıdan yardım iste",{health:7,wealth:-3}]
+ ]},
+ {id:"marriage_pressure",cat:"Aile",min:16,max:32,w:4,cool:24,req:"single",text:"Ailen artık bir ocak kurma zamanının geldiğini düşünüyor.",choices:[
+   ["Eş adayı aramaya açık ol",{happiness:3,prestige:2}],["Şimdilik reddet",{happiness:1,prestige:-1}]
+ ]},
+ {id:"child_ill",cat:"Aile",min:18,max:70,w:4,cool:24,req:"hasChild",text:"Çocuklarından biri hastalandı.",choices:[
+   ["Başında kal",{happiness:3,wealth:-2}],["Otacı çağır",{wealth:-4,happiness:5}]
+ ]},
+ {id:"neighbor_dispute",cat:"Töre",min:18,max:70,w:5,cool:22,text:"Komşu oba ile hayvanların otladığı sınır konusunda tartışma çıktı.",choices:[
+   ["Arabuluculuk et",{prestige:5,skill:2}],["Kendi obanı sertçe savun",{prestige:2,health:-2}]
+ ]},
+ {id:"stolen_horse",cat:"Töre",min:16,max:65,w:3,cool:40,text:"Obadan bir at kayboldu. Şüpheler komşu bir gruba yöneliyor.",choices:[
+   ["İz sürmeye katıl",{skill:4,prestige:3,health:-2}],["Beyin kararını bekle",{prestige:1}]
+ ]},
+ {id:"feast_praise",cat:"Ün",min:18,max:70,w:4,cool:26,req:"prestige30",text:"Toyda bir ozan adını kalabalığın önünde övgüyle andı.",choices:[
+   ["Ozana armağan ver",{wealth:-3,prestige:6,happiness:4}],["Sessizce dinle",{prestige:3,happiness:2}]
+ ]},
+ {id:"bey_request",cat:"Boy",min:20,max:65,w:4,cool:24,req:"prestige20",text:"Boy beyi senden bir anlaşmazlıkta görüş istedi.",choices:[
+   ["Açıkça fikrini söyle",{prestige:5,skill:2}],["Temkinli konuş",{prestige:3}]
+ ]},
+ {id:"envoy_news",cat:"Devlet",min:16,max:65,w:4,cool:30,text:"Kağanlık merkezinden gelen elçiler yeni emir ve haberler getirdi.",choices:[
+   ["Haberleri dikkatle dinle",{skill:3,prestige:1}],["Sefer ihtimalini araştır",{skill:2,path:"military"}]
+ ]},
+ {id:"campaign_scout",cat:"Sefer",min:16,max:50,w:5,cool:18,req:"military",text:"Sefer sırasında öncü gözcüler için gönüllü aranıyor.",choices:[
+   ["Öncülere katıl",{skill:5,prestige:5,health:-3}],["Ana birlikle kal",{prestige:2}]
+ ]},
+ {id:"battle_wound",cat:"Sefer",min:16,max:55,w:3,cool:24,req:"military",text:"Çatışmada yakınından geçen bir darbe seni yaraladı.",choices:[
+   ["Geri çekilip yaranı sar",{health:-5,prestige:1,wound:1}],["Meydanda kal",{health:-10,prestige:7,wound:1}]
+ ]},
+ {id:"spoils_choice",cat:"Sefer",min:16,max:55,w:4,cool:24,req:"military",text:"Sefer sonunda sana düşen ganimet payını seçmen istendi.",choices:[
+   ["At ve hayvan al",{wealth:7,prestige:2}],["Değerli eşya al",{wealth:10,happiness:2}]
+ ]},
+ {id:"captor_mercy",cat:"Tutsaklık",min:16,max:70,w:8,cool:10,req:"captive",text:"Seni gözeten kişi bugün daha yumuşak davranıyor.",choices:[
+   ["Kaçış için bilgi topla",{skill:4,happiness:2}],["Sessiz kal",{health:2}]
+ ]},
+ {id:"exile_offer",cat:"Sürgün",min:16,max:70,w:7,cool:18,req:"exile",text:"Başka bir oba seni aralarına kabul edebileceğini bildirdi.",choices:[
+   ["Teklifi kabul et",{happiness:5,prestige:2,clearExile:true}],["Kendi boyuna dönmeyi bekle",{happiness:-1}]
+ ]},
+ {id:"elder_advice",cat:"Yaşlılık",min:50,max:85,w:6,cool:20,text:"Gençlerden biri senden hayat ve görev hakkında öğüt istedi.",choices:[
+   ["Tecrübelerini paylaş",{prestige:5,happiness:4}],["Onu kendi yolunu bulmaya bırak",{prestige:2}]
+ ]},
+ {id:"grandchild_visit",cat:"Aile",min:45,max:85,w:4,cool:28,req:"hasAdultChild",text:"Soyundan gençler seni ziyaret edip eski günleri dinlemek istedi.",choices:[
+   ["Onlara uzun uzun anlat",{happiness:6,prestige:4}],["Birlikte vakit geçir",{happiness:5}]
+ ]},
+ {id:"wealth_request",cat:"Servet",min:20,max:70,w:3,cool:30,req:"wealth40",text:"Oba için ortak bir işe mal katkısı isteniyor.",choices:[
+   ["Bolca katkı yap",{wealth:-8,prestige:7}],["Az katkı yap",{wealth:-3,prestige:3}]
+ ]}
+];
+function eventRequirementOK(ev){
+ const r=ev.req;
+ if(!r)return true;
+ if(r==="single")return !s.partner&&!s.married;
+ if(r==="hasChild")return (s.children||[]).some(x=>x.alive!==false);
+ if(r==="hasAdultChild")return (s.children||[]).some(x=>x.alive!==false&&(x.age||0)>=16);
+ if(r==="prestige20")return s.prestige>=20;
+ if(r==="prestige30")return s.prestige>=30;
+ if(r==="wealth40")return s.wealth>=40;
+ if(r==="military")return s.military?.served||s.path==="military"||["Alp","Akıncı","Tarkan"].includes(s.role);
+ if(r==="captive")return !!s.captive;
+ if(r==="exile")return !!s.exile;
+ return true;
+}
+function eligibleContextEvents(){
+ const hist=s.eventHistory||[], cd=s.eventCooldowns||{};
+ return EVENT_DECK.filter(ev=>{
+   if(s.age<ev.min||s.age>ev.max)return false;
+   if(ev.once&&hist.includes(ev.id))return false;
+   if((cd[ev.id]||0)>0)return false;
+   return eventRequirementOK(ev);
+ });
+}
+function weightedPickEvents(arr){
+ const total=arr.reduce((a,e)=>a+(e.w||1),0);
+ let roll=Math.random()*total;
+ for(const e of arr){roll-=e.w||1;if(roll<=0)return e}
+ return arr[arr.length-1];
+}
+function tickEventCooldowns(){
+ s.eventCooldowns=s.eventCooldowns||{};
+ for(const k of Object.keys(s.eventCooldowns))s.eventCooldowns[k]=Math.max(0,s.eventCooldowns[k]-1);
+}
+function applyEventChoice(extra={}){
+ const effects={};
+ for(const k of ["health","happiness","skill","prestige","wealth"])if(extra[k]!=null)effects[k]=extra[k];
+ apply(effects);
+ if(extra.path)s.path=extra.path;
+ if(extra.wound){s.military=s.military||{called:false,served:false,campaigns:0,wounds:0};s.military.wounds=(s.military.wounds||0)+extra.wound}
+ if(extra.clearExile)s.exile=false;
+}
+function triggerContextEvent(force=false){
+ if(!s||!s.alive)return false;
+ if(!force&&Math.random()>.34)return false;
+ const arr=eligibleContextEvents();if(!arr.length)return false;
+ const ev=weightedPickEvents(arr);
+ s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};
+ if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);
+ s.eventCooldowns[ev.id]=ev.cool||12;
+ window._contextEvent=ev;
+ $("eventText").innerHTML=`<span class="badge">${ev.cat}</span><br><br>${ev.text}`;
+ $("eventChoices").innerHTML=ev.choices.map((ch,i)=>`<button class="card" onclick="chooseContextEvent(${i})"><h3>${ch[0]}</h3></button>`).join("");
+ $("eventModal").classList.add("show");
+ return true;
+}
+function chooseContextEvent(i){
+ const ev=window._contextEvent;if(!ev)return;
+ const ch=ev.choices[i];applyEventChoice(ch[1]||{});
+ log(`<b>${ev.cat}:</b> ${ev.text} <i>${ch[0]}</i>`,((ch[1]?.health||0)<0||(ch[1]?.happiness||0)<0)?"bad":"");
+ $("eventModal").classList.remove("show");window._contextEvent=null;render();save();
+}
+
 function mod(n,m){return ((n%m)+m)%m}
 // Kül Tigin'in 731'deki ölümü "Kon/Koyun yılı" olarak kaydedilmiştir.
 // Bu tarih oyun içindeki hayvan-yılı döngüsüne tarihsel çapa olarak kullanılır.
@@ -222,7 +394,7 @@ function spendMonth(reason=""){
  return true;
 }
 function monthlyTick(usedMonth){
- // Küçük aylık yaşam akışı; büyük yaş dönümleri yaş atlayınca işlenir.
+ tickEventCooldowns();
  if(s.role){
    const r=D.careers.find(x=>x.name===s.role);
    if(r && Math.random()<.34) s.wealth+=Math.max(0,Math.floor(rng(r.wealth[0],r.wealth[1])/4));
@@ -231,17 +403,10 @@ function monthlyTick(usedMonth){
    apply({health:-rng(1,3)});
    log("Kış aylarının sertliği sağlığını biraz zorladı.","bad");
  }
- if(Math.random()<.10){
-   const arr=D.events.filter(e=>s.age>=e.min&&s.age<=e.max);
-   if(arr.length){
-      const e=pick(arr);apply(e.e);
-      log(e.text,(e.e.health||0)<0||(e.e.happiness||0)<0?"bad":"");
-   }
- }
- // Aylık ilişki değişimleri daha küçük tutulur.
  [...s.parents,...s.siblings,...s.friends,...s.rivals].forEach(r=>{
    if(r.alive && Math.random()<.35) r.rel=clamp(r.rel+rng(-1,1));
  });
+ setTimeout(()=>triggerContextEvent(false),0);
 }
 function passOneMonth(){
  if(!s||!s.alive)return;
@@ -260,7 +425,7 @@ function newCharacter(base={}, inherit=false){
     monthsRemaining:base.monthsRemaining??12,
     health:base.health??rng(68,95), happiness:base.happiness??rng(60,92), skill:base.skill??rng(25,60), prestige:base.prestige??rng(5,25),
     wealth:base.wealth??rng(2,10), role:null, path:null, military:{called:false,served:false,campaigns:0,wounds:0},
-    captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[],
+    captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{},
     parents:base.parents||[], siblings:base.siblings||[], friends:[], rivals:[],
     partner:null, married:false, children:base.children||[], timeline:[],
     legacy:base.legacy||{generation:1,familyName:base.tribe||"Boy",past:[]},
@@ -363,9 +528,9 @@ function captivityMonth(){
  render();save();
 }
 function randomEvent(){
- if(Math.random()<.72){let arr=D.events.filter(e=>s.age>=e.min&&s.age<=e.max);if(arr.length){let e=pick(arr);apply(e.e);log(e.text,(e.e.health||0)<0||(e.e.happiness||0)<0?"bad":"")}}
- if(s.age>=12&&Math.random()<.22){let d=pick(D.decisions);openDecision(d.q,d.choices.map(c=>[c[0],()=>{apply(c[1]);if(c[2]&&c[2]!=="none")s.path=c[2];log(`${c[0]} kararını verdin.`)}]))}
- if(s.military.served&&s.age<45&&Math.random()<.09){s.military.campaigns++;log("Kağanlık yeni bir sefere hazırlanıyor.","major");campaignResult()}
+ // Yaş atlama sırasında büyük bir bağlamsal olay çıkabilir.
+ if(Math.random()<.55)triggerContextEvent(true);
+ if(s.military.served&&s.age<45&&Math.random()<.08){s.military.campaigns++;log("Kağanlık yeni bir sefere hazırlanıyor.","major");campaignResult()}
 }
 function relationTick(){
  [...s.parents,...s.siblings,...s.friends,...s.rivals].forEach(r=>{if(!r.alive)return;r.rel=clamp(r.rel+rng(-3,3));if(Math.random()<.006*Math.max(1,s.age/20))r.alive=false});
@@ -535,7 +700,7 @@ function renderLegacy(){
  <h3>Geçmiş Yaşamlar</h3><div class="grid2">${s.legacy.past.map(x=>`<div class="card"><h3>${x.name}</h3><p>${x.age} yaş • ${x.role||"Görevsiz"} • ün ${x.prestige}</p></div>`).join("")}</div>`
 }
 function renderSide(){
- $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} yara</p></div>`;
+ $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} yara<br>📜 ${(s.eventHistory||[]).length} önemli olay</p></div>`;
  $("sideRel").innerHTML=[...s.parents,...s.siblings].slice(0,5).map(r=>`<div class="card relation"><span>${r.name}</span><span class="badge">${r.rel}</span></div>`).join("");
  $("sideActions").innerHTML=`${s.captive?`<button class="sidebtn" onclick="captivityMonth()">⛓ Tutsaklıkta 1 Ay Geçir</button><button class="sidebtn" onclick="attemptEscape()">↗ Kaçmayı dene</button>`:""}<button class="sidebtn" onclick="addFriend()">🤝 Dost edin</button><button class="sidebtn" onclick="makeRival()">⚔ Rakip edin</button>`;
 }
@@ -544,12 +709,14 @@ spendMonth("Kaçış planıyla bir ay geçti.")}
 function addFriend(){if(!canSpendMonth())return;let cfg=D.realms[s.realm],g=Math.random()<.5?"male":"female";s.friends.push(normalizeNPC({name:pick(cfg[g]),rel:rng(50,80),type:"Dost",alive:true,gender:g,age:Math.max(8,s.age+rng(-4,4))},"Dost"));log("Yeni bir dost edindin.");spendMonth("Yeni dostluk kurmakla bir ay geçti.")}
 function makeRival(){if(!canSpendMonth())return;let cfg=D.realms[s.realm],g=Math.random()<.5?"male":"female";s.rivals.push(normalizeNPC({name:pick(cfg[g]),rel:rng(10,35),type:"Rakip",alive:true,gender:g,age:Math.max(8,s.age+rng(-4,4))},"Rakip"));log("Aranda husumet bulunan yeni bir rakibin oldu.","bad");spendMonth("Bu çekişmeyle bir ay geçti.")}
 function unlock(id){if(!s.achievements.includes(id)){s.achievements.push(id);let a=D.achievements.find(x=>x.id===id);if(a)log(`🏆 Ün kazandın: ${a.name}`,"good")}}
-function openDecision(text,choices){$("eventText").textContent=text;window._choices=choices;$("eventChoices").innerHTML=choices.map((x,i)=>`<button class="card" onclick="chooseDecision(${i})"><h3>${x[0]}</h3></button>`).join("");$("eventModal").classList.add("show")}
+function openDecision(text,choices,consumeMonth=false){$("eventText").textContent=text;window._choices=choices;window._decisionConsumesMonth=consumeMonth;$("eventChoices").innerHTML=choices.map((x,i)=>`<button class="card" onclick="chooseDecision(${i})"><h3>${x[0]}</h3></button>`).join("");$("eventModal").classList.add("show")}
 function chooseDecision(i){
- if(!canSpendMonth()){$("eventModal").classList.remove("show");return}
- let c=window._choices[i];if(typeof c[1]==="function")c[1]();
+ if(window._decisionConsumesMonth&&!canSpendMonth()){$("eventModal").classList.remove("show");return}
+ let ch=window._choices[i];if(typeof ch[1]==="function")ch[1]();
  $("eventModal").classList.remove("show");
- spendMonth("Verdiğin kararın sonuçlarıyla bir ay geçti.");
+ if(window._decisionConsumesMonth)spendMonth("Verdiğin kararın sonuçlarıyla bir ay geçti.");
+ else{render();save()}
+ window._decisionConsumesMonth=false;
 }
 function save(){if(s)localStorage.setItem("yazgi_full_v1",JSON.stringify(s))}
 function load(){try{let x=JSON.parse(localStorage.getItem("yazgi_full_v1"));if(x){
@@ -559,6 +726,7 @@ function load(){try{let x=JSON.parse(localStorage.getItem("yazgi_full_v1"));if(x
  s.friends=(s.friends||[]).map(n=>normalizeNPC(n,"Dost"));
  s.rivals=(s.rivals||[]).map(n=>normalizeNPC(n,"Rakip"));
  s.children=(s.children||[]).map(n=>normalizeNPC(n,"Çocuk"));
+ s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};
  $("newModal").classList.remove("show");render()
 }}catch(e){console.error(e)}}
 init();
