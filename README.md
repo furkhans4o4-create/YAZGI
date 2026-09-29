@@ -19,3 +19,10 @@
 `index.html` doğrudan tarayıcıda açılabilir.
 
 Bu repo artık YAZGI'nın ana deposudur.
+
+
+## Event Motoru
+- Yaş, durum, servet, itibar, aile, askerî geçmiş, sürgün ve tutsaklığa göre bağlamsal olay seçimi
+- Ağırlıklı rastgele seçim, cooldown ve tek-seferlik olay desteği
+- Çocukluk, yetişme, oba, sağlık, aile, ticaret, töre, devlet, sefer, tutsaklık ve yaşlılık olay havuzları
+- Event seçimi aynı ayın içinde gerçekleşir; oyuncudan fazladan ay hakkı yemez
