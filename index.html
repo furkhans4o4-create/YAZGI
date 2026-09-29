@@ -212,10 +212,10 @@ const EVENT_DECK=[
    ["Meydana çık",{health:2,skill:3,prestige:3}],["Seyret ve öğren",{skill:2,happiness:2}]
  ]},
  {id:"smith_offer",cat:"Yetişme",min:11,max:18,w:5,once:true,text:"Obanın demircisi seni birkaç ay ocağın yanında görmek istedi.",choices:[
-   ["Çıraklığı dene",{skill:6,wealth:2,path:"craft"}],["Kendi yolunda kal",{happiness:2}]
+   ["Çıraklığı dene",{skill:6,wealth:2,path:"craft",setFlag:"smith_apprentice"}],["Kendi yolunda kal",{happiness:2}]
  ]},
  {id:"scribe_offer",cat:"Yetişme",min:12,max:20,w:4,once:true,text:"Kağanlık hizmetinde bulunan bir bitigçi, yazıya yatkın olduğunu söyledi.",choices:[
-   ["Yazıyı öğren",{skill:7,prestige:2,path:"state"}],["Savaş talimine dön",{skill:4,path:"military"}]
+   ["Yazıyı öğren",{skill:7,prestige:2,path:"state",setFlag:"scribe_student"}],["Savaş talimine dön",{skill:4,path:"military"}]
  ]},
  {id:"horse_race",cat:"Toy",min:12,max:35,w:6,cool:18,text:"Yakındaki toyda gençler arasında at yarışı düzenleniyor.",choices:[
    ["Yarışa katıl",{skill:4,prestige:4,health:-1}],["Bahis yerine yardım et",{wealth:2,happiness:2}]
@@ -239,7 +239,7 @@ const EVENT_DECK=[
    ["Riskli takasa gir",{wealth:7,skill:2}],["Küçük ve güvenli takas yap",{wealth:3,happiness:1}]
  ]},
  {id:"caravan_invite",cat:"Ticaret",min:17,max:50,w:4,once:true,text:"Bir kervanbaşı seni yolculuğa katılmaya çağırdı.",choices:[
-   ["Kervana katıl",{wealth:6,skill:5,path:"trade"}],["Obada kal",{happiness:2}]
+   ["Kervana katıl",{wealth:6,skill:5,path:"trade",setFlag:"caravan_member"}],["Obada kal",{happiness:2}]
  ]},
  {id:"bandit_tracks",cat:"Yol",min:16,max:55,w:3,cool:28,text:"Yolda taze at izleri gördün; bunların yağmacılara ait olabileceği konuşuluyor.",choices:[
    ["İzleri araştır",{skill:4,health:-3,prestige:2}],["Yolu değiştir",{wealth:-2,health:1}]
@@ -296,19 +296,186 @@ const EVENT_DECK=[
    ["Bolca katkı yap",{wealth:-8,prestige:7}],["Az katkı yap",{wealth:-3,prestige:3}]
  ]}
 ];
+
+EVENT_DECK.push(...[
+ // DEMİRCİLİK ZİNCİRİ
+ {id:"smith_first_mistake",cat:"Demircilik",min:12,max:25,w:10,cool:10,once:true,req:"flag:smith_apprentice",
+  text:"Ustanın yanında çalışırken kızdırılmış bir demiri yanlış biçimlendirdin. Usta senden ne yapacağını bekliyor.",choices:[
+   ["Hatanı kabul edip yeniden yap",{skill:4,prestige:1,setFlag:"smith_trusted"}],
+   ["Demiri gizlice düzeltmeye çalış",{skill:2,happiness:-1}]
+  ]},
+ {id:"smith_master_test",cat:"Demircilik",min:14,max:32,w:9,cool:12,once:true,req:["flag:smith_apprentice","skill40"],
+  text:"Ustan sana gözetimsiz olarak sağlam bir mızrak ucu dövme görevi verdi.",choices:[
+   ["Bütün gününü buna ayır",{skill:6,prestige:3,setFlag:"smith_journeyman",clearFlag:"smith_apprentice",setRole:"Demirci"}],
+   ["Daha kolay bir parça yapmayı iste",{skill:2,prestige:-1}]
+  ]},
+ {id:"smith_own_hearth",cat:"Demircilik",min:18,max:45,w:7,cool:18,once:true,req:["flag:smith_journeyman","wealth20"],
+  text:"Artık kendi küçük demir ocağını kurabilecek kadar tecrübelisin.",choices:[
+   ["Kendi ocağını kur",{wealth:-15,prestige:6,setFlag:"smith_owner",setRole:"Demirci"}],
+   ["Bir süre daha başkasının yanında çalış",{wealth:3,skill:2}]
+  ]},
+ {id:"smith_state_order",cat:"Demircilik",min:20,max:55,w:5,cool:22,once:true,req:["flag:smith_owner","prestige20"],
+  text:"Kağanlık görevlileri obaya gelip çok sayıda ok ucu ve silah parçası sipariş etti.",choices:[
+   ["Siparişi kabul et",{wealth:12,prestige:8,skill:4,setFlag:"state_smith"}],
+   ["Ocağın kapasitesini aşacağını söyle",{prestige:2,health:2}]
+  ]},
+
+ // BİTİG / DEVLET HİZMETİ ZİNCİRİ
+ {id:"scribe_copy",cat:"Bitig",min:13,max:28,w:10,cool:10,once:true,req:"flag:scribe_student",
+  text:"Ustan sana kısa bir metni hatasız kopyalaman için bıraktı.",choices:[
+   ["Yavaş ve dikkatli yaz",{skill:5,prestige:2,setFlag:"scribe_trusted"}],
+   ["Hızlıca bitir",{skill:2,happiness:2}]
+  ]},
+ {id:"scribe_record_dispute",cat:"Bitig",min:16,max:35,w:8,cool:14,once:true,req:["flag:scribe_trusted","skill45"],
+  text:"İki aile arasındaki anlaşmanın kayda geçirilmesi gerekiyor. Ustan seni görevlendirdi.",choices:[
+   ["Tarafları dinleyip tarafsız yaz",{skill:5,prestige:5,setFlag:"scribe_clerk",setRole:"Bitigçi"}],
+   ["Beyin tarafını gözet",{prestige:2,wealth:3}]
+  ]},
+ {id:"scribe_envoy_list",cat:"Devlet",min:18,max:45,w:6,cool:18,once:true,req:["flag:scribe_clerk","prestige15"],
+  text:"Bir elçilik heyeti yabancı bir boya giderken kayıt tutacak bir bitigçi arıyor.",choices:[
+   ["Heyete katıl",{skill:6,prestige:6,wealth:4,setFlag:"envoy_path"}],
+   ["Merkezde kal",{skill:2,health:1}]
+  ]},
+ {id:"envoy_border_talk",cat:"Elçilik",min:20,max:55,w:6,cool:20,once:true,req:"flag:envoy_path",
+  text:"Sınırdaki görüşmede iki taraf birbirinin sözünü yanlış anladı; senden açıklama istendi.",choices:[
+   ["Sözleri dikkatle uzlaştır",{skill:5,prestige:8,setRole:"Elçi",setFlag:"diplomat"}],
+   ["Sadece kayda geçir, karışma",{skill:3,prestige:2}]
+  ]},
+
+ // KERVAN / TİCARET ZİNCİRİ
+ {id:"caravan_first_crossing",cat:"Kervan",min:17,max:45,w:10,cool:10,once:true,req:"flag:caravan_member",
+  text:"Kervanın ilk büyük geçidinde yük hayvanlarından biri tökezledi ve yol kapandı.",choices:[
+   ["Yükü paylaştırıp yolu aç",{skill:5,prestige:3,setFlag:"caravan_trusted"}],
+   ["Kervanbaşının kararını bekle",{health:2,skill:1}]
+  ]},
+ {id:"caravan_market",cat:"Ticaret",min:18,max:50,w:8,cool:14,once:true,req:"flag:caravan_trusted",
+  text:"Uzak bir pazarda at, kumaş ve metal eşya fiyatları birbirinden çok farklı.",choices:[
+   ["At alıp başka pazarda sat",{wealth:10,skill:4,setFlag:"trader"}],
+   ["Küçük mallarla güvenli ticaret yap",{wealth:5,skill:2}]
+  ]},
+ {id:"caravan_partner",cat:"Ticaret",min:21,max:55,w:6,cool:18,once:true,req:["flag:trader","wealth30"],
+  text:"Kervanbaşın yeni bir yol için sermaye ortağı arıyor.",choices:[
+   ["Pay koy",{wealth:-12,prestige:5,setFlag:"caravan_partner"}],
+   ["Sadece rehberlik teklif et",{wealth:4,skill:3}]
+  ]},
+ {id:"caravan_master",cat:"Ticaret",min:25,max:65,w:5,cool:22,once:true,req:["flag:caravan_partner","prestige20"],
+  text:"Eski kervanbaşı artık daha az yolculuk yapmak istiyor ve bir seferin yönetimini sana bırakmayı düşünüyor.",choices:[
+   ["Kervanı yönet",{wealth:14,prestige:9,setRole:"Kervan Rehberi",setFlag:"caravan_master"}],
+   ["Ortak kalmayı tercih et",{wealth:7,prestige:3}]
+  ]},
+
+ // ASKERÎ KARİYER ZİNCİRİ
+ {id:"military_comrade",cat:"Sefer",min:16,max:45,w:8,cool:14,once:true,req:"military",
+  text:"Çatışma sırasında boydaşlarından biri atından düştü ve birlik ilerliyor.",choices:[
+   ["Geri dönüp onu çıkar",{health:-4,prestige:8,setFlag:"warrior_loyal"}],
+   ["Birliğin düzenini bozma",{prestige:2,skill:2}]
+  ]},
+ {id:"military_night_watch",cat:"Sefer",min:17,max:48,w:7,cool:16,once:true,req:["military","flag:warrior_loyal"],
+  text:"Gece nöbetinde uzakta hareketlilik gördün. Bunun bir keşif kolu olabileceğinden şüpheleniyorsun.",choices:[
+   ["Sessizce iz sür",{skill:6,health:-2,prestige:5,setFlag:"scout_proven"}],
+   ["Hemen alarm ver",{prestige:3,health:1}]
+  ]},
+ {id:"military_small_command",cat:"Sefer",min:20,max:50,w:6,cool:20,once:true,req:["flag:scout_proven","prestige20"],
+  text:"Bir sonraki seferde küçük bir savaşçı grubunun sorumluluğu sana bırakıldı.",choices:[
+   ["Görevi kabul et",{skill:5,prestige:9,setRole:"Alp",setFlag:"small_command"}],
+   ["Henüz hazır olmadığını söyle",{prestige:-1,health:2}]
+  ]},
+ {id:"military_tarkan_path",cat:"Sefer",min:24,max:55,w:4,cool:26,once:true,req:["flag:small_command","prestige35","skill65"],
+  text:"Başarılı seferlerden sonra üst düzey bir komutan seni daha büyük sorumluluk için önerdi.",choices:[
+   ["Komutanlık yoluna gir",{prestige:12,wealth:8,setRole:"Tarkan",setFlag:"tarkan_path"}],
+   ["Alp olarak kal",{prestige:5,happiness:3}]
+  ]},
+
+ // HUSUMET / UZLAŞMA ZİNCİRİ
+ {id:"toy_insult",cat:"İlişkiler",min:15,max:45,w:5,cool:28,once:true,
+  text:"Bir toyda başka bir genç herkesin önünde seninle alay etti.",choices:[
+   ["Sözle karşılık ver",{prestige:2,happiness:-1,setFlag:"feud_started"}],
+   ["Görmezden gel",{prestige:1,happiness:2}]
+  ]},
+ {id:"feud_challenge",cat:"Husumet",min:16,max:50,w:9,cool:12,once:true,req:"flag:feud_started",
+  text:"Sana hakaret eden kişi bu kez açıkça meydan okudu.",choices:[
+   ["Beylerin önünde hesaplaş",{health:-3,prestige:5,setFlag:"feud_hot"}],
+   ["Araya büyükleri sok",{prestige:3,clearFlag:"feud_started",setFlag:"feud_mediation"}]
+  ]},
+ {id:"feud_end",cat:"Husumet",min:17,max:60,w:8,cool:14,once:true,req:"flag:feud_hot",
+  text:"Husumet iki ailenin de huzurunu bozmaya başladı. Büyükler son bir çözüm istiyor.",choices:[
+   ["Tazminat ve barış kabul et",{wealth:-3,happiness:5,prestige:5,clearFlag:"feud_hot",clearFlag2:"feud_started",setFlag:"feud_settled"}],
+   ["Geri adım atma",{health:-6,prestige:4,setFlag:"feud_bitter"}]
+  ]},
+
+ // AİLE / OCAK ZİNCİRİ
+ {id:"household_first_winter",cat:"Ocak",min:16,max:45,w:7,cool:18,once:true,req:"married",
+  text:"Evlendikten sonraki ilk sert kışta ocağınızın erzağı beklediğinizden hızlı azaldı.",choices:[
+   ["Servetten harca",{wealth:-5,happiness:4,setFlag:"household_proven"}],
+   ["Daha sıkı tasarruf yap",{health:-2,wealth:1}]
+  ]},
+ {id:"spouse_family_request",cat:"Ocak",min:18,max:60,w:5,cool:24,once:true,req:["married","flag:household_proven"],
+  text:"Eşinin ailesi zor bir dönemde senden destek istedi.",choices:[
+   ["Yardım gönder",{wealth:-6,prestige:4,happiness:3,setFlag:"inlaw_alliance"}],
+   ["Kendi ocağını önceliklendir",{happiness:-2,wealth:2}]
+  ]},
+ {id:"child_training_choice",cat:"Çocuk",min:24,max:70,w:7,cool:24,req:"hasChild",
+  text:"Çocuklarından biri artık hangi alanda yetişeceğini merak ediyor.",choices:[
+   ["At ve ok öğret",{happiness:3,prestige:2}],
+   ["Bir ustanın yanına gönder",{wealth:-2,skill:2}],
+   ["Kendi yolunu seçsin",{happiness:5}]
+  ]},
+
+ // SÜRÜ / SERVET ZİNCİRİ
+ {id:"herd_expansion",cat:"Servet",min:18,max:60,w:6,cool:24,once:true,req:"wealth40",
+  text:"Servetin büyüdü; daha büyük bir sürü kurma fırsatı çıktı.",choices:[
+   ["Sürüye yatırım yap",{wealth:-12,prestige:4,setFlag:"large_herd"}],
+   ["Serveti elde tut",{wealth:2}]
+  ]},
+ {id:"herd_disease",cat:"Sürü",min:18,max:65,w:7,cool:20,once:true,req:"flag:large_herd",
+  text:"Büyük sürünün bir bölümünde hastalık belirtileri görülüyor.",choices:[
+   ["Hasta hayvanları ayır",{wealth:-6,skill:3,setFlag:"herd_saved"}],
+   ["Bekleyip gözle",{wealth:-10,happiness:-3}]
+  ]},
+ {id:"herd_reputation",cat:"Servet",min:22,max:70,w:5,cool:24,once:true,req:"flag:herd_saved",
+  text:"Sürünü iyi yönetmen çevrede konuşulmaya başladı; başka aileler senden damızlık hayvan istiyor.",choices:[
+   ["Takas yap",{wealth:10,prestige:6,setFlag:"herd_master"}],
+   ["Sürüyü koru",{wealth:5,prestige:2}]
+  ]},
+
+ // SÜRGÜN / DÖNÜŞ ZİNCİRİ
+ {id:"exile_new_oath",cat:"Sürgün",min:16,max:70,w:10,cool:12,once:true,req:"exile",
+  text:"Sürgünde bulunduğun yerde yeni bir boy sana bağlılık sözü karşılığında koruma teklif ediyor.",choices:[
+   ["Yeni boya katıl",{happiness:5,prestige:2,clearExile:true,setFlag:"new_clan_oath"}],
+   ["Eski boyuna sadık kal",{happiness:-2,prestige:3,setFlag:"exile_loyal"}]
+  ]},
+ {id:"exile_return",cat:"Sürgün",min:18,max:75,w:8,cool:18,once:true,req:"flag:exile_loyal",
+  text:"Eski boyundan bir haberci geldi. Bazı büyükler dönüşüne artık karşı değil.",choices:[
+   ["Dönüş için tazminat öde",{wealth:-8,prestige:6,clearExile:true,clearFlag:"exile_loyal",setFlag:"returned_home"}],
+   ["Bir süre daha bekle",{prestige:2,happiness:-1}]
+  ]}
+]);
 function eventRequirementOK(ev){
- const r=ev.req;
- if(!r)return true;
- if(r==="single")return !s.partner&&!s.married;
- if(r==="hasChild")return (s.children||[]).some(x=>x.alive!==false);
- if(r==="hasAdultChild")return (s.children||[]).some(x=>x.alive!==false&&(x.age||0)>=16);
- if(r==="prestige20")return s.prestige>=20;
- if(r==="prestige30")return s.prestige>=30;
- if(r==="wealth40")return s.wealth>=40;
- if(r==="military")return s.military?.served||s.path==="military"||["Alp","Akıncı","Tarkan"].includes(s.role);
- if(r==="captive")return !!s.captive;
- if(r==="exile")return !!s.exile;
- return true;
+ const check=(r)=>{
+  if(!r)return true;
+  if(Array.isArray(r))return r.every(check);
+  if(r.startsWith("flag:"))return !!(s.flags||{})[r.slice(5)];
+  if(r.startsWith("notflag:"))return !(s.flags||{})[r.slice(8)];
+  if(r==="single")return !s.partner&&!s.married;
+  if(r==="married")return !!s.married;
+  if(r==="hasChild")return (s.children||[]).some(x=>x.alive!==false);
+  if(r==="hasAdultChild")return (s.children||[]).some(x=>x.alive!==false&&(x.age||0)>=16);
+  if(r==="prestige15")return s.prestige>=15;
+  if(r==="prestige20")return s.prestige>=20;
+  if(r==="prestige30")return s.prestige>=30;
+  if(r==="prestige35")return s.prestige>=35;
+  if(r==="wealth20")return s.wealth>=20;
+  if(r==="wealth30")return s.wealth>=30;
+  if(r==="wealth40")return s.wealth>=40;
+  if(r==="skill40")return s.skill>=40;
+  if(r==="skill45")return s.skill>=45;
+  if(r==="skill65")return s.skill>=65;
+  if(r==="military")return s.military?.served||s.path==="military"||["Alp","Akıncı","Tarkan"].includes(s.role);
+  if(r==="captive")return !!s.captive;
+  if(r==="exile")return !!s.exile;
+  return true;
+ };
+ return check(ev.req);
 }
 function eligibleContextEvents(){
  const hist=s.eventHistory||[], cd=s.eventCooldowns||{};
@@ -333,7 +500,13 @@ function applyEventChoice(extra={}){
  const effects={};
  for(const k of ["health","happiness","skill","prestige","wealth"])if(extra[k]!=null)effects[k]=extra[k];
  apply(effects);
+ s.flags=s.flags||{};
+ const setOne=k=>{if(k)s.flags[k]=true};
+ const clearOne=k=>{if(k)delete s.flags[k]};
+ if(Array.isArray(extra.setFlag))extra.setFlag.forEach(setOne);else setOne(extra.setFlag);
+ clearOne(extra.clearFlag);clearOne(extra.clearFlag2);
  if(extra.path)s.path=extra.path;
+ if(extra.setRole)s.role=extra.setRole;
  if(extra.wound){s.military=s.military||{called:false,served:false,campaigns:0,wounds:0};s.military.wounds=(s.military.wounds||0)+extra.wound}
  if(extra.clearExile)s.exile=false;
 }
@@ -342,7 +515,7 @@ function triggerContextEvent(force=false){
  if(!force&&Math.random()>.34)return false;
  const arr=eligibleContextEvents();if(!arr.length)return false;
  const ev=weightedPickEvents(arr);
- s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};
+ s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};s.eventArchive=s.eventArchive||[];s.flags=s.flags||{};
  if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);
  s.eventCooldowns[ev.id]=ev.cool||12;
  window._contextEvent=ev;
@@ -354,6 +527,9 @@ function triggerContextEvent(force=false){
 function chooseContextEvent(i){
  const ev=window._contextEvent;if(!ev)return;
  const ch=ev.choices[i];applyEventChoice(ch[1]||{});
+ s.eventArchive=s.eventArchive||[];
+ s.eventArchive.push({id:ev.id,cat:ev.cat,age:s.age,year:s.year+s.age,month:currentMonth(),choice:ch[0]});
+ if(s.eventArchive.length>300)s.eventArchive=s.eventArchive.slice(-300);
  log(`<b>${ev.cat}:</b> ${ev.text} <i>${ch[0]}</i>`,((ch[1]?.health||0)<0||(ch[1]?.happiness||0)<0)?"bad":"");
  $("eventModal").classList.remove("show");window._contextEvent=null;render();save();
 }
@@ -425,7 +601,7 @@ function newCharacter(base={}, inherit=false){
     monthsRemaining:base.monthsRemaining??12,
     health:base.health??rng(68,95), happiness:base.happiness??rng(60,92), skill:base.skill??rng(25,60), prestige:base.prestige??rng(5,25),
     wealth:base.wealth??rng(2,10), role:null, path:null, military:{called:false,served:false,campaigns:0,wounds:0},
-    captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{},
+    captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{}, eventArchive:base.eventArchive||[],
     parents:base.parents||[], siblings:base.siblings||[], friends:[], rivals:[],
     partner:null, married:false, children:base.children||[], timeline:[],
     legacy:base.legacy||{generation:1,familyName:base.tribe||"Boy",past:[]},
@@ -478,7 +654,11 @@ function statusText(){
  if(s.age<16)return "Yetişme çağı";
  return "Kendi yolunu arıyor";
 }
-function renderTimeline(){$("timeline").innerHTML=s.timeline.map(x=>`<div class="log ${x.type}"><b>${x.age} yaş:</b> ${x.text}</div>`).join("")}
+function renderTimeline(){
+ const active=Object.keys(s.flags||{}).filter(k=>!["feud_settled"].includes(k)).slice(0,5);
+ const trail=active.length?`<div class="log major"><b>Yaşam izleri:</b> ${active.map(k=>k.replaceAll("_"," ")).join(" • ")}</div>`:"";
+ $("timeline").innerHTML=trail+s.timeline.map(x=>`<div class="log ${x.type}"><b>${x.age} yaş:</b> ${x.text}</div>`).join("")
+}
 function showTab(n,el){document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["hayat","yetisme","gorev","aile","varlik","tore","soy"].forEach(x=>$("tab-"+x).classList.toggle("hidden",x!==n))}
 function ageUp(){
  if(!s||!s.alive)return;
@@ -700,7 +880,7 @@ function renderLegacy(){
  <h3>Geçmiş Yaşamlar</h3><div class="grid2">${s.legacy.past.map(x=>`<div class="card"><h3>${x.name}</h3><p>${x.age} yaş • ${x.role||"Görevsiz"} • ün ${x.prestige}</p></div>`).join("")}</div>`
 }
 function renderSide(){
- $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} yara<br>📜 ${(s.eventHistory||[]).length} önemli olay</p></div>`;
+ $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} yara<br>📜 ${(s.eventArchive||[]).length} seçimli olay<br>🧭 ${Object.keys(s.flags||{}).length} yaşam izi</p></div>`;
  $("sideRel").innerHTML=[...s.parents,...s.siblings].slice(0,5).map(r=>`<div class="card relation"><span>${r.name}</span><span class="badge">${r.rel}</span></div>`).join("");
  $("sideActions").innerHTML=`${s.captive?`<button class="sidebtn" onclick="captivityMonth()">⛓ Tutsaklıkta 1 Ay Geçir</button><button class="sidebtn" onclick="attemptEscape()">↗ Kaçmayı dene</button>`:""}<button class="sidebtn" onclick="addFriend()">🤝 Dost edin</button><button class="sidebtn" onclick="makeRival()">⚔ Rakip edin</button>`;
 }
