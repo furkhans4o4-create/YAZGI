@@ -130,7 +130,6 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
 
 <div class="modalwrap show" id="newModal"><div class="modal">
  <h2>Yeni Yazgı</h2>
- <div class="row"><label>Dönem / Kağanlık</label><select id="realm"></select></div>
  <div class="row"><label>Cinsiyet</label><select id="gender"><option value="male">Erkek</option><option value="female">Kadın</option></select></div>
  <div class="row"><label>Ad</label><input id="customName" placeholder="Boş bırakırsan rastgele"></div>
  <div class="mbuttons"><button class="mbtn primary" onclick="createLife()">Doğ</button></div>
@@ -592,7 +591,7 @@ function passOneMonth(){
 }
 
 function newCharacter(base={}, inherit=false){
-  const realm=base.realm||$("realm").value, g=base.gender||$("gender").value, cfg=D.realms[realm];
+  const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
@@ -609,7 +608,6 @@ function newCharacter(base={}, inherit=false){
   };
 }
 function init(){
- $("realm").innerHTML=Object.keys(D.realms).map(x=>`<option>${x}</option>`).join("");
  load();
 }
 function openNew(){$("newModal").classList.add("show")}
