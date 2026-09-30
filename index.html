@@ -37,7 +37,7 @@ button,input,select{font:inherit}
 .age{font-size:36px;font-weight:900;line-height:1}.age small{font-size:13px;color:var(--muted)}
 .agebtn{border:0;border-radius:12px;padding:13px 22px;background:var(--green);color:white;font-weight:900;cursor:pointer}
 .tabs{display:flex;gap:5px;flex-wrap:wrap;padding:9px}.tab{border:0;background:transparent;color:#6e624c;padding:9px 11px;border-radius:9px;cursor:pointer;font-weight:900;font-size:12px}
-.tab.active{background:#d8c79d;color:#2e281c}.content{padding:12px}
+.tab.active{background:#d8c79d;color:#2e281c}.tab:disabled{opacity:.38;cursor:not-allowed}.content{padding:12px}
 .timeline{display:flex;flex-direction:column;gap:8px;max-height:610px;overflow:auto;padding-right:4px}
 .log{background:#faf0d3;border-left:3px solid #a59060;border-radius:0 12px 12px 0;padding:10px 11px;font-size:13px;line-height:1.45}
 .log.good{border-color:#66865c}.log.bad{border-color:#a54b3c}.log.major{border-color:#b78a38;background:#fff3c9}
@@ -111,7 +111,7 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
      <button class="tab" onclick="showTab('gorev',this)">Görev</button>
      <button class="tab" onclick="showTab('aile',this)">Aile</button>
      <button class="tab" onclick="showTab('varlik',this)">Varlıklar</button>
-     <button class="tab" onclick="showTab('tore',this)">Töre</button>
+     <button class="tab" id="tabBtnTore" onclick="showTab('tore',this)">Töre</button>
      <button class="tab" onclick="showTab('soy',this)">Soy</button>
     </div>
     <div class="content">
@@ -707,6 +707,12 @@ function render(){
  ["riding","Binicilik"],["archery","Okçuluk"],["combat","Savaş"],["craft","Zanaat"],["literacy","Bitig"],["trade","Ticaret"]
  ].map(([k,n])=>`<div class="skillpill"><span>${n}</span><b>${s.skills[k]||0}</b></div>`).join("");
  $("ageBtn").disabled=!s.alive;$("ageBtn").style.opacity=s.alive?1:.45;$("profile").classList.toggle("dead",!s.alive);
+ const toreBtn=$("tabBtnTore");
+ if(toreBtn){
+   toreBtn.disabled=s.age<16;
+   toreBtn.title=s.age<16?"16 yaşında açılır":"";
+   toreBtn.textContent=s.age<16?"Töre 🔒":"Töre";
+ }
  renderTimeline();renderTraining();renderRole();renderFamily();renderAssets();renderTore();renderLegacy();renderSide();
 }
 function statusText(){
@@ -725,7 +731,12 @@ function renderTimeline(){
  const trail=active.length?`<div class="log major"><b>Yaşam izleri:</b> ${active.map(k=>k.replaceAll("_"," ")).join(" • ")}</div>`:"";
  $("timeline").innerHTML=trail+s.timeline.map(x=>`<div class="log ${x.type}"><b>${x.age} yaş:</b> ${x.text}</div>`).join("")
 }
-function showTab(n,el){document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));el.classList.add("active");["hayat","yetisme","gorev","aile","varlik","tore","soy"].forEach(x=>$("tab-"+x).classList.toggle("hidden",x!==n))}
+function showTab(n,el){
+ if(n==="tore"&&s&&s.age<16){alert("Töre dışı eylemler 16 yaşında açılır.");return}
+ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+ el.classList.add("active");
+ ["hayat","yetisme","gorev","aile","varlik","tore","soy"].forEach(x=>$("tab-"+x).classList.toggle("hidden",x!==n))
+}
 function ageUp(){
  if(!s||!s.alive)return;
  if((s.monthsRemaining??12)>0){
@@ -932,11 +943,16 @@ function renderAssets(){
 }
 function buyAsset(id){if(!canSpendMonth())return;let a=D.assets.find(x=>x.id===id);if(!a||s.assets.includes(id))return;if(s.wealth<a.cost)return alert("Yeterli servetin yok.");s.wealth-=a.cost;s.assets.push(id);apply({happiness:3});log(`${a.name} edindin.`,"good");spendMonth("Alım, hazırlık ve takas işleriyle bir ay geçti.")}
 function renderTore(){
+ if(s.age<16){
+   $("tab-tore").innerHTML=`<div class="card locked"><h3>🔒 Töre dışı eylemler kilitli</h3><p>Bu bölüm 16 yaşında açılır.</p></div>`;
+   return;
+ }
  $("tab-tore").innerHTML=`<div class="grid2">${D.crimes.map(c=>`<button class="card" onclick="commitCrime('${c.id}')"><h3>${c.name}</h3><p>Yakalanma riski ${(c.risk*100)|0}%</p></button>`).join("")}</div>
  <p class="note">Yakalanırsan tazminat, itibar kaybı, sürgün veya tutsaklık gibi sonuçlar doğabilir.</p>
  ${s.crimeRecord.length?`<h3>Kayıt</h3><div class="grid2">${s.crimeRecord.map(x=>`<div class="card"><h3>${x.name}</h3><p>${x.result}</p></div>`).join("")}</div>`:""}`
 }
 function commitCrime(id){
+ if(s.age<16){alert("Töre dışı eylemler 16 yaşında açılır.");return}
  let c=D.crimes.find(x=>x.id===id);if(!c||s.captive)return;
  if(!canSpendMonth())return;
  if(Math.random()<c.risk){
