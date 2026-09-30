@@ -45,6 +45,16 @@ button,input,select{font:inherit}
 .timeline{display:flex;flex-direction:column;gap:8px;max-height:610px;overflow:auto;padding-right:4px}
 .log{background:#faf0d3;border-left:3px solid #a59060;border-radius:0 12px 12px 0;padding:10px 11px;font-size:13px;line-height:1.45}
 .log.good{border-color:#66865c}.log.bad{border-color:#a54b3c}.log.major{border-color:#b78a38;background:#fff3c9}
+.eventBoard{display:grid;gap:10px;margin-bottom:10px}
+.eventCard{border:1px solid #bda56f;background:linear-gradient(135deg,#fff3cf,#ead7a7);border-radius:15px;padding:14px;box-shadow:0 8px 24px #4b37131a}
+.eventTop{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.eventTitle{font-size:17px;font-weight:900}.eventMeta{font-size:10px;color:#7a6747}
+.eventText{font-size:13px;line-height:1.5;margin:7px 0 11px}
+.eventChoices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.eventChoice{border:1px solid var(--line);background:#f9efd0;border-radius:11px;padding:11px;text-align:left;color:#282319;cursor:pointer;font-weight:800}
+.eventChoice:hover{background:#fff7df;transform:translateY(-1px)}
+.eventPendingNote{font-size:10px;color:#826d49;margin-top:9px}
+@media(max-width:700px){.eventChoices{grid-template-columns:1fr}}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .card{border:1px solid var(--line);background:#f9efd0;border-radius:12px;padding:11px;text-align:left;color:#282319}
 button.card{cursor:pointer}.card:hover{background:#fff5dc}.card h3{margin:0 0 4px;font-size:14px}.card p{margin:0;color:#74684f;font-size:11px;line-height:1.4}
@@ -121,7 +131,7 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
      <button class="tab" onclick="showTab('soy',this)">Soy</button>
     </div>
     <div class="content">
-     <div id="tab-hayat"><div class="timeline" id="timeline"></div></div>
+     <div id="tab-hayat"><div id="eventBoard"></div><div class="timeline" id="timeline"></div></div>
      <div id="tab-yetisme" class="hidden"></div><div id="tab-faaliyet" class="hidden"></div><div id="tab-gorev" class="hidden"></div><div id="tab-sefer" class="hidden"></div><div id="tab-aile" class="hidden"></div>
      <div id="tab-varlik" class="hidden"></div><div id="tab-tore" class="hidden"></div><div id="tab-soy" class="hidden"></div>
     </div>
@@ -142,8 +152,6 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
  <div class="row"><label>Ad</label><input id="customName" placeholder="Boş bırakırsan rastgele"></div>
  <div class="mbuttons"><button class="mbtn primary" onclick="createLife()">Doğ</button></div>
 </div></div>
-
-<div class="modalwrap" id="eventModal"><div class="modal"><h2>Hayat Olayı</h2><p id="eventText"></p><div id="eventChoices" class="grid2"></div></div></div>
 
 <div class="modalwrap" id="heirModal"><div class="modal">
  <h2>Yazgı Sona Erdi</h2><p id="heirText"></p><div id="heirChoices" class="grid2"></div>
@@ -566,6 +574,16 @@ function applyEventChoice(extra={}){
  if(extra.wound){s.military=s.military||{called:false,served:false,campaigns:0,wounds:0};s.military.wounds=(s.military.wounds||0)+extra.wound}
  if(extra.clearExile)s.exile=false;
 }
+function activeContextEvent(){
+ if(!s?.pendingEventId)return null;
+ return EVENT_DECK.find(e=>e.id===s.pendingEventId)||null;
+}
+function activateLifeTab(){
+ const first=document.querySelector(".tab");
+ document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+ if(first)first.classList.add("active");
+ ["hayat","yetisme","faaliyet","gorev","sefer","aile","varlik","tore","soy"].forEach(x=>$("tab-"+x)?.classList.toggle("hidden",x!=="hayat"));
+}
 function hasDirectAgency(ev){
  // 0-4 yaşta karakter karar vermez; aile/bakıcı kararları otomatik sonuçlanır.
  if(s.age<5)return false;
@@ -586,27 +604,30 @@ function triggerContextEvent(force=false){
  if(!force&&Math.random()>.34)return false;
  const arr=eligibleContextEvents();if(!arr.length)return false;
  const ev=weightedPickEvents(arr);
- s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};s.eventArchive=s.eventArchive||[];s.flags=s.flags||{};ensureSkills();ensureMilitary();
+ s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};s.pendingEventId=s.pendingEventId||null;
+ if(s.pendingEventId)window._contextEvent=EVENT_DECK.find(e=>e.id===s.pendingEventId)||null;s.eventArchive=s.eventArchive||[];s.flags=s.flags||{};ensureSkills();ensureMilitary();
  if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);
  s.eventCooldowns[ev.id]=ev.cool||12;
  if(!hasDirectAgency(ev)){
    resolveGuardianEvent(ev);
    return true;
  }
+ s.pendingEventId=ev.id;
  window._contextEvent=ev;
- $("eventText").innerHTML=`<span class="badge">${ev.cat}</span><br><br>${ev.text}`;
- $("eventChoices").innerHTML=ev.choices.map((ch,i)=>`<button class="card" onclick="chooseContextEvent(${i})"><h3>${ch[0]}</h3></button>`).join("");
- $("eventModal").classList.add("show");
+ activateLifeTab();
+ renderEventBoard();
+ save();
  return true;
 }
 function chooseContextEvent(i){
- const ev=window._contextEvent;if(!ev)return;
- const ch=ev.choices[i];applyEventChoice(ch[1]||{});
+ const ev=window._contextEvent||activeContextEvent();if(!ev)return;
+ const ch=ev.choices[i];if(!ch)return;
+ applyEventChoice(ch[1]||{});
  s.eventArchive=s.eventArchive||[];
  s.eventArchive.push({id:ev.id,cat:ev.cat,age:s.age,year:s.year+s.age,month:currentMonth(),choice:ch[0]});
  if(s.eventArchive.length>300)s.eventArchive=s.eventArchive.slice(-300);
  log(`<b>${ev.cat}:</b> ${ev.text} <i>${ch[0]}</i>`,((ch[1]?.health||0)<0||(ch[1]?.happiness||0)<0)?"bad":"");
- $("eventModal").classList.remove("show");window._contextEvent=null;render();save();
+ s.pendingEventId=null;window._contextEvent=null;render();save();
 }
 
 function mod(n,m){return ((n%m)+m)%m}
@@ -626,6 +647,11 @@ function currentMonth(){
 }
 function canSpendMonth(){
  if(!s||!s.alive)return false;
+ if(s.pendingEventId||window._choices){
+   alert("Önce Hayat sekmesindeki mevcut olayı/kararı çöz.");
+   activateLifeTab();
+   return false;
+ }
  if((s.monthsRemaining??12)<=0){
    alert("Bu yılın 12 ayını kullandın. Şimdi yaş atlaman gerekiyor.");
    return false;
@@ -682,7 +708,7 @@ function newCharacter(base={}, inherit=false){
     health:base.health??rng(68,95), happiness:base.happiness??rng(60,92), skill:base.skill??rng(25,60), prestige:base.prestige??rng(5,25),
     skills:base.skills||{riding:rng(0,8),archery:rng(0,6),combat:rng(0,5),craft:rng(0,5),literacy:0,speech:rng(0,5),trade:0},
     wealth:base.wealth??rng(2,10), role:null, path:null, military:base.military||{called:false,served:false,campaigns:0,wounds:0,active:false,dutyMonths:0,comrades:[]},
-    captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{}, eventArchive:base.eventArchive||[],
+    captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{}, eventArchive:base.eventArchive||[], pendingEventId:base.pendingEventId||null,
     parents:base.parents||[], siblings:base.siblings||[], friends:[], rivals:[],
     partner:null, married:false, children:base.children||[], timeline:[],
     legacy:base.legacy||{generation:1,familyName:base.tribe||"Boy",past:[]},
@@ -734,7 +760,7 @@ function render(){
  setTabLock("tabBtnSefer","sefer","Sefer");
  setTabLock("tabBtnVarlik","varlik","Varlıklar");
  setTabLock("tabBtnTore","tore","Töre");
- renderTimeline();renderTraining();renderActivities();renderRole();renderMilitary();renderFamily();renderAssets();renderTore();renderLegacy();renderSide();
+ renderEventBoard();renderTimeline();renderTraining();renderActivities();renderRole();renderMilitary();renderFamily();renderAssets();renderTore();renderLegacy();renderSide();
 }
 function statusText(){
  if(!s.alive)return "Hayatı sona erdi";
@@ -746,6 +772,18 @@ function statusText(){
  if(s.role)return s.role;
  if(s.age<16)return "Yetişme çağı";
  return "Kendi yolunu arıyor";
+}
+function renderEventBoard(){
+ const board=$("eventBoard");if(!board)return;
+ const ev=activeContextEvent();
+ if(!ev){board.innerHTML="";return}
+ board.innerHTML=`<div class="eventBoard"><div class="eventCard">
+  <div class="eventTop"><div class="eventTitle">Hayat Olayı</div><span class="badge">${ev.cat}</span></div>
+  <div class="eventMeta">${s.age} yaş • ${animalYearName(s.year+s.age)} Yılı • ${MONTH_LABELS[currentMonth()-1]}</div>
+  <div class="eventText">${ev.text}</div>
+  <div class="eventChoices">${ev.choices.map((ch,i)=>`<button class="eventChoice" onclick="chooseContextEvent(${i})">${ch[0]}</button>`).join("")}</div>
+  <div class="eventPendingNote">Bu olay çözülmeden yeni aya geçemezsin.</div>
+ </div></div>`;
 }
 function renderTimeline(){
  const active=Object.keys(s.flags||{}).filter(k=>!["feud_settled"].includes(k)).slice(0,5);
@@ -761,6 +799,7 @@ function showTab(n,el){
 }
 function ageUp(){
  if(!s||!s.alive)return;
+ if(s.pendingEventId||window._choices){alert("Önce Hayat sekmesindeki mevcut olayı/kararı çöz.");activateLifeTab();return}
  if((s.monthsRemaining??12)>0){
    alert(`Önce bu yılın kalan ${s.monthsRemaining} ayını geçir.`);
    return;
@@ -1101,14 +1140,24 @@ spendMonth("Kaçış planıyla bir ay geçti.")}
 function addFriend(){if(s.age<6){alert("Dost edinme 6 yaşında açılır.");return}if(!canSpendMonth())return;let cfg=D.realms[s.realm],g=Math.random()<.5?"male":"female";s.friends.push(normalizeNPC({name:pick(cfg[g]),rel:rng(50,80),type:"Dost",alive:true,gender:g,age:Math.max(8,s.age+rng(-4,4))},"Dost"));log("Yeni bir dost edindin.");spendMonth("Yeni dostluk kurmakla bir ay geçti.")}
 function makeRival(){if(s.age<10){alert("Rakip edinme 10 yaşında açılır.");return}if(!canSpendMonth())return;let cfg=D.realms[s.realm],g=Math.random()<.5?"male":"female";s.rivals.push(normalizeNPC({name:pick(cfg[g]),rel:rng(10,35),type:"Rakip",alive:true,gender:g,age:Math.max(8,s.age+rng(-4,4))},"Rakip"));log("Aranda husumet bulunan yeni bir rakibin oldu.","bad");spendMonth("Bu çekişmeyle bir ay geçti.")}
 function unlock(id){if(!s.achievements.includes(id)){s.achievements.push(id);let a=D.achievements.find(x=>x.id===id);if(a)log(`🏆 Ün kazandın: ${a.name}`,"good")}}
-function openDecision(text,choices,consumeMonth=false){$("eventText").textContent=text;window._choices=choices;window._decisionConsumesMonth=consumeMonth;$("eventChoices").innerHTML=choices.map((x,i)=>`<button class="card" onclick="chooseDecision(${i})"><h3>${x[0]}</h3></button>`).join("");$("eventModal").classList.add("show")}
+function openDecision(text,choices,consumeMonth=false){
+ window._choices=choices;window._decisionConsumesMonth=consumeMonth;window._systemDecisionText=text;
+ activateLifeTab();renderEventBoard();
+ const board=$("eventBoard");
+ if(board)board.innerHTML=`<div class="eventBoard"><div class="eventCard">
+   <div class="eventTop"><div class="eventTitle">Karar</div><span class="badge">Yaşam</span></div>
+   <div class="eventText">${text}</div>
+   <div class="eventChoices">${choices.map((x,i)=>`<button class="eventChoice" onclick="chooseDecision(${i})">${x[0]}</button>`).join("")}</div>
+   <div class="eventPendingNote">Bu karar verilmeden ilerleyemezsin.</div>
+ </div></div>`;
+}
 function chooseDecision(i){
- if(window._decisionConsumesMonth&&!canSpendMonth()){$("eventModal").classList.remove("show");return}
- let ch=window._choices[i];if(typeof ch[1]==="function")ch[1]();
- $("eventModal").classList.remove("show");
- if(window._decisionConsumesMonth)spendMonth("Verdiğin kararın sonuçlarıyla bir ay geçti.");
+ let ch=window._choices?.[i];if(!ch)return;
+ if(typeof ch[1]==="function")ch[1]();
+ window._choices=null;window._systemDecisionText=null;
+ const consume=!!window._decisionConsumesMonth;window._decisionConsumesMonth=false;
+ if(consume)spendMonth("Verdiğin kararın sonuçlarıyla bir ay geçti.");
  else{render();save()}
- window._decisionConsumesMonth=false;
 }
 function save(){if(s)localStorage.setItem("yazgi_full_v1",JSON.stringify(s))}
 function load(){try{let x=JSON.parse(localStorage.getItem("yazgi_full_v1"));if(x){
