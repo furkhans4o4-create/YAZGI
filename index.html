@@ -28,6 +28,10 @@ button,input,select{font:inherit}
 .quick{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}
 .qbtn,.sidebtn{border:1px solid var(--line);background:#f9efd0;border-radius:10px;padding:9px 7px;cursor:pointer;font-weight:800;color:#282319;font-size:11px}
 .qbtn:hover,.sidebtn:hover{background:#fff5db}
+.qbtn:disabled,.card.locked{opacity:.48;cursor:not-allowed;filter:grayscale(.25)}
+.lockline{font-size:10px;color:#8b6745;font-weight:800;margin-top:5px}
+.skillgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px}
+.skillpill{background:#e2d2a9;border:1px solid #c6b480;border-radius:8px;padding:6px 7px;font-size:10px;display:flex;justify-content:space-between}
 .main{display:flex;flex-direction:column;gap:12px}
 .hero{display:flex;justify-content:space-between;align-items:center;padding:16px 18px}
 .age{font-size:36px;font-weight:900;line-height:1}.age small{font-size:13px;color:var(--muted)}
@@ -85,10 +89,8 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
     <div class="stat"><span>🏹 Beceri</span><div class="bar"><div id="skillB" class="fill"></div></div><b id="skillV"></b></div>
     <div class="stat"><span>🐺 İtibar</span><div class="bar"><div id="prestigeB" class="fill"></div></div><b id="prestigeV"></b></div>
    </div>
-   <div class="quick">
-    <button class="qbtn" onclick="activity('at')">🐎 At Sür</button><button class="qbtn" onclick="activity('ok')">🏹 Ok At</button>
-    <button class="qbtn" onclick="activity('av')">🦌 Avlan</button><button class="qbtn" onclick="activity('toy')">🔥 Toya Katıl</button>
-   </div>
+   <div class="skillgrid" id="skillGrid"></div>
+   <div class="quick" id="quickActions"></div>
   </aside>
 
   <main class="main">
@@ -175,6 +177,37 @@ function normalizeNPC(n,type="Yakın"){
  n.partner=n.partner||null;n.children=n.children||0;
  return n;
 }
+
+const ACTION_RULES={
+ at:{age:5,label:"At Sür"}, ok:{age:7,label:"Ok At"}, av:{age:12,label:"Avlan"}, toy:{age:6,label:"Toya Katıl"},
+ horse:{age:5,label:"At Biniciliği"}, archery:{age:7,label:"Okçuluk"}, wrestling:{age:8,label:"Güreş"},
+ smith:{age:10,label:"Demircilik"}, bitig:{age:12,label:"Bitig / Yazı"}, story:{age:8,label:"Söz ve Destan"}
+};
+function actionUnlocked(id){const r=ACTION_RULES[id];return !r||s.age>=r.age}
+function actionLockText(id){const r=ACTION_RULES[id];return r&&s.age<r.age?`🔒 ${r.age} yaşında açılır`:""}
+function requireAction(id){
+ if(actionUnlocked(id))return true;
+ const r=ACTION_RULES[id];alert(`${r.label} için en az ${r.age} yaşında olmalısın.`);return false;
+}
+function ensureSkills(){
+ s.skills=s.skills||{};
+ for(const k of ["riding","archery","combat","craft","literacy","speech","trade"])if(s.skills[k]==null)s.skills[k]=Math.max(0,Math.floor((s.skill||0)/3));
+ return s.skills;
+}
+function skillGain(k,n){ensureSkills();s.skills[k]=clamp((s.skills[k]||0)+n)}
+function careerSpecialReq(r){
+ ensureSkills();
+ const map={
+  civil:["riding",Math.max(10,r.skill-20)],
+  craft:["craft",Math.max(15,r.skill-15)],
+  culture:["speech",Math.max(15,r.skill-15)],
+  trade:["trade",Math.max(15,r.skill-15)],
+  state:["literacy",Math.max(20,r.skill-12)],
+  military:["combat",Math.max(20,r.skill-10)]
+ };
+ return map[r.path]||["riding",0];
+}
+function skillName(k){return ({riding:"Binicilik",archery:"Okçuluk",combat:"Savaş",craft:"Zanaat",literacy:"Bitig",speech:"Söz",trade:"Ticaret"})[k]||k}
 let s=null;
 
 const TURK_YEAR_ANIMALS=[
@@ -505,6 +538,13 @@ function applyEventChoice(extra={}){
  if(Array.isArray(extra.setFlag))extra.setFlag.forEach(setOne);else setOne(extra.setFlag);
  clearOne(extra.clearFlag);clearOne(extra.clearFlag2);
  if(extra.path)s.path=extra.path;
+ if(extra.riding)skillGain("riding",extra.riding);
+ if(extra.archery)skillGain("archery",extra.archery);
+ if(extra.combat)skillGain("combat",extra.combat);
+ if(extra.craft)skillGain("craft",extra.craft);
+ if(extra.literacy)skillGain("literacy",extra.literacy);
+ if(extra.speech)skillGain("speech",extra.speech);
+ if(extra.trade)skillGain("trade",extra.trade);
  if(extra.setRole)s.role=extra.setRole;
  if(extra.wound){s.military=s.military||{called:false,served:false,campaigns:0,wounds:0};s.military.wounds=(s.military.wounds||0)+extra.wound}
  if(extra.clearExile)s.exile=false;
@@ -514,7 +554,7 @@ function triggerContextEvent(force=false){
  if(!force&&Math.random()>.34)return false;
  const arr=eligibleContextEvents();if(!arr.length)return false;
  const ev=weightedPickEvents(arr);
- s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};s.eventArchive=s.eventArchive||[];s.flags=s.flags||{};
+ s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};s.eventArchive=s.eventArchive||[];s.flags=s.flags||{};ensureSkills();
  if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);
  s.eventCooldowns[ev.id]=ev.cool||12;
  window._contextEvent=ev;
@@ -581,7 +621,7 @@ function monthlyTick(usedMonth){
  [...s.parents,...s.siblings,...s.friends,...s.rivals].forEach(r=>{
    if(r.alive && Math.random()<.35) r.rel=clamp(r.rel+rng(-1,1));
  });
- setTimeout(()=>triggerContextEvent(false),0);
+ setTimeout(()=>triggerContextEvent(true),0);
 }
 function passOneMonth(){
  if(!s||!s.alive)return;
@@ -599,6 +639,7 @@ function newCharacter(base={}, inherit=false){
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
     monthsRemaining:base.monthsRemaining??12,
     health:base.health??rng(68,95), happiness:base.happiness??rng(60,92), skill:base.skill??rng(25,60), prestige:base.prestige??rng(5,25),
+    skills:base.skills||{riding:rng(0,8),archery:rng(0,6),combat:rng(0,5),craft:rng(0,5),literacy:0,speech:rng(0,5),trade:0},
     wealth:base.wealth??rng(2,10), role:null, path:null, military:{called:false,served:false,campaigns:0,wounds:0},
     captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{}, eventArchive:base.eventArchive||[],
     parents:base.parents||[], siblings:base.siblings||[], friends:[], rivals:[],
@@ -637,8 +678,15 @@ function render(){
  $("monthRights").textContent=`${s.monthsRemaining??12}/12 ay hakkı`;
  $("ageBtn").textContent=(s.monthsRemaining??12)>0?"1 Ay Geçir":"+ 1 Yaş";
  $("wealth").textContent=`🐎 ${s.wealth} servet`;$("age").textContent=s.age;$("status").textContent=statusText();
+ ensureSkills();
+ $("quickActions").innerHTML=[
+   ["at","🐎 At Sür"],["ok","🏹 Ok At"],["av","🦌 Avlan"],["toy","🔥 Toya Katıl"]
+ ].map(([id,label])=>`<button class="qbtn" ${actionUnlocked(id)?"":'disabled'} onclick="activity('${id}')" title="${actionLockText(id)}">${label}${actionUnlocked(id)?"":`<div class="lockline">${actionLockText(id)}</div>`}</button>`).join("");
  $("avatar").textContent=!s.alive?"🪦":s.captive?"⛓️":s.age<5?"👶":s.age<14?"🧒":s.age<55?(s.gender==="male"?"🧔":"👩"):"🧓";
  ["health","happiness","skill","prestige"].forEach(k=>{$(`${k}B`).style.width=s[k]+"%";$(`${k}V`).textContent=s[k]});
+ $("skillGrid").innerHTML=[
+ ["riding","Binicilik"],["archery","Okçuluk"],["combat","Savaş"],["craft","Zanaat"],["literacy","Bitig"],["trade","Ticaret"]
+ ].map(([k,n])=>`<div class="skillpill"><span>${n}</span><b>${s.skills[k]||0}</b></div>`).join("");
  $("ageBtn").disabled=!s.alive;$("ageBtn").style.opacity=s.alive?1:.45;$("profile").classList.toggle("dead",!s.alive);
  renderTimeline();renderTraining();renderRole();renderFamily();renderAssets();renderTore();renderLegacy();renderSide();
 }
@@ -707,7 +755,7 @@ function captivityMonth(){
 }
 function randomEvent(){
  // Yaş atlama sırasında büyük bir bağlamsal olay çıkabilir.
- if(Math.random()<.55)triggerContextEvent(true);
+ if(Math.random()<.22)triggerContextEvent(true);
  if(s.military.served&&s.age<45&&Math.random()<.08){s.military.campaigns++;log("Kağanlık yeni bir sefere hazırlanıyor.","major");campaignResult()}
 }
 function relationTick(){
@@ -766,35 +814,52 @@ function continueAsHeir(i){
 }
 function activity(t){
  if(!s||!s.alive||s.captive)return;
- if(!canSpendMonth())return;
- if(t==="at"){apply({skill:3,happiness:2});log("At sürdün ve denge çalıştın.","good")}
- if(t==="ok"){apply({skill:4});log("Okçuluk çalıştın.","good")}
- if(t==="av"){if(Math.random()<.65){apply({skill:2,wealth:rng(1,3)});log("Avdan eli dolu döndün.","good")}else{apply({health:-2});log("Av verimsiz geçti.","bad")}}
- if(t==="toy"){apply({happiness:4,prestige:2});log("Toyda boydaşlarınla vakit geçirdin.","good")}
+ if(!requireAction(t)||!canSpendMonth())return;
+ if(t==="at"){apply({skill:2,happiness:2});skillGain("riding",rng(2,4));log("At sürdün ve denge çalıştın.","good")}
+ if(t==="ok"){apply({skill:2});skillGain("archery",rng(2,4));skillGain("combat",1);log("Okçuluk çalıştın.","good")}
+ if(t==="av"){if(Math.random()<.65){apply({skill:2,wealth:rng(1,3)});skillGain("archery",2);skillGain("riding",1);log("Avdan eli dolu döndün.","good")}else{apply({health:-2});skillGain("archery",1);log("Av verimsiz geçti.","bad")}}
+ if(t==="toy"){apply({happiness:4,prestige:2});skillGain("speech",1);log("Toyda boydaşlarınla vakit geçirdin.","good")}
  spendMonth("Kendine vakit ayırdın.");
+}
+function trainingCard(id,icon,title,desc){
+ const open=actionUnlocked(id);
+ return `<button class="card ${open?"":"locked"}" ${open?"":'disabled'} onclick="train('${id}')"><h3>${icon} ${title}</h3><p>${desc}</p>${open?"":`<div class="lockline">${actionLockText(id)}</div>`}</button>`;
 }
 function renderTraining(){
  $("tab-yetisme").innerHTML=`<div class="grid2">
- <button class="card" onclick="train('horse')"><h3>🐎 At Biniciliği</h3><p>Beceri ve sağlık.</p></button>
- <button class="card" onclick="train('archery')"><h3>🏹 Okçuluk</h3><p>Savaş ve av becerisi.</p></button>
- <button class="card" onclick="train('smith')"><h3>🔥 Demircilik</h3><p>Usta yanında öğren.</p></button>
- <button class="card" onclick="train('bitig')"><h3>𐱅 Bitig / Yazı</h3><p>Devlet hizmetine giden yol.</p></button>
- <button class="card" onclick="train('story')"><h3>🪕 Söz ve Destan</h3><p>Ozanlık ve itibar.</p></button>
- </div><p class="note">Modern okul sistemi yok; öğrenme aile, usta, savaşçı, ozan ve devlet hizmeti üzerinden ilerliyor.</p>`
+ ${trainingCard("horse","🐎","At Biniciliği","Binicilik seviyesini yükselt.")}
+ ${trainingCard("archery","🏹","Okçuluk","Okçuluk ve savaş becerisi.")}
+ ${trainingCard("wrestling","🤼","Güreş","Güç ve savaş tecrübesi.")}
+ ${trainingCard("smith","🔥","Demircilik","Zanaat seviyesini yükselt.")}
+ ${trainingCard("bitig","𐱅","Bitig / Yazı","Yazı ve devlet hizmeti için.")}
+ ${trainingCard("story","🪕","Söz ve Destan","Söz, itibar ve ozanlık yolu.")}
+ </div><p class="note">Her alan yaşla açılır. Bazı görevler yalnız yaş değil, ilgili beceri seviyesini de ister.</p>`
 }
 function train(t){
  if(s.captive)return;
- if(!canSpendMonth())return;
- if(t==="horse")apply({skill:3,health:1});if(t==="archery")apply({skill:4});if(t==="smith"){apply({skill:3,wealth:1});s.path="craft"}
- if(t==="bitig"){apply({skill:4,prestige:1});s.path="state"}if(t==="story"){apply({skill:2,prestige:3});s.path="culture"}
+ if(!requireAction(t)||!canSpendMonth())return;
+ if(t==="horse"){apply({skill:2,health:1});skillGain("riding",rng(3,5))}
+ if(t==="archery"){apply({skill:2});skillGain("archery",rng(3,5));skillGain("combat",1)}
+ if(t==="wrestling"){apply({health:2,skill:1});skillGain("combat",rng(3,5))}
+ if(t==="smith"){apply({skill:2,wealth:1});skillGain("craft",rng(3,5));s.path="craft"}
+ if(t==="bitig"){apply({skill:2,prestige:1});skillGain("literacy",rng(3,5));s.path="state"}
+ if(t==="story"){apply({skill:1,prestige:3});skillGain("speech",rng(3,5));s.path="culture"}
  log("Kendini geliştirmek için çalıştın.");spendMonth("Bir ayını eğitim ve talime ayırdın.");
 }
 function renderRole(){
- let ava=D.careers.filter(r=>s.age>=r.age&&s.skill>=r.skill-10);
- $("tab-gorev").innerHTML=`<div class="grid2">${s.role?`<div class="card"><h3>🐺 ${s.role}</h3><p>Mevcut görevin.</p></div>`:""}${ava.map(r=>`<button class="card" onclick="takeRole('${r.id}')"><h3>${r.name}</h3><p>Beceri ${r.skill} • İtibar +${r.prestige}</p></button>`).join("")}</div>`
+ ensureSkills();
+ $("tab-gorev").innerHTML=`<div class="grid2">${s.role?`<div class="card"><h3>🐺 ${s.role}</h3><p>Mevcut görevin.</p></div>`:""}${D.careers.map(r=>{
+   const [sk,need]=careerSpecialReq(r), open=s.age>=r.age&&s.skill>=r.skill-10&&(s.skills[sk]||0)>=need;
+   const req=`${r.age} yaş • Genel beceri ${Math.max(0,r.skill-10)} • ${skillName(sk)} ${need}`;
+   return `<button class="card ${open?"":"locked"}" ${open?"":'disabled'} onclick="takeRole('${r.id}')"><h3>${open?"":"🔒 "}${r.name}</h3><p>${open?"Başvurabilirsin.":req}</p></button>`;
+ }).join("")}</div>`
 }
 function takeRole(id){
  const r=D.careers.find(x=>x.id===id);if(!r||s.captive)return;
+ ensureSkills();const [sk,need]=careerSpecialReq(r);
+ if(s.age<r.age||s.skill<r.skill-10||(s.skills[sk]||0)<need){
+  alert(`${r.name} için gerekenler: ${r.age} yaş, genel beceri ${Math.max(0,r.skill-10)}, ${skillName(sk)} ${need}.`);return;
+ }
  if(!canSpendMonth())return;
  let chance=.42+(s.skill-r.skill)/100+s.prestige/250;if(s.path===r.path)chance+=.12;
  if(Math.random()<chance){s.role=r.name;s.path=r.path;apply({prestige:r.prestige,wealth:rng(r.wealth[0],r.wealth[1])});log(`${r.name} görevini üstlendin.`,"good");if(r.id==="bey")unlock("bey")}
