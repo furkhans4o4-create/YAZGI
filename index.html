@@ -45,16 +45,26 @@ button,input,select{font:inherit}
 .timeline{display:flex;flex-direction:column;gap:8px;max-height:610px;overflow:auto;padding-right:4px}
 .log{background:#faf0d3;border-left:3px solid #a59060;border-radius:0 12px 12px 0;padding:10px 11px;font-size:13px;line-height:1.45}
 .log.good{border-color:#66865c}.log.bad{border-color:#a54b3c}.log.major{border-color:#b78a38;background:#fff3c9}
-.eventBoard{display:grid;gap:10px;margin-bottom:10px}
-.eventCard{border:1px solid #bda56f;background:linear-gradient(135deg,#fff3cf,#ead7a7);border-radius:15px;padding:14px;box-shadow:0 8px 24px #4b37131a}
-.eventTop{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
-.eventTitle{font-size:17px;font-weight:900}.eventMeta{font-size:10px;color:#7a6747}
-.eventText{font-size:13px;line-height:1.5;margin:7px 0 11px}
-.eventChoices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.eventChoice{border:1px solid var(--line);background:#f9efd0;border-radius:11px;padding:11px;text-align:left;color:#282319;cursor:pointer;font-weight:800}
-.eventChoice:hover{background:#fff7df;transform:translateY(-1px)}
-.eventPendingNote{font-size:10px;color:#826d49;margin-top:9px}
-@media(max-width:700px){.eventChoices{grid-template-columns:1fr}}
+.eventBoard{display:grid;gap:10px;margin-bottom:12px}
+.swipeArena{position:relative;min-height:285px;display:grid;place-items:center;overflow:hidden;border-radius:16px;background:linear-gradient(180deg,#d9c79b55,#bda66d22)}
+.swipeCard{position:absolute;width:min(460px,76%);min-height:230px;border:1px solid #b79c61;background:linear-gradient(145deg,#fff2c8,#e5cf96);border-radius:18px;padding:18px;box-shadow:0 18px 35px #3c2c1638;cursor:grab;user-select:none;touch-action:none;transition:transform .22s ease,opacity .22s ease;z-index:3}
+.swipeCard.dragging{transition:none;cursor:grabbing}
+.swipeCard:before{content:"";position:absolute;inset:8px;border:1px solid #9f834955;border-radius:13px;pointer-events:none}
+.swipeTop{display:flex;justify-content:space-between;gap:10px;align-items:center;position:relative;z-index:1}
+.swipeTitle{font-size:18px;font-weight:900}
+.swipeMeta{font-size:10px;color:#786443;margin-top:5px}
+.swipeText{font-size:15px;line-height:1.5;margin:22px 2px 18px;position:relative;z-index:1}
+.swipeInstruction{text-align:center;font-size:10px;color:#7d6b4d;margin-top:7px}
+.swipeSide{position:absolute;top:50%;transform:translateY(-50%);width:150px;min-height:150px;border:1px dashed #b69d66;border-radius:14px;padding:12px;display:grid;place-items:center;text-align:center;font-size:12px;font-weight:900;color:#5f5039;opacity:.38;transition:opacity .12s,transform .12s;background:#fff4d055;cursor:pointer;z-index:1}
+.swipeSide.left{left:14px}.swipeSide.right{right:14px}
+.swipeSide.active{opacity:1;transform:translateY(-50%) scale(1.04)}
+.swipeArrow{display:block;font-size:25px;margin-bottom:6px}
+.swipeChoiceText{line-height:1.35}
+.swipeBadge{display:inline-block;padding:4px 7px;border-radius:999px;background:#d7c69a;color:#5e5037;font-size:10px;font-weight:900}
+.swipeLeftStamp,.swipeRightStamp{position:absolute;top:18px;font-size:18px;font-weight:900;padding:5px 9px;border:3px solid;border-radius:9px;opacity:0;z-index:5;pointer-events:none}
+.swipeLeftStamp{left:17px;color:#9b4a3f;border-color:#9b4a3f;transform:rotate(-9deg)}
+.swipeRightStamp{right:17px;color:#537452;border-color:#537452;transform:rotate(9deg)}
+@media(max-width:700px){.swipeArena{min-height:330px}.swipeCard{width:78%;min-height:250px;padding:15px}.swipeSide{width:92px;min-height:130px;font-size:10px}.swipeSide.left{left:5px}.swipeSide.right{right:5px}.swipeText{font-size:14px}}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .card{border:1px solid var(--line);background:#f9efd0;border-radius:12px;padding:11px;text-align:left;color:#282319}
 button.card{cursor:pointer}.card:hover{background:#fff5dc}.card h3{margin:0 0 4px;font-size:14px}.card p{margin:0;color:#74684f;font-size:11px;line-height:1.4}
@@ -773,18 +783,68 @@ function statusText(){
  if(s.age<16)return "Yetişme çağı";
  return "Kendi yolunu arıyor";
 }
+function currentDecisionPayload(){
+ const ev=activeContextEvent();
+ if(ev)return {kind:"event",cat:ev.cat,title:"Hayat Olayı",text:ev.text,choices:ev.choices};
+ if(window._choices&&window._systemDecisionText)return {kind:"system",cat:"Karar",title:"Yazgı Kararı",text:window._systemDecisionText,choices:window._choices};
+ return null;
+}
 function renderEventBoard(){
  const board=$("eventBoard");if(!board)return;
- const ev=activeContextEvent();
- if(!ev){board.innerHTML="";return}
- board.innerHTML=`<div class="eventBoard"><div class="eventCard">
-  <div class="eventTop"><div class="eventTitle">Hayat Olayı</div><span class="badge">${ev.cat}</span></div>
-  <div class="eventMeta">${s.age} yaş • ${animalYearName(s.year+s.age)} Yılı • ${MONTH_LABELS[currentMonth()-1]}</div>
-  <div class="eventText">${ev.text}</div>
-  <div class="eventChoices">${ev.choices.map((ch,i)=>`<button class="eventChoice" onclick="chooseContextEvent(${i})">${ch[0]}</button>`).join("")}</div>
-  <div class="eventPendingNote">Bu olay çözülmeden yeni aya geçemezsin.</div>
+ const p=currentDecisionPayload();
+ if(!p){board.innerHTML="";return}
+ const choices=p.choices||[];
+ if(choices.length<2){board.innerHTML="";return}
+ board.innerHTML=`<div class="eventBoard"><div class="swipeArena" id="swipeArena">
+   <div class="swipeSide left" id="swipeLeft" onclick="finishSwipeChoice(0)"><div><span class="swipeArrow">←</span><span class="swipeChoiceText">${choices[0][0]}</span></div></div>
+   <div class="swipeSide right" id="swipeRight" onclick="finishSwipeChoice(1)"><div><span class="swipeArrow">→</span><span class="swipeChoiceText">${choices[1][0]}</span></div></div>
+   <div class="swipeCard" id="swipeCard">
+     <div class="swipeLeftStamp" id="swipeLeftStamp">← ${choices[0][0]}</div>
+     <div class="swipeRightStamp" id="swipeRightStamp">${choices[1][0]} →</div>
+     <div class="swipeTop"><div class="swipeTitle">${p.title}</div><span class="swipeBadge">${p.cat}</span></div>
+     <div class="swipeMeta">${s.age} yaş • ${animalYearName(s.year+s.age)} Yılı • ${MONTH_LABELS[currentMonth()-1]}</div>
+     <div class="swipeText">${p.text}</div>
+     <div class="swipeInstruction">Kartı sola veya sağa sürükle • İstersen kenardaki seçeneğe tıkla</div>
+   </div>
  </div></div>`;
+ setupSwipeCard();
 }
+function setupSwipeCard(){
+ const card=$("swipeCard");if(!card)return;
+ let startX=0,dx=0,drag=false;
+ const left=$("swipeLeft"),right=$("swipeRight"),ls=$("swipeLeftStamp"),rs=$("swipeRightStamp");
+ const paint=()=>{
+   const rot=dx/22;card.style.transform=`translateX(${dx}px) rotate(${rot}deg)`;
+   const strength=Math.min(1,Math.abs(dx)/110);
+   if(dx<0){left?.classList.toggle("active",strength>.25);right?.classList.remove("active");if(ls)ls.style.opacity=String(strength);if(rs)rs.style.opacity="0"}
+   else if(dx>0){right?.classList.toggle("active",strength>.25);left?.classList.remove("active");if(rs)rs.style.opacity=String(strength);if(ls)ls.style.opacity="0"}
+   else{left?.classList.remove("active");right?.classList.remove("active");if(ls)ls.style.opacity="0";if(rs)rs.style.opacity="0"}
+ };
+ card.onpointerdown=e=>{drag=true;startX=e.clientX;dx=0;card.classList.add("dragging");card.setPointerCapture?.(e.pointerId)};
+ card.onpointermove=e=>{if(!drag)return;dx=e.clientX-startX;paint()};
+ card.onpointerup=e=>{
+   if(!drag)return;drag=false;card.classList.remove("dragging");
+   if(Math.abs(dx)>=85){const idx=dx<0?0:1;animateSwipeOut(idx)}
+   else{dx=0;paint();card.style.transform=""}
+ };
+ card.onpointercancel=()=>{drag=false;dx=0;card.classList.remove("dragging");card.style.transform=""};
+}
+function animateSwipeOut(index){
+ const card=$("swipeCard");if(!card)return finishSwipeChoice(index);
+ card.classList.remove("dragging");
+ card.style.transform=`translateX(${index===0?-700:700}px) rotate(${index===0?-25:25}deg)`;
+ card.style.opacity="0";
+ setTimeout(()=>finishSwipeChoice(index),180);
+}
+function finishSwipeChoice(index){
+ const p=currentDecisionPayload();if(!p)return;
+ if(p.kind==="event")chooseContextEvent(index);else chooseDecision(index);
+}
+document.addEventListener("keydown",e=>{
+ if(!currentDecisionPayload())return;
+ if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a"){e.preventDefault();animateSwipeOut(0)}
+ if(e.key==="ArrowRight"||e.key.toLowerCase()==="d"){e.preventDefault();animateSwipeOut(1)}
+});
 function renderTimeline(){
  const active=Object.keys(s.flags||{}).filter(k=>!["feud_settled"].includes(k)).slice(0,5);
  const trail=active.length?`<div class="log major"><b>Yaşam izleri:</b> ${active.map(k=>k.replaceAll("_"," ")).join(" • ")}</div>`:"";
@@ -1142,14 +1202,7 @@ function makeRival(){if(s.age<10){alert("Rakip edinme 10 yaşında açılır.");
 function unlock(id){if(!s.achievements.includes(id)){s.achievements.push(id);let a=D.achievements.find(x=>x.id===id);if(a)log(`🏆 Ün kazandın: ${a.name}`,"good")}}
 function openDecision(text,choices,consumeMonth=false){
  window._choices=choices;window._decisionConsumesMonth=consumeMonth;window._systemDecisionText=text;
- activateLifeTab();renderEventBoard();
- const board=$("eventBoard");
- if(board)board.innerHTML=`<div class="eventBoard"><div class="eventCard">
-   <div class="eventTop"><div class="eventTitle">Karar</div><span class="badge">Yaşam</span></div>
-   <div class="eventText">${text}</div>
-   <div class="eventChoices">${choices.map((x,i)=>`<button class="eventChoice" onclick="chooseDecision(${i})">${x[0]}</button>`).join("")}</div>
-   <div class="eventPendingNote">Bu karar verilmeden ilerleyemezsin.</div>
- </div></div>`;
+ activateLifeTab();renderEventBoard();save();
 }
 function chooseDecision(i){
  let ch=window._choices?.[i];if(!ch)return;
