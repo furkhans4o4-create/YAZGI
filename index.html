@@ -219,11 +219,11 @@ const MONTH_LABELS=[
  "7. Ay","8. Ay","9. Ay","10. Ay","11. Ay","12. Ay"
 ];
 const EVENT_DECK=[
- {id:"baby_fever",cat:"Sağlık",min:0,max:3,w:5,cool:24,text:"Gece ateşin yükseldi. Ailen başında bekliyor.",choices:[
-   ["Sıcak tutul ve dinlen",{health:4,happiness:1}],["Otacı çağrılsın",{health:7,wealth:-2}]
+ {id:"baby_fever",cat:"Sağlık",min:0,max:3,w:5,cool:24,agency:"guardian",text:"Gece ateşin yükseldi. Ailen başında bekliyor.",choices:[
+   ["Seni sıcak tutup dinlendirdi",{health:4,happiness:1}],["Otacı çağırdı",{health:7,wealth:-2}]
  ]},
- {id:"first_steps",cat:"Çocukluk",min:1,max:3,w:7,once:true,text:"Çadırın önünde ilk kez tek başına birkaç adım attın.",choices:[
-   ["Ailene doğru yürü",{happiness:5,prestige:1}],["Etrafı keşfet",{skill:2,happiness:3}]
+ {id:"first_steps",cat:"Çocukluk",min:1,max:3,w:7,once:true,agency:"guardian",text:"Çadırın önünde ilk kez tek başına birkaç adım attın.",choices:[
+   ["Ailen seni cesaretlendirdi",{happiness:5,prestige:1}],["Ailen seni dikkatle izledi",{skill:2,happiness:3}]
  ]},
  {id:"foal_friend",cat:"Çocukluk",min:4,max:9,w:6,once:true,text:"Obada yeni doğmuş bir tay sana alıştı.",choices:[
    ["Onunla ilgilen",{skill:3,happiness:5}],["Büyüklerin yanında izle",{skill:2}]
@@ -549,6 +549,21 @@ function applyEventChoice(extra={}){
  if(extra.wound){s.military=s.military||{called:false,served:false,campaigns:0,wounds:0};s.military.wounds=(s.military.wounds||0)+extra.wound}
  if(extra.clearExile)s.exile=false;
 }
+function hasDirectAgency(ev){
+ // 0-4 yaşta karakter karar vermez; aile/bakıcı kararları otomatik sonuçlanır.
+ if(s.age<5)return false;
+ if(ev.agency==="guardian")return false;
+ return true;
+}
+function resolveGuardianEvent(ev){
+ const ch=pick(ev.choices);
+ applyEventChoice(ch[1]||{});
+ s.eventArchive=s.eventArchive||[];
+ s.eventArchive.push({id:ev.id,cat:ev.cat,age:s.age,year:s.year+s.age,month:currentMonth(),choice:ch[0],actor:"family"});
+ if(s.eventArchive.length>300)s.eventArchive=s.eventArchive.slice(-300);
+ log(`<b>${ev.cat}:</b> ${ev.text} <i>Ailen/bakıcıların: ${ch[0]}</i>`,((ch[1]?.health||0)<0||(ch[1]?.happiness||0)<0)?"bad":"");
+ render();save();
+}
 function triggerContextEvent(force=false){
  if(!s||!s.alive)return false;
  if(!force&&Math.random()>.34)return false;
@@ -557,6 +572,10 @@ function triggerContextEvent(force=false){
  s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};s.eventArchive=s.eventArchive||[];s.flags=s.flags||{};ensureSkills();
  if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);
  s.eventCooldowns[ev.id]=ev.cool||12;
+ if(!hasDirectAgency(ev)){
+   resolveGuardianEvent(ev);
+   return true;
+ }
  window._contextEvent=ev;
  $("eventText").innerHTML=`<span class="badge">${ev.cat}</span><br><br>${ev.text}`;
  $("eventChoices").innerHTML=ev.choices.map((ch,i)=>`<button class="card" onclick="chooseContextEvent(${i})"><h3>${ch[0]}</h3></button>`).join("");
@@ -694,6 +713,7 @@ function statusText(){
  if(!s.alive)return "Hayatı sona erdi";
  if(s.captive)return "Tutsak";
  if(s.exile)return "Sürgünde";
+ if(s.age<5)return "Ailenin bakımında";
  if(s.age<7)return "Obada çocukluk";
  if(s.age<12)return "Oba işlerini öğreniyor";
  if(s.role)return s.role;
