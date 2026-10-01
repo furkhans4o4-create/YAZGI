@@ -47,7 +47,7 @@ button,input,select{font:inherit}
 .log.good{border-color:#66865c}.log.bad{border-color:#a54b3c}.log.major{border-color:#b78a38;background:#fff3c9}
 .eventBoard{display:grid;gap:10px;margin-bottom:12px}
 .swipeArena{position:relative;min-height:285px;display:grid;place-items:center;overflow:hidden;border-radius:16px;background:linear-gradient(180deg,#d9c79b55,#bda66d22)}
-.swipeCard{position:absolute;width:min(460px,76%);min-height:230px;border:1px solid #b79c61;background:linear-gradient(145deg,#fff2c8,#e5cf96);border-radius:18px;padding:18px;box-shadow:0 18px 35px #3c2c1638;cursor:grab;user-select:none;touch-action:none;transition:transform .22s ease,opacity .22s ease;z-index:3}
+.swipeCard{position:absolute;width:min(420px,64%);min-height:230px;border:1px solid #b79c61;background:linear-gradient(145deg,#fff2c8,#e5cf96);border-radius:18px;padding:18px;box-shadow:0 18px 35px #3c2c1638;cursor:grab;user-select:none;touch-action:none;transition:transform .22s ease,opacity .22s ease;z-index:3}
 .swipeCard.dragging{transition:none;cursor:grabbing}
 .swipeCard:before{content:"";position:absolute;inset:8px;border:1px solid #9f834955;border-radius:13px;pointer-events:none}
 .swipeTop{display:flex;justify-content:space-between;gap:10px;align-items:center;position:relative;z-index:1}
@@ -55,8 +55,8 @@ button,input,select{font:inherit}
 .swipeMeta{font-size:10px;color:#786443;margin-top:5px}
 .swipeText{font-size:15px;line-height:1.5;margin:22px 2px 18px;position:relative;z-index:1}
 .swipeInstruction{text-align:center;font-size:10px;color:#7d6b4d;margin-top:7px}
-.swipeSide{position:absolute;top:50%;transform:translateY(-50%);width:150px;min-height:150px;border:1px dashed #b69d66;border-radius:14px;padding:12px;display:grid;place-items:center;text-align:center;font-size:12px;font-weight:900;color:#5f5039;opacity:.38;transition:opacity .12s,transform .12s;background:#fff4d055;cursor:pointer;z-index:1}
-.swipeSide.left{left:14px}.swipeSide.right{right:14px}
+.swipeSide{position:absolute;top:50%;transform:translateY(-50%);width:17%;min-height:150px;border:1px dashed #b69d66;border-radius:14px;padding:12px;display:grid;place-items:center;text-align:center;font-size:12px;font-weight:900;color:#5f5039;opacity:.38;transition:opacity .12s,transform .12s;background:#fff4d055;cursor:pointer;z-index:1}
+.swipeSide.left{left:4px}.swipeSide.right{right:4px}
 .swipeSide.active{opacity:1;transform:translateY(-50%) scale(1.04)}
 .swipeArrow{display:block;font-size:25px;margin-bottom:6px}
 .swipeChoiceText{line-height:1.35}
@@ -64,7 +64,7 @@ button,input,select{font:inherit}
 .swipeLeftStamp,.swipeRightStamp{position:absolute;top:18px;font-size:18px;font-weight:900;padding:5px 9px;border:3px solid;border-radius:9px;opacity:0;z-index:5;pointer-events:none}
 .swipeLeftStamp{left:17px;color:#9b4a3f;border-color:#9b4a3f;transform:rotate(-9deg)}
 .swipeRightStamp{right:17px;color:#537452;border-color:#537452;transform:rotate(9deg)}
-@media(max-width:700px){.swipeArena{min-height:330px}.swipeCard{width:78%;min-height:250px;padding:15px}.swipeSide{width:92px;min-height:130px;font-size:10px}.swipeSide.left{left:5px}.swipeSide.right{right:5px}.swipeText{font-size:14px}}
+@media(max-width:700px){.swipeArena{min-height:330px}.swipeCard{width:64%;min-height:250px;padding:15px}.swipeSide{width:17%;min-height:130px;font-size:10px}.swipeSide.left{left:5px}.swipeSide.right{right:5px}.swipeText{font-size:14px}}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .card{border:1px solid var(--line);background:#f9efd0;border-radius:12px;padding:11px;text-align:left;color:#282319}
 button.card{cursor:pointer}.card:hover{background:#fff5dc}.card h3{margin:0 0 4px;font-size:14px}.card p{margin:0;color:#74684f;font-size:11px;line-height:1.4}
@@ -141,7 +141,7 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
      <button class="tab" onclick="showTab('soy',this)">Soy</button>
     </div>
     <div class="content">
-     <div id="tab-hayat"><div id="eventBoard"></div><div class="timeline" id="timeline"></div></div>
+     <p id="gameNotice" class="note" role="status" aria-live="polite"></p><div id="tab-hayat"><div id="lifeCare"></div><div id="eventBoard"></div><div class="timeline" id="timeline"></div></div>
      <div id="tab-yetisme" class="hidden"></div><div id="tab-faaliyet" class="hidden"></div><div id="tab-gorev" class="hidden"></div><div id="tab-sefer" class="hidden"></div><div id="tab-aile" class="hidden"></div>
      <div id="tab-varlik" class="hidden"></div><div id="tab-tore" class="hidden"></div><div id="tab-soy" class="hidden"></div>
     </div>
@@ -182,7 +182,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const npcRole=age=>{
  if(age<8)return "Çocuk";
  if(age<12)return pick(["Oba işlerine yardım ediyor","Sürü yanında yetişiyor"]);
- if(age<16)return pick(["At binmeyi öğreniyor","Okçuluk öğreniyor","Usta yanında yetişiyor"]);
+ if(age<18)return pick(["At binmeyi öğreniyor","Okçuluk öğreniyor","Usta yanında yetişiyor"]);
  return pick(["Çoban","Avcı","At Bakıcısı","Demirci","Tüccar","Ozan","Alp"]);
 };
 function npcDeathRisk(n){
@@ -192,24 +192,14 @@ function npcDeathRisk(n){
  if((n.health??80)<30)r+=.04;
  return Math.min(.35,r);
 }
-function normalizeNPC(n,type="Yakın"){
- if(!n)return n;
- n.type=n.type||type;n.alive=n.alive!==false;n.rel=n.rel??60;
- n.age=n.age??rng(type==="Ana"||type==="Ata"?28:8, type==="Ana"||type==="Ata"?42:24);
- n.health=n.health??rng(60,95);n.role=n.role||npcRole(n.age);
- n.gender=n.gender||((type==="Ana"||type==="Kız kardeş")?"female":(type==="Ata"||type==="Erkek kardeş")?"male":(Math.random()<.5?"male":"female"));
- n.partner=n.partner||null;n.children=n.children||0;
- return n;
-}
-
 const ACTION_RULES={
  at:{age:5,label:"At Sür"}, ok:{age:7,label:"Ok At"}, av:{age:12,label:"Avlan"}, toy:{age:6,label:"Toya Katıl"},
  horse:{age:5,label:"At Biniciliği"}, archery:{age:7,label:"Okçuluk"}, wrestling:{age:8,label:"Güreş"},
  smith:{age:10,label:"Demircilik"}, bitig:{age:12,label:"Bitig / Yazı"}, story:{age:8,label:"Söz ve Destan"}
 };
-function actionUnlocked(id){const r=ACTION_RULES[id];return !r||s.age>=r.age}
+function actionUnlocked(id){const r=ACTION_RULES[id];return !!r&&s.age>=r.age}
 function tabMinAge(n){
- return ({faaliyet:5,gorev:10,sefer:16,varlik:12,tore:16})[n]||0;
+ return ({faaliyet:5,gorev:10,sefer:18,varlik:12,tore:18})[n]||0;
 }
 function tabUnlocked(n){return !s||s.age>=tabMinAge(n)}
 function setTabLock(id,n,label){
@@ -517,42 +507,6 @@ EVENT_DECK.push(...[
    ["Bir süre daha bekle",{prestige:2,happiness:-1}]
   ]}
 ]);
-function eventRequirementOK(ev){
- const check=(r)=>{
-  if(!r)return true;
-  if(Array.isArray(r))return r.every(check);
-  if(r.startsWith("flag:"))return !!(s.flags||{})[r.slice(5)];
-  if(r.startsWith("notflag:"))return !(s.flags||{})[r.slice(8)];
-  if(r==="single")return !s.partner&&!s.married;
-  if(r==="married")return !!s.married;
-  if(r==="hasChild")return (s.children||[]).some(x=>x.alive!==false);
-  if(r==="hasAdultChild")return (s.children||[]).some(x=>x.alive!==false&&(x.age||0)>=16);
-  if(r==="prestige15")return s.prestige>=15;
-  if(r==="prestige20")return s.prestige>=20;
-  if(r==="prestige30")return s.prestige>=30;
-  if(r==="prestige35")return s.prestige>=35;
-  if(r==="wealth20")return s.wealth>=20;
-  if(r==="wealth30")return s.wealth>=30;
-  if(r==="wealth40")return s.wealth>=40;
-  if(r==="skill40")return s.skill>=40;
-  if(r==="skill45")return s.skill>=45;
-  if(r==="skill65")return s.skill>=65;
-  if(r==="military")return s.military?.served||s.path==="military"||["Alp","Akıncı","Tarkan"].includes(s.role);
-  if(r==="captive")return !!s.captive;
-  if(r==="exile")return !!s.exile;
-  return true;
- };
- return check(ev.req);
-}
-function eligibleContextEvents(){
- const hist=s.eventHistory||[], cd=s.eventCooldowns||{};
- return EVENT_DECK.filter(ev=>{
-   if(s.age<ev.min||s.age>ev.max)return false;
-   if(ev.once&&hist.includes(ev.id))return false;
-   if((cd[ev.id]||0)>0)return false;
-   return eventRequirementOK(ev);
- });
-}
 function weightedPickEvents(arr){
  const total=arr.reduce((a,e)=>a+(e.w||1),0);
  let roll=Math.random()*total;
@@ -562,27 +516,6 @@ function weightedPickEvents(arr){
 function tickEventCooldowns(){
  s.eventCooldowns=s.eventCooldowns||{};
  for(const k of Object.keys(s.eventCooldowns))s.eventCooldowns[k]=Math.max(0,s.eventCooldowns[k]-1);
-}
-function applyEventChoice(extra={}){
- const effects={};
- for(const k of ["health","happiness","skill","prestige","wealth"])if(extra[k]!=null)effects[k]=extra[k];
- apply(effects);
- s.flags=s.flags||{};
- const setOne=k=>{if(k)s.flags[k]=true};
- const clearOne=k=>{if(k)delete s.flags[k]};
- if(Array.isArray(extra.setFlag))extra.setFlag.forEach(setOne);else setOne(extra.setFlag);
- clearOne(extra.clearFlag);clearOne(extra.clearFlag2);
- if(extra.path)s.path=extra.path;
- if(extra.riding)skillGain("riding",extra.riding);
- if(extra.archery)skillGain("archery",extra.archery);
- if(extra.combat)skillGain("combat",extra.combat);
- if(extra.craft)skillGain("craft",extra.craft);
- if(extra.literacy)skillGain("literacy",extra.literacy);
- if(extra.speech)skillGain("speech",extra.speech);
- if(extra.trade)skillGain("trade",extra.trade);
- if(extra.setRole)s.role=extra.setRole;
- if(extra.wound){s.military=s.military||{called:false,served:false,campaigns:0,wounds:0};s.military.wounds=(s.military.wounds||0)+extra.wound}
- if(extra.clearExile)s.exile=false;
 }
 function activeContextEvent(){
  if(!s?.pendingEventId)return null;
@@ -594,52 +527,6 @@ function activateLifeTab(){
  if(first)first.classList.add("active");
  ["hayat","yetisme","faaliyet","gorev","sefer","aile","varlik","tore","soy"].forEach(x=>$("tab-"+x)?.classList.toggle("hidden",x!=="hayat"));
 }
-function hasDirectAgency(ev){
- // 0-4 yaşta karakter karar vermez; aile/bakıcı kararları otomatik sonuçlanır.
- if(s.age<5)return false;
- if(ev.agency==="guardian")return false;
- return true;
-}
-function resolveGuardianEvent(ev){
- const ch=pick(ev.choices);
- applyEventChoice(ch[1]||{});
- s.eventArchive=s.eventArchive||[];
- s.eventArchive.push({id:ev.id,cat:ev.cat,age:s.age,year:s.year+s.age,month:currentMonth(),choice:ch[0],actor:"family"});
- if(s.eventArchive.length>300)s.eventArchive=s.eventArchive.slice(-300);
- log(`<b>${ev.cat}:</b> ${ev.text} <i>Ailen/bakıcıların: ${ch[0]}</i>`,((ch[1]?.health||0)<0||(ch[1]?.happiness||0)<0)?"bad":"");
- render();save();
-}
-function triggerContextEvent(force=false){
- if(!s||!s.alive)return false;
- if(!force&&Math.random()>.34)return false;
- const arr=eligibleContextEvents();if(!arr.length)return false;
- const ev=weightedPickEvents(arr);
- s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};s.pendingEventId=s.pendingEventId||null;
- if(s.pendingEventId)window._contextEvent=EVENT_DECK.find(e=>e.id===s.pendingEventId)||null;s.eventArchive=s.eventArchive||[];s.flags=s.flags||{};ensureSkills();ensureMilitary();
- if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);
- s.eventCooldowns[ev.id]=ev.cool||12;
- if(!hasDirectAgency(ev)){
-   resolveGuardianEvent(ev);
-   return true;
- }
- s.pendingEventId=ev.id;
- window._contextEvent=ev;
- activateLifeTab();
- renderEventBoard();
- save();
- return true;
-}
-function chooseContextEvent(i){
- const ev=window._contextEvent||activeContextEvent();if(!ev)return;
- const ch=ev.choices[i];if(!ch)return;
- applyEventChoice(ch[1]||{});
- s.eventArchive=s.eventArchive||[];
- s.eventArchive.push({id:ev.id,cat:ev.cat,age:s.age,year:s.year+s.age,month:currentMonth(),choice:ch[0]});
- if(s.eventArchive.length>300)s.eventArchive=s.eventArchive.slice(-300);
- log(`<b>${ev.cat}:</b> ${ev.text} <i>${ch[0]}</i>`,((ch[1]?.health||0)<0||(ch[1]?.happiness||0)<0)?"bad":"");
- s.pendingEventId=null;window._contextEvent=null;render();save();
-}
-
 function mod(n,m){return ((n%m)+m)%m}
 // Kül Tigin'in 731'deki ölümü "Kon/Koyun yılı" olarak kaydedilmiştir.
 // Bu tarih oyun içindeki hayvan-yılı döngüsüne tarihsel çapa olarak kullanılır.
@@ -653,64 +540,15 @@ function seasonForMonth(m){
 }
 function currentMonth(){
  if(!s)return 1;
+ if(s.pendingEventId&&s.pendingEventContext)return s.pendingEventContext.month;
+ if(s.pendingDecision)return s.pendingDecision.month;
  return Math.min(12,Math.max(1,13-(s.monthsRemaining??12)));
 }
-function canSpendMonth(){
- if(!s||!s.alive)return false;
- if(s.pendingEventId||window._choices){
-   alert("Önce Hayat sekmesindeki mevcut olayı/kararı çöz.");
-   activateLifeTab();
-   return false;
- }
- if((s.monthsRemaining??12)<=0){
-   alert("Bu yılın 12 ayını kullandın. Şimdi yaş atlaman gerekiyor.");
-   return false;
- }
- return true;
-}
-function spendMonth(reason=""){
- if(!canSpendMonth())return false;
- const usedMonth=currentMonth();
- s.monthsRemaining=Math.max(0,(s.monthsRemaining??12)-1);
- if(reason) log(`<b>${MONTH_LABELS[usedMonth-1]}:</b> ${reason}`);
- monthlyTick(usedMonth);
- if(s.monthsRemaining===0){
-   log(`Yılın 12 ayını tamamladın. Artık <b>yaş atlayabilirsin</b>.`,"major");
- }
- render();save();
- return true;
-}
-function monthlyTick(usedMonth){
- tickEventCooldowns();ensureMilitary();
- if(s.military.active){
-   s.military.dutyMonths=Math.max(0,s.military.dutyMonths-1);
-   if(Math.random()<.35)log("Sefer birliğiyle yol, nöbet ve hazırlık içinde bir ay geçti.");
-   if(s.military.dutyMonths===0){log("Sefer dönemi tamamlandı; birliğin dönüşe geçti.","major");campaignResult()}
- }
- if(s.role){
-   const r=D.careers.find(x=>x.name===s.role);
-   if(r && Math.random()<.34) s.wealth+=Math.max(0,Math.floor(rng(r.wealth[0],r.wealth[1])/4));
- }
- if(usedMonth>=10 && Math.random()<.16){
-   apply({health:-rng(1,3)});
-   log("Kış aylarının sertliği sağlığını biraz zorladı.","bad");
- }
- [...s.parents,...s.siblings,...s.friends,...s.rivals].forEach(r=>{
-   if(r.alive && Math.random()<.35) r.rel=clamp(r.rel+rng(-1,1));
- });
- setTimeout(()=>triggerContextEvent(true),0);
-}
-function passOneMonth(){
- if(!s||!s.alive)return;
- if((s.monthsRemaining??12)<=0){ ageUp(); return; }
- if(s.captive){ captivityMonth(); return; }
- spendMonth("Bu ayı belirgin bir işe girişmeden geçirdin.");
-}
-
 function newCharacter(base={}, inherit=false){
   const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
+    version:2,experience:{},careerMonths:{},ailments:[],pregnancy:null,will:"equal",pendingDecision:null,pendingEventContext:null,
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
     name:base.name||$("customName").value.trim()||pick(cfg[g]), gender:g, realm, year,
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
@@ -730,21 +568,22 @@ function init(){
 }
 function openNew(){$("newModal").classList.add("show")}
 function createLife(){
- s=newCharacter();
- seedFamily();
+ clearTransient();s=newCharacter();seedFamily();s=migrateState(s);activateLifeTab();
  log(`<b>${s.year}</b> yılında ${s.place} çevresinde, ${s.tribe} boyuna bağlı bir obada dünyaya geldin.`,"major");
- log(`Ailen sana <b>${s.name}</b> adını verdi.`);
- $("newModal").classList.remove("show");render();save();
+ log(`Ailen sana <b>${safeText(s.name)}</b> adını verdi.`);
+ $("newModal").classList.remove("show");$("heirModal").classList.remove("show");render();save();
 }
 function seedFamily(){
  const cfg=D.realms[s.realm];
  const father=normalizeNPC({name:pick(cfg.male),rel:rng(55,90),type:"Ata",alive:true,gender:"male",age:rng(22,40)},"Ata");
- const mother=normalizeNPC({name:pick(cfg.female),rel:rng(60,95),type:"Ana",alive:true,gender:"female",age:rng(18,36)},"Ana");
+ const mother=normalizeNPC({name:pick(cfg.female),rel:rng(60,95),type:"Ana",alive:true,gender:"female",age:rng(22,36)},"Ana");
+ father.partner={id:mother.id,name:mother.name,gender:mother.gender,age:mother.age,alive:true,health:mother.health};
+ mother.partner={id:father.id,name:father.name,gender:father.gender,age:father.age,alive:true,health:father.health};
  s.parents=[father,mother];
  const count=rng(0,3);s.siblings=[];
- for(let i=0;i<count;i++){let g=Math.random()<.5?"male":"female";s.siblings.push(normalizeNPC({name:pick(cfg[g]),rel:rng(45,85),type:g==="male"?"Erkek kardeş":"Kız kardeş",alive:true,gender:g,age:rng(1,9)},g==="male"?"Erkek kardeş":"Kız kardeş"))}
+ for(let i=0;i<count;i++){let g=Math.random()<.5?"male":"female";s.siblings.push(normalizeNPC({name:pick(cfg[g]),rel:rng(45,85),type:g==="male"?"Erkek kardeş":"Kız kardeş",alive:true,gender:g,age:rng(1,Math.min(9,mother.age-18,father.age-18))},g==="male"?"Erkek kardeş":"Kız kardeş"))}
 }
-function log(text,type=""){s.timeline.unshift({age:s.age,text,type});if(s.timeline.length>220)s.timeline.length=220}
+function log(text,type=""){s.timeline.unshift({age:s.age,month:s.pendingEventContext?.month||s.lastAction?.month||currentMonth(),text,type});if(s.timeline.length>220)s.timeline.length=220}
 function apply(e={}){for(const[k,v]of Object.entries(e)){if(k==="wealth")s.wealth=Math.max(0,s.wealth+v);else if(["health","happiness","skill","prestige"].includes(k))s[k]=clamp(s[k]+v)}}
 function render(){
  if(!s)return;
@@ -758,19 +597,19 @@ function render(){
  ensureSkills();
  $("quickActions").innerHTML=[
    ["at","🐎 At Sür"],["ok","🏹 Ok At"],["av","🦌 Avlan"],["toy","🔥 Toya Katıl"]
- ].map(([id,label])=>`<button class="qbtn" ${actionUnlocked(id)?"":'disabled'} onclick="activity('${id}')" title="${actionLockText(id)}">${label}${actionUnlocked(id)?"":`<div class="lockline">${actionLockText(id)}</div>`}</button>`).join("");
+ ].map(([id,label])=>`<button class="qbtn" ${accessIssue({kind:"activity",id})?'disabled':""} onclick="activity('${id}')" title="${safeText(accessIssue({kind:"activity",id}))}">${label}${actionUnlocked(id)?"":`<div class="lockline">${actionLockText(id)}</div>`}</button>`).join("");
  $("avatar").textContent=!s.alive?"🪦":s.captive?"⛓️":s.age<5?"👶":s.age<14?"🧒":s.age<55?(s.gender==="male"?"🧔":"👩"):"🧓";
  ["health","happiness","skill","prestige"].forEach(k=>{$(`${k}B`).style.width=s[k]+"%";$(`${k}V`).textContent=s[k]});
  $("skillGrid").innerHTML=[
  ["riding","Binicilik"],["archery","Okçuluk"],["combat","Savaş"],["craft","Zanaat"],["literacy","Bitig"],["trade","Ticaret"]
  ].map(([k,n])=>`<div class="skillpill"><span>${n}</span><b>${s.skills[k]||0}</b></div>`).join("");
- $("ageBtn").disabled=!s.alive;$("ageBtn").style.opacity=s.alive?1:.45;$("profile").classList.toggle("dead",!s.alive);
+ $("ageBtn").disabled=!s.alive||!!s.pendingEventId||!!s.pendingDecision;$("ageBtn").style.opacity=$("ageBtn").disabled?.45:1;$("profile").classList.toggle("dead",!s.alive);
  setTabLock("tabBtnFaaliyet","faaliyet","Faaliyetler");
  setTabLock("tabBtnGorev","gorev","Görev");
  setTabLock("tabBtnSefer","sefer","Sefer");
  setTabLock("tabBtnVarlik","varlik","Varlıklar");
  setTabLock("tabBtnTore","tore","Töre");
- renderEventBoard();renderTimeline();renderTraining();renderActivities();renderRole();renderMilitary();renderFamily();renderAssets();renderTore();renderLegacy();renderSide();
+ renderEventBoard();renderTimeline();renderTraining();renderActivities();renderRole();renderMilitary();renderFamily();renderAssets();renderTore();renderLegacy();renderSide();renderSystems();
 }
 function statusText(){
  if(!s.alive)return "Hayatı sona erdi";
@@ -780,34 +619,8 @@ function statusText(){
  if(s.age<7)return "Obada çocukluk";
  if(s.age<12)return "Oba işlerini öğreniyor";
  if(s.role)return s.role;
- if(s.age<16)return "Yetişme çağı";
+ if(s.age<18)return "Yetişme çağı";
  return "Kendi yolunu arıyor";
-}
-function currentDecisionPayload(){
- const ev=activeContextEvent();
- if(ev)return {kind:"event",cat:ev.cat,title:"Hayat Olayı",text:ev.text,choices:ev.choices};
- if(window._choices&&window._systemDecisionText)return {kind:"system",cat:"Karar",title:"Yazgı Kararı",text:window._systemDecisionText,choices:window._choices};
- return null;
-}
-function renderEventBoard(){
- const board=$("eventBoard");if(!board)return;
- const p=currentDecisionPayload();
- if(!p){board.innerHTML="";return}
- const choices=p.choices||[];
- if(choices.length<2){board.innerHTML="";return}
- board.innerHTML=`<div class="eventBoard"><div class="swipeArena" id="swipeArena">
-   <div class="swipeSide left" id="swipeLeft" onclick="finishSwipeChoice(0)"><div><span class="swipeArrow">←</span><span class="swipeChoiceText">${choices[0][0]}</span></div></div>
-   <div class="swipeSide right" id="swipeRight" onclick="finishSwipeChoice(1)"><div><span class="swipeArrow">→</span><span class="swipeChoiceText">${choices[1][0]}</span></div></div>
-   <div class="swipeCard" id="swipeCard">
-     <div class="swipeLeftStamp" id="swipeLeftStamp">← ${choices[0][0]}</div>
-     <div class="swipeRightStamp" id="swipeRightStamp">${choices[1][0]} →</div>
-     <div class="swipeTop"><div class="swipeTitle">${p.title}</div><span class="swipeBadge">${p.cat}</span></div>
-     <div class="swipeMeta">${s.age} yaş • ${animalYearName(s.year+s.age)} Yılı • ${MONTH_LABELS[currentMonth()-1]}</div>
-     <div class="swipeText">${p.text}</div>
-     <div class="swipeInstruction">Kartı sola veya sağa sürükle • İstersen kenardaki seçeneğe tıkla</div>
-   </div>
- </div></div>`;
- setupSwipeCard();
 }
 function setupSwipeCard(){
  const card=$("swipeCard");if(!card)return;
@@ -820,35 +633,24 @@ function setupSwipeCard(){
    else if(dx>0){right?.classList.toggle("active",strength>.25);left?.classList.remove("active");if(rs)rs.style.opacity=String(strength);if(ls)ls.style.opacity="0"}
    else{left?.classList.remove("active");right?.classList.remove("active");if(ls)ls.style.opacity="0";if(rs)rs.style.opacity="0"}
  };
- card.onpointerdown=e=>{drag=true;startX=e.clientX;dx=0;card.classList.add("dragging");card.setPointerCapture?.(e.pointerId)};
+ card.onpointerdown=e=>{if(window._swipeBusy)return;drag=true;startX=e.clientX;dx=0;card.classList.add("dragging");card.setPointerCapture?.(e.pointerId)};
  card.onpointermove=e=>{if(!drag)return;dx=e.clientX-startX;paint()};
  card.onpointerup=e=>{
    if(!drag)return;drag=false;card.classList.remove("dragging");
-   if(Math.abs(dx)>=85){const idx=dx<0?0:1;animateSwipeOut(idx)}
+   if(Math.abs(dx)>=85){const idx=dx<0?0:1;if($(idx===0?"swipeLeft":"swipeRight")?.disabled){dx=0;paint();card.style.transform="";}else animateSwipeOut(idx)}
    else{dx=0;paint();card.style.transform=""}
  };
  card.onpointercancel=()=>{drag=false;dx=0;card.classList.remove("dragging");card.style.transform=""};
 }
-function animateSwipeOut(index){
- const card=$("swipeCard");if(!card)return finishSwipeChoice(index);
- card.classList.remove("dragging");
- card.style.transform=`translateX(${index===0?-700:700}px) rotate(${index===0?-25:25}deg)`;
- card.style.opacity="0";
- setTimeout(()=>finishSwipeChoice(index),180);
-}
-function finishSwipeChoice(index){
- const p=currentDecisionPayload();if(!p)return;
- if(p.kind==="event")chooseContextEvent(index);else chooseDecision(index);
-}
 document.addEventListener("keydown",e=>{
- if(!currentDecisionPayload())return;
+ if(!currentDecisionPayload()||e.repeat||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||document.querySelector(".modalwrap.show"))return;
  if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a"){e.preventDefault();animateSwipeOut(0)}
  if(e.key==="ArrowRight"||e.key.toLowerCase()==="d"){e.preventDefault();animateSwipeOut(1)}
 });
 function renderTimeline(){
  const active=Object.keys(s.flags||{}).filter(k=>!["feud_settled"].includes(k)).slice(0,5);
  const trail=active.length?`<div class="log major"><b>Yaşam izleri:</b> ${active.map(k=>k.replaceAll("_"," ")).join(" • ")}</div>`:"";
- $("timeline").innerHTML=trail+s.timeline.map(x=>`<div class="log ${x.type}"><b>${x.age} yaş:</b> ${x.text}</div>`).join("")
+ $("timeline").innerHTML=trail+s.timeline.map(x=>`<div class="log ${x.type}"><b>${x.age} yaş${x.month?" • "+x.month+". ay":""}:</b> ${x.text}</div>`).join("")
 }
 function showTab(n,el){
  const min=tabMinAge(n);
@@ -856,28 +658,6 @@ function showTab(n,el){
  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
  el.classList.add("active");
  ["hayat","yetisme","faaliyet","gorev","sefer","aile","varlik","tore","soy"].forEach(x=>$("tab-"+x).classList.toggle("hidden",x!==n))
-}
-function ageUp(){
- if(!s||!s.alive)return;
- if(s.pendingEventId||window._choices){alert("Önce Hayat sekmesindeki mevcut olayı/kararı çöz.");activateLifeTab();return}
- if((s.monthsRemaining??12)>0){
-   alert(`Önce bu yılın kalan ${s.monthsRemaining} ayını geçir.`);
-   return;
- }
- // 12 ay tamamlandı: yeni yaş/yıl başlar ve 12 aylık yeni hak açılır.
- s.age++;
- s.monthsRemaining=12;
- if(s.age>40)s.health=clamp(s.health-rng(0,2));
- if(s.age===7)log("Oba işlerinde daha fazla sorumluluk almaya başladın.");
- if(s.age===12)log("Büyükler seni yetişkinlerin işlerine hazırlamaya başladı.","good");
- if(s.age===16){unlock("adult");log("Yetişkin savaşçı ve görev çağına ulaştın.","major");militaryCall()}
- if(s.age===65)unlock("old");if(s.wealth>=100)unlock("rich");
- familyTick();
- // Yıllık büyük olay olasılığı aylık olaylardan ayrı ve düşük.
- if(Math.random()<.35) randomEvent();
- mortality();
- log(`<b>${animalYearName(s.year+s.age)} Yılı</b> başladı. Önünde yeniden 12 ay var.`,"major");
- render();save();
 }
 function ensureMilitary(){
  s.military=s.military||{};
@@ -887,107 +667,17 @@ function ensureMilitary(){
 function generateComrades(){
  ensureMilitary();if(s.military.comrades.length)return;
  const cfg=D.realms[s.realm];
- for(let i=0;i<rng(3,5);i++){const g="male";s.military.comrades.push(normalizeNPC({name:pick(cfg[g]),rel:rng(45,75),type:"Sefer yoldaşı",gender:g,age:Math.max(16,s.age+rng(-5,7)),alive:true},"Sefer yoldaşı"))}
-}
-function militaryCall(){
- ensureMilitary();
- if(s.age<16||s.military.called||s.military.active)return;
- s.military.called=true;
- openDecision("Boyun savaşçı çağındakileri yaklaşan sefer için topluyor.",[
-  ["Sefer çağrısına katıl",()=>{s.military.served=true;s.military.active=true;s.military.dutyMonths=rng(4,8);s.military.campaigns++;generateComrades();s.path="military";apply({prestige:4});unlock("military");log("Sefer birliğine katıldın.","major")}],
-  ["Oba görevinde kal",()=>{apply({wealth:2,happiness:1});log("Bu seferde savaşçı birliğine katılmadın.")}]
- ]);
-}
-function campaignResult(){
- ensureMilitary();s.military.active=false;s.military.dutyMonths=0;
- const roll=Math.random();
- if(roll<.12){s.captive=true;unlock("captive");log("Çatışmada birliğinden koptun ve düşmana tutsak düştün.","bad")}
- else if(roll<.32){s.military.wounds++;apply({health:-rng(8,18),prestige:4});log("Seferde yaralandın fakat obana döndün.","bad")}
- else {apply({wealth:rng(4,12),prestige:rng(4,8)});log("Seferden ganimet ve ünle döndün.","good")}
-}
-function captivityMonth(){
- if(!canSpendMonth())return;
- const used=currentMonth();
- s.health=clamp(s.health-rng(0,2));s.happiness=clamp(s.happiness-rng(1,3));
- s.monthsRemaining=Math.max(0,s.monthsRemaining-1);
- log(`${MONTH_LABELS[used-1]} tutsaklıkta geçti.`,"bad");
- let escape=.06+s.skill/600;
- if(Math.random()<escape){s.captive=false;unlock("free");log("Bir fırsat bulup tutsaklıktan kaçtın.","major")}
- else if(Math.random()<.05&&s.wealth>=10){s.wealth-=10;s.captive=false;unlock("free");log("Boyun fidye gönderdi ve serbest kaldın.","good")}
- if(s.monthsRemaining===0)log("Tutsaklıkta da olsa yılın 12 ayı tamamlandı. Yaş atlayabilirsin.","major");
- render();save();
-}
-function randomEvent(){
- // Yaş atlama sırasında büyük bir bağlamsal olay çıkabilir.
- if(Math.random()<.22)triggerContextEvent(true);
- if(s.age>=18&&!s.military.active&&s.military.served&&Math.random()<.08){s.military.called=false;log("Boy içinde yeni bir sefer hazırlığı konuşuluyor.","major");militaryCall()}
-}
-function relationTick(){
- [...s.parents,...s.siblings,...s.friends,...s.rivals].forEach(r=>{if(!r.alive)return;r.rel=clamp(r.rel+rng(-3,3));if(Math.random()<.006*Math.max(1,s.age/20))r.alive=false});
-}
-function familyTick(){
- const cfg=D.realms[s.realm];
- const all=[...s.parents,...s.siblings,...s.friends,...s.rivals];
- all.forEach(n=>{
-   normalizeNPC(n,n.type);
-   if(!n.alive)return;
-   n.age++;
-   if(n.age===12||n.age===16)n.role=npcRole(n.age);
-   if(n.age>=16&&!n.partner&&Math.random()<.06){n.partner={name:pick(cfg[n.gender==="male"?"female":"male"]),alive:true};log(`${n.name} bir eş adayıyla görüşmeye başladı.`)}
-   if(n.partner&&n.age>=18&&Math.random()<.05){n.children=(n.children||0)+1;log(`${n.name}'in ocağında bir çocuk dünyaya geldi.`,"good")}
-   if(Math.random()<npcDeathRisk(n)){n.alive=false;log(`${n.name} yaşamını yitirdi.`,"bad")}
- });
- if(s.married&&s.age<50&&Math.random()<.10){
-  let g=Math.random()<.5?"male":"female";
-  let child=normalizeNPC({name:pick(cfg[g]),gender:g,age:0,rel:rng(65,95),alive:true,tribe:s.tribe,realm:s.realm,place:s.place,type:"Çocuk",role:"Çocuk"},"Çocuk");
-  s.children.push(child);unlock("parent");log(`${child.name} adında bir çocuğun oldu.`,"good")
- }
- s.children.forEach(ch=>{
-   normalizeNPC(ch,"Çocuk");
-   if(!ch.alive)return;
-   ch.age++;
-   if(ch.age===8||ch.age===12||ch.age===16)ch.role=npcRole(ch.age);
-   if(ch.age>=16&&!ch.partner&&Math.random()<.05)ch.partner={name:pick(cfg[ch.gender==="male"?"female":"male"]),alive:true};
-   if(ch.partner&&ch.age>=18&&Math.random()<.04)ch.children=(ch.children||0)+1;
-   if(Math.random()<npcDeathRisk(ch)){ch.alive=false;log(`${ch.name} yaşamını yitirdi.`,"bad")}
- });
+ for(let i=0;i<rng(3,5);i++){const g="male";s.military.comrades.push(normalizeNPC({name:pick(cfg[g]),rel:rng(45,75),type:"Sefer yoldaşı",gender:g,age:Math.max(18,s.age+rng(-5,7)),alive:true},"Sefer yoldaşı"))}
 }
 function mortality(){
  let risk=0;if(s.health<25)risk+=.07;if(s.health<10)risk+=.18;if(s.age>50)risk+=(s.age-50)*.007;if(s.age>70)risk+=(s.age-70)*.018;
  if(Math.random()<risk)die();
 }
-function die(){
- s.alive=false;log(`${s.age} yaşında, ${s.year+s.age} yılında yaşamın sona erdi.`,"bad");
- s.legacy.past.push({name:s.name,age:s.age,role:s.role,prestige:s.prestige,wealth:s.wealth});
- render();save();showHeirModal();
-}
 function showHeirModal(){
  const heirs=s.children.filter(c=>c.alive);
  $("heirText").textContent=heirs.length?`Hayatın sona erdi. Soyundan biriyle devam edebilirsin.`:"Hayatın sona erdi ve devam edecek yaşayan çocuğun yok.";
- $("heirChoices").innerHTML=heirs.map((c,i)=>`<button class="card" onclick="continueAsHeir(${i})"><h3>${c.name}</h3><p>${c.age} yaş • ${c.gender==="male"?"Erkek":"Kadın"}</p></button>`).join("");
+ $("heirChoices").innerHTML=heirs.map((c,i)=>`<button class="card" onclick="continueAsHeir(${i})"><h3>${safeText(c.name)}</h3><p>${c.age} yaş • ${c.gender==="male"?"Erkek":"Kadın"}</p></button>`).join("");
  $("heirModal").classList.add("show")
-}
-function continueAsHeir(i){
- const heirs=s.children.filter(c=>c.alive),c=heirs[i];if(!c)return;
- const old=s, cfg=D.realms[old.realm];
- let base={name:c.name,gender:c.gender,realm:old.realm,year:old.year+old.age-c.age,place:c.place,tribe:c.tribe,age:c.age,
-  wealth:Math.max(1,Math.floor(old.wealth/(Math.max(1,old.children.length)))),prestige:clamp(old.prestige*.45),skill:rng(25,55),
-  health:rng(65,95),happiness:rng(55,90),achievements:[...old.achievements],legacy:{generation:old.legacy.generation+1,familyName:old.legacy.familyName,past:old.legacy.past}};
- s=newCharacter(base,true);s.timeline=[];seedFamily();unlock("heir");log(`Atan ${old.name}'in ölümünden sonra soyun ${s.name} ile devam ediyor.`,"major");
- $("heirModal").classList.remove("show");render();save();
-}
-function activity(t){
- if(!s||!s.alive||s.captive)return;
- if(!requireAction(t)||!canSpendMonth())return;
- if(t==="at"){apply({skill:2,happiness:2});skillGain("riding",rng(2,4));log("At sürdün ve denge çalıştın.","good")}
- if(t==="ok"){apply({skill:2});skillGain("archery",rng(2,4));skillGain("combat",1);log("Okçuluk çalıştın.","good")}
- if(t==="av"){if(Math.random()<.65){apply({skill:2,wealth:rng(1,3)});skillGain("archery",2);skillGain("riding",1);log("Avdan eli dolu döndün.","good")}else{apply({health:-2});skillGain("archery",1);log("Av verimsiz geçti.","bad")}}
- if(t==="toy"){apply({happiness:4,prestige:2});skillGain("speech",1);log("Toyda boydaşlarınla vakit geçirdin.","good")}
- spendMonth("Kendine vakit ayırdın.");
-}
-function trainingCard(id,icon,title,desc){
- const open=actionUnlocked(id);
- return `<button class="card ${open?"":"locked"}" ${open?"":'disabled'} onclick="train('${id}')"><h3>${icon} ${title}</h3><p>${desc}</p>${open?"":`<div class="lockline">${actionLockText(id)}</div>`}</button>`;
 }
 function renderTraining(){
  $("tab-yetisme").innerHTML=`<div class="grid2">
@@ -999,89 +689,23 @@ function renderTraining(){
  ${trainingCard("story","🪕","Söz ve Destan","Söz, itibar ve ozanlık yolu.")}
  </div><p class="note">Her alan yaşla açılır. Bazı görevler yalnız yaş değil, ilgili beceri seviyesini de ister.</p>`
 }
-function train(t){
- if(s.captive)return;
- if(!requireAction(t)||!canSpendMonth())return;
- if(t==="horse"){apply({skill:2,health:1});skillGain("riding",rng(3,5))}
- if(t==="archery"){apply({skill:2});skillGain("archery",rng(3,5));skillGain("combat",1)}
- if(t==="wrestling"){apply({health:2,skill:1});skillGain("combat",rng(3,5))}
- if(t==="smith"){apply({skill:2,wealth:1});skillGain("craft",rng(3,5));s.path="craft"}
- if(t==="bitig"){apply({skill:2,prestige:1});skillGain("literacy",rng(3,5));s.path="state"}
- if(t==="story"){apply({skill:1,prestige:3});skillGain("speech",rng(3,5));s.path="culture"}
- log("Kendini geliştirmek için çalıştın.");spendMonth("Bir ayını eğitim ve talime ayırdın.");
-}
-
 const PERIOD_ACTIVITIES=[
  {id:"rest",age:5,cat:"Bakım & Sağlık",icon:"🛏",name:"Dinlen",desc:"Bir ayı daha sakin geçir.",do:()=>apply({health:5,happiness:2})},
- {id:"healer",age:12,cat:"Bakım & Sağlık",icon:"🌿",name:"Otacıya Git",desc:"Sağlığın kötüyse yardım ara.",do:()=>{if(s.wealth>=2)s.wealth-=2;apply({health:8})}},
- {id:"groom",age:12,cat:"Bakım & Sağlık",icon:"✂",name:"Saç ve Sakal Bakımı",desc:"Kendine bakım yaptır.",do:()=>{apply({happiness:4,prestige:1})}},
+ {id:"healer",age:5,cat:"Bakım & Sağlık",icon:"🌿",name:"Otacıya Git",desc:"Çocuklukta ailenin eşliğinde bakım al.",do:()=>{if(s.wealth>=2)s.wealth-=2;apply({health:8})}},
+ {id:"groom",age:12,cat:"Bakım & Sağlık",icon:"✂",name:"Saç Bakımı",desc:"Kendine bakım yaptır.",do:()=>{apply({happiness:4,prestige:1})}},
  {id:"bardlisten",age:6,cat:"Toy & Eğlence",icon:"🪕",name:"Ozan Dinle",desc:"Destan ve söz geleneğini dinle.",do:()=>{skillGain("speech",2);apply({happiness:3,skill:1})}},
  {id:"watchwrestling",age:6,cat:"Toy & Eğlence",icon:"🤼",name:"Güreş Seyret",desc:"Toydaki güreşçileri izle.",do:()=>{skillGain("combat",1);apply({happiness:2})}},
- {id:"horserace",age:10,cat:"Toy & Eğlence",icon:"🏇",name:"At Yarışına Katıl",desc:"Binicilik seviyesi sonucu etkiler.",do:()=>{ensureSkills();const win=Math.random()<.25+(s.skills.riding||0)/180;if(win){s.wealth+=5;apply({prestige:4,happiness:4});log("At yarışında iyi bir derece aldın.","good")}else log("At yarışında istediğin sonucu alamadın.")}},
- {id:"market",age:12,cat:"Pazar & Ticaret",icon:"🧺",name:"Pazara Git",desc:"Takas yap, fiyatları öğren.",do:()=>{skillGain("trade",2);s.wealth+=rng(-1,3);apply({skill:1})}},
+ {id:"horserace",age:12,cat:"Toy & Eğlence",icon:"🏇",name:"At Yarışına Katıl",desc:"Binicilik seviyesi sonucu etkiler.",do:()=>{ensureSkills();const win=Math.random()<.25+(s.skills.riding||0)/180;if(win){s.wealth+=5;apply({prestige:4,happiness:4});log("At yarışında iyi bir derece aldın.","good")}else log("At yarışında istediğin sonucu alamadın.")}},
+ {id:"market",age:12,cat:"Pazar & Ticaret",icon:"🧺",name:"Pazara Git",desc:"Takas yap, fiyatları öğren.",do:()=>{skillGain("trade",2);apply({wealth:rng(-1,3)});apply({skill:1})}},
  {id:"caravanmarket",age:15,cat:"Pazar & Ticaret",icon:"🐫",name:"Kervan Pazarını Gez",desc:"Uzak malları ve kervanları tanı.",do:()=>{skillGain("trade",3);apply({skill:2,prestige:1})}},
  {id:"horsecare",age:8,cat:"Hayvanlar",icon:"🐎",name:"Atlarla İlgilen",desc:"At bakımı ve binicilik tecrübesi.",do:()=>{skillGain("riding",2);apply({happiness:2})}},
  {id:"herdcare",age:10,cat:"Hayvanlar",icon:"🐑",name:"Sürüyle İlgilen",desc:"Sürü yönetimini öğren.",do:()=>{skillGain("trade",1);apply({skill:2,wealth:1})}},
  {id:"council",age:16,cat:"Boy & Devlet",icon:"🏕",name:"Kurultayı Dinle",desc:"Boy ve devlet işlerini takip et.",do:()=>{skillGain("literacy",1);skillGain("speech",1);apply({prestige:2,skill:2})}},
  {id:"petition",age:18,cat:"Boy & Devlet",icon:"📜",name:"Beyin Otağına Git",desc:"Görev ve anlaşmazlıkları takip et.",do:()=>{apply({prestige:2});skillGain("speech",2)}}
 ];
-function doPeriodActivity(id){
- if(!canSpendMonth())return;
- const a=PERIOD_ACTIVITIES.find(x=>x.id===id);if(!a)return;
- if(s.age<a.age){alert(a.name+" "+a.age+" yaşında açılır.");return}
- a.do();log(`${a.name} ile ilgilendin.`,"good");spendMonth(a.name+" ile bir ay geçti.");
-}
-function renderActivities(){
- if(s.age<5){$("tab-faaliyet").innerHTML=`<div class="card locked"><h3>🔒 Faaliyetler</h3><p>5 yaşından itibaren kendi faaliyetlerini seçmeye başlarsın.</p></div>`;return}
- const cats=[...new Set(PERIOD_ACTIVITIES.map(x=>x.cat))];
- $("tab-faaliyet").innerHTML=cats.map(cat=>`<h3 class="sectionTitle">${cat}</h3><div class="grid2">${PERIOD_ACTIVITIES.filter(x=>x.cat===cat).map(a=>{
-  const open=s.age>=a.age;
-  return `<button class="card ${open?"":"locked"}" ${open?"":'disabled'} onclick="doPeriodActivity('${a.id}')"><h3>${a.icon} ${a.name}</h3><p>${a.desc}</p>${open?"":`<div class="lockline">🔒 ${a.age} yaşında açılır</div>`}</button>`
- }).join("")}</div>`).join("")
-}
-function renderRole(){
- if(s.age<10){$("tab-gorev").innerHTML=`<div class="card locked"><h3>🔒 Görevler</h3><p>İlk görevler 10 yaşında açılır.</p></div>`;return}
- ensureSkills();
- $("tab-gorev").innerHTML=`<div class="grid2">${s.role?`<div class="card"><h3>🐺 ${s.role}</h3><p>Mevcut görevin.</p></div>`:""}${D.careers.map(r=>{
-   const [sk,need]=careerSpecialReq(r), open=s.age>=r.age&&s.skill>=r.skill-10&&(s.skills[sk]||0)>=need;
-   const req=`${r.age} yaş • Genel beceri ${Math.max(0,r.skill-10)} • ${skillName(sk)} ${need}`;
-   return `<button class="card ${open?"":"locked"}" ${open?"":'disabled'} onclick="takeRole('${r.id}')"><h3>${open?"":"🔒 "}${r.name}</h3><p>${open?"Başvurabilirsin.":req}</p></button>`;
- }).join("")}</div>`
-}
-function takeRole(id){
- const r=D.careers.find(x=>x.id===id);if(!r||s.captive)return;
- ensureSkills();const [sk,need]=careerSpecialReq(r);
- if(s.age<r.age||s.skill<r.skill-10||(s.skills[sk]||0)<need){
-  alert(`${r.name} için gerekenler: ${r.age} yaş, genel beceri ${Math.max(0,r.skill-10)}, ${skillName(sk)} ${need}.`);return;
- }
- if(!canSpendMonth())return;
- let chance=.42+(s.skill-r.skill)/100+s.prestige/250;if(s.path===r.path)chance+=.12;
- if(Math.random()<chance){s.role=r.name;s.path=r.path;apply({prestige:r.prestige,wealth:rng(r.wealth[0],r.wealth[1])});log(`${r.name} görevini üstlendin.`,"good");if(r.id==="bey")unlock("bey")}
- else log(`${r.name} olmak için girişimin kabul görmedi.`,"bad");
- spendMonth("Görev için bir ay uğraştın.");
-}
-
-function militaryTrain(kind){
- if(s.age<16)return;
- ensureMilitary();if(!s.military.served){alert("Henüz bir sefer birliğine katılmadın.");return}
- if(!canSpendMonth())return;
- if(kind==="horse"){skillGain("riding",3);skillGain("combat",1);apply({skill:1})}
- if(kind==="bow"){skillGain("archery",3);skillGain("combat",2);apply({skill:1})}
- if(kind==="drill"){skillGain("combat",4);apply({prestige:1,health:1})}
- if(kind==="watch"){skillGain("combat",2);apply({prestige:2,happiness:-1})}
- log("Sefer hizmetinde talim ve görev yaptın.","good");spendMonth("Sefer hizmetinde bir ay geçti.");
-}
-function desertCampaign(){
- ensureMilitary();if(!s.military.active)return alert("Şu anda aktif bir seferde değilsin.");
- if(!canSpendMonth())return;
- s.military.active=false;s.military.dutyMonths=0;apply({prestige:-18,happiness:-4});
- if(Math.random()<.35){s.exile=true;log("Birlikten ayrıldığın için boy içinde ağır tepki gördün ve sürgün edildin.","bad")}
- else log("Sefer birliğini izinsiz terk ettin. İtibarın ağır biçimde düştü.","bad");
- spendMonth("Birlikten ayrılmanın sonuçlarıyla bir ay geçti.");
-}
 function renderMilitary(){
  ensureMilitary();
- if(s.age<16){$("tab-sefer").innerHTML=`<div class="card locked"><h3>🔒 Sefer hayatı</h3><p>16 yaşında açılır.</p></div>`;return}
+ if(s.age<18){$("tab-sefer").innerHTML=`<div class="card locked"><h3>🔒 Sefer hayatı</h3><p>18 yaşında açılır.</p></div>`;return}
  if(!s.military.served){
    $("tab-sefer").innerHTML=`<div class="card"><h3>⚔ Sefer hizmeti</h3><p>Henüz bir sefer birliğine katılmadın. Boy çağrısı geldiğinde karar verebilirsin.</p></div><div class="card"><h3>Hazırlık</h3><p>Yetişme sekmesinde binicilik, okçuluk ve güreş seviyelerini artırmak ileride işine yarar.</p></div>`;return
  }
@@ -1097,94 +721,38 @@ function renderMilitary(){
  if(s.military.active)h+=`<h3 class="sectionTitle">Tehlikeli Karar</h3><button class="dangerBtn" onclick="desertCampaign()">Birliği İzinsiz Terk Et</button>`;
  $("tab-sefer").innerHTML=h;
 }
-function getFamilyGroup(group){
- if(group==="parents")return s.parents;
- if(group==="siblings")return s.siblings;
- if(group==="friends")return s.friends;
- if(group==="rivals")return s.rivals;
- if(group==="children")return s.children;
- return [];
-}
-function interactNPC(group,index,action){
- if(s.age<5){alert("Bu yaşta ilişkilerini ailen ve çevren şekillendirir.");return}
- if(action==="advice"&&s.age<6){alert("Öğüt alma 6 yaşında açılır.");return}
- if(action==="gift"&&s.age<10){alert("Armağan verme 10 yaşında açılır.");return}
- if(!canSpendMonth())return;
- const arr=getFamilyGroup(group),n=arr[index];if(!n||!n.alive)return;
- normalizeNPC(n,n.type);
- if(action==="spend"){n.rel=clamp(n.rel+rng(5,11));apply({happiness:2});log(`${n.name} ile birlikte vakit geçirdin.`,"good")}
- if(action==="gift"){
-   const cost=3;if(s.wealth<cost)return alert("Hediye için 3 servet gerekiyor.");
-   s.wealth-=cost;n.rel=clamp(n.rel+rng(8,15));log(`${n.name}'e küçük bir armağan verdin.`,"good")
- }
- if(action==="advice"){
-   n.rel=clamp(n.rel+rng(2,6));apply({skill:rng(1,3)});log(`${n.name}'den öğüt aldın.`)
- }
- spendMonth(`${n.name} ile ilgilenerek bir ay geçirdin.`);
-}
-function familyCard(n,group,index){
- normalizeNPC(n,n.type);
- let actions="";
- if(n.alive&&s.age>=5){
-   actions=`<div class="actions"><button class="mini" onclick="interactNPC('${group}',${index},'spend')">Vakit geçir</button>${s.age>=6?`<button class="mini" onclick="interactNPC('${group}',${index},'advice')">Öğüt al</button>`:""}${s.age>=10?`<button class="mini" onclick="interactNPC('${group}',${index},'gift')">Armağan</button>`:""}</div>`;
- }
- return `<div class="card familycard"><div><h3>${n.alive?"":"† "}${n.name}</h3><p>${n.type||"Yakın"} • ${n.age??"?"} yaş • ${n.role||""}<br>İlişki ${n.rel??0}${n.partner?` • Eş: ${n.partner.name}`:""}${n.children?` • Çocuk: ${n.children}`:""}</p><div class="rbar"><i style="width:${n.rel??0}%"></i></div></div>${actions}</div>`;
-}
 function renderFamily(){
  s.parents.forEach(x=>normalizeNPC(x,x.type));s.siblings.forEach(x=>normalizeNPC(x,x.type));s.children.forEach(x=>normalizeNPC(x,"Çocuk"));
  let html=`<h3>Aile</h3><div class="grid2">${s.parents.map((r,i)=>familyCard(r,"parents",i)).join("")}${s.siblings.map((r,i)=>familyCard(r,"siblings",i)).join("")}</div>`;
  html+=`<h3>Ocak</h3><div class="grid2">`;
- if(!s.partner&&s.age>=16)html+=`<button class="card" onclick="meetPartner()"><h3>❤️ Eş Adayı Bul</h3><p>Başka bir aileyle bağ kur.</p></button>`;
- if(s.partner)html+=`<div class="card"><h3>❤️ ${s.partner.name}</h3><p>${s.married?"Eşin":"Eş adayın"} • ilişki ${s.partner.rel}</p></div>`;
- if(s.partner&&!s.married)html+=`<button class="card" onclick="marry()"><h3>🔥 Ocak Kur</h3><p>Ailelerin onayını iste.</p></button>`;
+ if(!s.partner?.alive&&s.age>=16)html+=`<button class="card" onclick="meetPartner()"><h3>❤️ Eş Adayı Bul</h3><p>Başka bir aileyle bağ kur.</p></button>`;
+ if(s.partner)html+=familyCard(s.partner,"partner",0);
+ if(s.partner?.alive&&!s.married)html+=actionButton("🔥 Ocak Kur",{kind:"marry"},"marry()","İkiniz de 18 yaşında, ilişkiniz en az 65 olmalı.");
  html+=`</div>`;
  if(s.children.length)html+=`<h3>Çocuklar</h3><div class="grid2">${s.children.map((r,i)=>familyCard(r,"children",i)).join("")}</div>`;
  if(s.friends.length)html+=`<h3>Dostlar</h3><div class="grid2">${s.friends.map((r,i)=>familyCard(r,"friends",i)).join("")}</div>`;
  if(s.rivals.length)html+=`<h3>Rakipler</h3><div class="grid2">${s.rivals.map((r,i)=>familyCard(r,"rivals",i)).join("")}</div>`;
  $("tab-aile").innerHTML=html;
 }
-function meetPartner(){if(!canSpendMonth())return;let cfg=D.realms[s.realm],g=s.gender==="male"?"female":"male";s.partner={name:pick(cfg[g]),rel:rng(55,85),alive:true};apply({happiness:5});log(`${s.partner.name} ile ailelerin aracılığıyla tanıştın.`,"good");spendMonth("Aileler arası görüşmelerle bir ay geçti.")}
-function marry(){if(!canSpendMonth())return;if(Math.random()<.78){s.married=true;unlock("family");apply({prestige:3});log(`${s.partner.name} ile ocak kurdun.`,"good")}else log("Aileler bu evliliği uygun görmedi.","bad");spendMonth("Evlilik görüşmeleri bir ay sürdü.")}
-function renderAssets(){
- if(s.age<12){$("tab-varlik").innerHTML=`<div class="card locked"><h3>🔒 Varlıklar</h3><p>Kendi adına alım ve takas yapma 12 yaşında açılır.</p></div>`;return}
- $("tab-varlik").innerHTML=`<div class="grid2">${D.assets.map(a=>`<button class="card" onclick="buyAsset('${a.id}')"><h3>${a.icon} ${a.name}</h3><p>${a.cost} servet</p></button>`).join("")}</div>${s.assets.length?`<h3>Sahip Oldukların</h3><div class="grid2">${s.assets.map(id=>{let a=D.assets.find(x=>x.id===id);return `<div class="card"><h3>${a.icon} ${a.name}</h3></div>`}).join("")}</div>`:""}`
-}
-function buyAsset(id){if(s.age<12){alert("Varlık alımı 12 yaşında açılır.");return}if(!canSpendMonth())return;let a=D.assets.find(x=>x.id===id);if(!a||s.assets.includes(id))return;if(s.wealth<a.cost)return alert("Yeterli servetin yok.");s.wealth-=a.cost;s.assets.push(id);apply({happiness:3});log(`${a.name} edindin.`,"good");spendMonth("Alım, hazırlık ve takas işleriyle bir ay geçti.")}
 function renderTore(){
- if(s.age<16){
-   $("tab-tore").innerHTML=`<div class="card locked"><h3>🔒 Töre dışı eylemler kilitli</h3><p>Bu bölüm 16 yaşında açılır.</p></div>`;
+ if(s.age<18){
+   $("tab-tore").innerHTML=`<div class="card locked"><h3>🔒 Töre dışı eylemler kilitli</h3><p>Bu bölüm 18 yaşında açılır.</p></div>`;
    return;
  }
- $("tab-tore").innerHTML=`<div class="grid2">${D.crimes.map(c=>`<button class="card" onclick="commitCrime('${c.id}')"><h3>${c.name}</h3><p>Yakalanma riski ${(c.risk*100)|0}%</p></button>`).join("")}</div>
+ $("tab-tore").innerHTML=`<div class="grid2">${D.crimes.map(c=>`<button class="card" onclick="commitCrime('${c.id}')"><h3>${safeText(c.name)}</h3><p>Yakalanma riski ${(c.risk*100)|0}%</p></button>`).join("")}</div>
  <p class="note">Yakalanırsan tazminat, itibar kaybı, sürgün veya tutsaklık gibi sonuçlar doğabilir.</p>
- ${s.crimeRecord.length?`<h3>Kayıt</h3><div class="grid2">${s.crimeRecord.map(x=>`<div class="card"><h3>${x.name}</h3><p>${x.result}</p></div>`).join("")}</div>`:""}`
-}
-function commitCrime(id){
- if(s.age<16){alert("Töre dışı eylemler 16 yaşında açılır.");return}
- let c=D.crimes.find(x=>x.id===id);if(!c||s.captive)return;
- if(!canSpendMonth())return;
- if(Math.random()<c.risk){
-  let roll=Math.random(),result="";
-  apply({prestige:c.prestige});
-  if(roll<.35){let fine=rng(4,12);s.wealth=Math.max(0,s.wealth-fine);result=`Yakalandın; ${fine} servet tazminat ödedin.`}
-  else if(roll<.68){s.exile=true;result="Yakalandın ve obadan sürgün edildin.";s.place=pick(D.realms[s.realm].places)}
-  else {s.captive=true;result="Yakalandın ve gözetim altında tutsak edildin.";unlock("captive")}
-  s.crimeRecord.push({name:c.name,result});log(result,"bad")
- } else {
-  let gain=rng(c.gain[0],c.gain[1]);s.wealth+=gain;s.crimeRecord.push({name:c.name,result:`Yakalanmadın; ${gain} servet kazandın.`});log(`${c.name}: yakalanmadın ve ${gain} servet kazandın.`,"good")
- }
- spendMonth("Töre dışı girişimin sonuçlarıyla bir ay geçti.");
+ ${s.crimeRecord.length?`<h3>Kayıt</h3><div class="grid2">${s.crimeRecord.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.result}</p></div>`).join("")}</div>`:""}`
 }
 function renderLegacy(){
- const chips=a=>a.map(x=>`<span class="personChip ${x.alive===false?"dead":""}">${x.alive===false?"† ":""}${x.name}${x.age!=null?` • ${x.age}`:""}</span>`).join("");
+ const chips=a=>a.map(x=>`<span class="personChip ${x.alive===false?"dead":""}">${x.alive===false?"† ":""}${safeText(x.name)}${x.age!=null?` • ${x.age}`:""}</span>`).join("");
  $("tab-soy").innerHTML=`<div class="card"><h3>${s.legacy.familyName} Soyu</h3><p>${s.legacy.generation}. nesil • geçmiş yaşam sayısı ${s.legacy.past.length}</p></div>
  <div class="tree">
   <div class="treeRow"><div class="treeLabel">Ana / Ata</div><div class="treePeople">${chips(s.parents)}</div></div>
   <div class="treeRow"><div class="treeLabel">Kardeşler</div><div class="treePeople">${chips(s.siblings)}</div></div>
-  <div class="treeRow"><div class="treeLabel">Sen</div><div class="treePeople"><span class="personChip"><b>${s.name}</b> • ${s.age}</span>${s.partner?`<span class="personChip">❤️ ${s.partner.name}</span>`:""}</div></div>
+  <div class="treeRow"><div class="treeLabel">Sen</div><div class="treePeople"><span class="personChip"><b>${safeText(s.name)}</b> • ${s.age}</span>${s.partner?`<span class="personChip">❤️ ${s.partner.name}</span>`:""}</div></div>
   <div class="treeRow"><div class="treeLabel">Çocuklar</div><div class="treePeople">${chips(s.children)}</div></div>
  </div>
- <h3>Geçmiş Yaşamlar</h3><div class="grid2">${s.legacy.past.map(x=>`<div class="card"><h3>${x.name}</h3><p>${x.age} yaş • ${x.role||"Görevsiz"} • ün ${x.prestige}</p></div>`).join("")}</div>`
+ <h3>Geçmiş Yaşamlar</h3><div class="grid2">${s.legacy.past.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.age} yaş • ${x.role||"Görevsiz"} • ün ${x.prestige}</p></div>`).join("")}</div>`
 }
 function renderSide(){
  $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} yara<br>📜 ${(s.eventArchive||[]).length} seçimli olay<br>🧭 ${Object.keys(s.flags||{}).length} yaşam izi</p></div>`;
@@ -1195,35 +763,7 @@ function renderSide(){
  if(s.age<6)acts+=`<div class="card"><p class="note">Bu yaşta sosyal çevreni çoğunlukla ailen şekillendiriyor.</p></div>`;
  $("sideActions").innerHTML=acts;
 }
-function attemptEscape(){if(!s.captive)return;if(!canSpendMonth())return;if(Math.random()<.18+s.skill/350){s.captive=false;unlock("free");log("Tutsaklıktan kaçmayı başardın!","major")}else{apply({health:-5,happiness:-4});log("Kaçış girişimin başarısız oldu.","bad")}
-spendMonth("Kaçış planıyla bir ay geçti.")}
-function addFriend(){if(s.age<6){alert("Dost edinme 6 yaşında açılır.");return}if(!canSpendMonth())return;let cfg=D.realms[s.realm],g=Math.random()<.5?"male":"female";s.friends.push(normalizeNPC({name:pick(cfg[g]),rel:rng(50,80),type:"Dost",alive:true,gender:g,age:Math.max(8,s.age+rng(-4,4))},"Dost"));log("Yeni bir dost edindin.");spendMonth("Yeni dostluk kurmakla bir ay geçti.")}
-function makeRival(){if(s.age<10){alert("Rakip edinme 10 yaşında açılır.");return}if(!canSpendMonth())return;let cfg=D.realms[s.realm],g=Math.random()<.5?"male":"female";s.rivals.push(normalizeNPC({name:pick(cfg[g]),rel:rng(10,35),type:"Rakip",alive:true,gender:g,age:Math.max(8,s.age+rng(-4,4))},"Rakip"));log("Aranda husumet bulunan yeni bir rakibin oldu.","bad");spendMonth("Bu çekişmeyle bir ay geçti.")}
 function unlock(id){if(!s.achievements.includes(id)){s.achievements.push(id);let a=D.achievements.find(x=>x.id===id);if(a)log(`🏆 Ün kazandın: ${a.name}`,"good")}}
-function openDecision(text,choices,consumeMonth=false){
- window._choices=choices;window._decisionConsumesMonth=consumeMonth;window._systemDecisionText=text;
- activateLifeTab();renderEventBoard();save();
-}
-function chooseDecision(i){
- let ch=window._choices?.[i];if(!ch)return;
- if(typeof ch[1]==="function")ch[1]();
- window._choices=null;window._systemDecisionText=null;
- const consume=!!window._decisionConsumesMonth;window._decisionConsumesMonth=false;
- if(consume)spendMonth("Verdiğin kararın sonuçlarıyla bir ay geçti.");
- else{render();save()}
-}
-function save(){if(s)localStorage.setItem("yazgi_full_v1",JSON.stringify(s))}
-function load(){try{let x=JSON.parse(localStorage.getItem("yazgi_full_v1"));if(x){
- s=x;
- s.parents=(s.parents||[]).map(n=>normalizeNPC(n,n.type));
- s.siblings=(s.siblings||[]).map(n=>normalizeNPC(n,n.type));
- s.friends=(s.friends||[]).map(n=>normalizeNPC(n,"Dost"));
- s.rivals=(s.rivals||[]).map(n=>normalizeNPC(n,"Rakip"));
- s.children=(s.children||[]).map(n=>normalizeNPC(n,"Çocuk"));
- s.eventHistory=s.eventHistory||[];s.eventCooldowns=s.eventCooldowns||{};
- $("newModal").classList.remove("show");render()
-}}catch(e){console.error(e)}}
-init();
-
 </script>
+<script src="systems.js"></script>
 </body></html>
