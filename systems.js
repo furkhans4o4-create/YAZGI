@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=2,ADULT_AGE=18;
+const SAVE_VERSION=3,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -14,14 +14,75 @@ function pathName(p){return ({civil:'oba',craft:'zanaat',culture:'söz',trade:'t
 function lifeStage(a){return a<5?'Aile bakımında':a<10?'Gözetimli çocukluk':a<12?'Oba yardımı':a<16?'Çıraklık':a<18?'Gençlik':a<50?'Yetişkinlik':'Tecrübe çağı';}
 function notice(text){$('gameNotice').textContent=text;if(s?.pendingEventId||s?.pendingDecision)activateLifeTab();}
 function clearTransient(){window._contextEvent=null;window._choices=null;window._systemDecisionText=null;window._swipeBusy=false;window._swipeEpoch=(window._swipeEpoch||0)+1;}
+const NPC_TRAITS={
+ sadik:{name:'Sadık'},hirsli:{name:'Hırslı'},gururlu:{name:'Gururlu'},comert:{name:'Cömert'},tutumlu:{name:'Tutumlu'},
+ kinci:{name:'Kinci'},bagislayici:{name:'Bağışlayıcı'},cesur:{name:'Cesur'},temkinli:{name:'Temkinli'},merhametli:{name:'Merhametli'},
+ kuskucu:{name:'Kuşkucu'},konuskan:{name:'Konuşkan'},caliskan:{name:'Çalışkan'},sakin:{name:'Sakin'}
+};
+const NPC_GOALS={
+ family:'Ocağını ve soyunu güçlendirmek',wealth:'Mal ve sürü biriktirmek',prestige:'Obada söz sahibi olmak',
+ mastery:'Bir işte ustalaşmak',war:'Seferlerde ün kazanmak',wisdom:'Bilgi ve tecrübe toplamak',peace:'Sakin ve güvenli yaşamak'
+};
+const NPC_TRAIT_IDS=Object.keys(NPC_TRAITS),NPC_GOAL_IDS=Object.keys(NPC_GOALS);
+function chooseNPCTraits(){
+ const first=pick(NPC_TRAIT_IDS),opposites={kinci:'bagislayici',bagislayici:'kinci',cesur:'temkinli',temkinli:'cesur',comert:'tutumlu',tutumlu:'comert',hirsli:'sakin',sakin:'hirsli'};
+ const pool=NPC_TRAIT_IDS.filter(x=>x!==first&&x!==opposites[first]);return [first,pick(pool)];
+}
+function chooseNPCGoal(n){
+ const t=n.traits||[];
+ if(t.includes('hirsli'))return pick(['prestige','wealth','war','mastery']);
+ if(t.includes('caliskan'))return pick(['mastery','wealth','family']);
+ if(t.includes('cesur'))return pick(['war','prestige']);
+ if(t.includes('merhametli')||t.includes('sadik'))return pick(['family','peace','wisdom']);
+ if(t.includes('tutumlu'))return 'wealth';
+ return pick(NPC_GOAL_IDS);
+}
+function npcCareerFor(n){
+ const a=n.age??18,g=n.goal||'family';
+ if(a<8)return 'Çocuk';
+ if(a<12)return g==='mastery'?'Usta yanında gözlemci':g==='family'?'Oba işlerine yardım ediyor':'Sürü yanında yetişiyor';
+ if(a<18){
+  if(g==='war'||n.traits?.includes('cesur'))return pick(['At binmeyi öğreniyor','Okçuluk öğreniyor','Güreş talimi görüyor']);
+  if(g==='mastery')return pick(['Demirci yanında yetişiyor','At bakımı öğreniyor','Zanaat öğreniyor']);
+  if(g==='wisdom')return pick(['Destan dinliyor','Bitig öğreniyor']);
+  return pick(['Sürü yanında yetişiyor','Oba işlerini öğreniyor']);
+ }
+ const map={
+  war:['Alp','Avcı','Akıncı'],wealth:['Tüccar','Çoban','Kervan yardımcısı'],prestige:['Elçi yardımcısı','Alp','Oba ileri geleni'],
+  mastery:['Demirci','At Bakıcısı','Avcı'],wisdom:['Ozan','Bitigçi','Otacı yardımcısı'],family:['Çoban','At Bakıcısı','Avcı'],peace:['Çoban','Zanaatkâr','At Bakıcısı']
+ };return pick(map[g]||map.family);
+}
+function normalizeBonds(n){
+ const base=clamp(n.rel??60);n.bonds=n.bonds||{};
+ n.bonds.trust=clamp(n.bonds.trust??base+rng(-8,8));n.bonds.respect=clamp(n.bonds.respect??50+rng(-12,12));
+ n.bonds.fear=clamp(n.bonds.fear??rng(0,12));n.bonds.grudge=clamp(n.bonds.grudge??Math.max(0,45-base)+rng(0,6));return n.bonds;
+}
+function rememberNPC(n,kind,text,weight=1){
+ if(!n)return;n.memories=Array.isArray(n.memories)?n.memories:[];
+ const item={kind,text:String(text||''),weight,age:s?.age??0,year:s?(s.year+s.age):0};
+ n.memories.unshift(item);n.memories=n.memories.slice(0,14);return item;
+}
+function adjustNPC(n,delta={},memory=''){
+ if(!n)return;n.rel=clamp((n.rel??60)+(delta.rel||0));normalizeBonds(n);
+ for(const k of ['trust','respect','fear','grudge'])if(delta[k])n.bonds[k]=clamp(n.bonds[k]+delta[k]);
+ if(delta.health)n.health=clamp((n.health??80)+delta.health);
+ if(memory)rememberNPC(n,delta.grudge>0?'hurt':delta.trust>0?'bond':'event',memory,Math.max(1,Math.abs(delta.rel||delta.trust||delta.grudge||1)));
+}
+function npcTraitNames(n){return (n.traits||[]).map(id=>NPC_TRAITS[id]?.name||id);}
+function npcGoalName(n){return NPC_GOALS[n.goal]||'Kendi yolunu aramak';}
+function recentNPCMemory(n){return n.memories?.[0]?.text||'';}
 function normalizeNPC(n,type='Yakın'){
- if(!n)return n;n.id=n.id||npcId();n.type=n.type||type;n.alive=n.alive!==false;n.rel=n.rel??60;n.health=n.health??80;
- n.age=n.age??(type==='Ana'||type==='Ata'?30:Math.max(5,s?.age||8));n.gender=n.gender||(type==='Ana'||type==='Kız kardeş'?'female':type==='Ata'||type==='Erkek kardeş'?'male':pick(['male','female']));
- n.role=n.role||npcRole(n.age);n.partner=n.partner||null;n.children=n.children||0;n.descendants=n.descendants||[];return n;
+ if(!n)return n;n.id=n.id||npcId();n.type=n.type||type;n.alive=n.alive!==false;n.rel=clamp(n.rel??60);n.health=clamp(n.health??80);
+ n.age=n.age??(type==='Ana'||type==='Ata'?30:Math.max(5,s?.age||8));n.gender=n.gender||(type==='Ana'||type==='Nine'||type==='Hala'||type==='Teyze'||type==='Kız kardeş'?'female':type==='Ata'||type==='Dede'||type==='Amca'||type==='Dayı'||type==='Erkek kardeş'?'male':pick(['male','female']));
+ n.traits=Array.isArray(n.traits)&&n.traits.length?n.traits.slice(0,2):chooseNPCTraits();n.goal=n.goal||chooseNPCGoal(n);normalizeBonds(n);
+ n.memories=Array.isArray(n.memories)?n.memories.slice(0,14):[];n.parentIds=Array.isArray(n.parentIds)?n.parentIds:[];n.origin=n.origin||s?.place||'';n.tribe=n.tribe||s?.tribe||'';
+ n.wealth=Math.max(0,Math.round(n.wealth??rng(0,25)));n.prestige=clamp(n.prestige??rng(5,35));n.skills=n.skills||{};
+ n.role=n.role||npcCareerFor(n);n.roleHistory=Array.isArray(n.roleHistory)?n.roleHistory:[];n.partner=n.partner||null;n.children=n.children||0;n.descendants=Array.isArray(n.descendants)?n.descendants:[];
+ n.lastInteractionYear=n.lastInteractionYear??null;n.statusFlags=n.statusFlags||{};return n;
 }
 function allNPCs(){
- const out=[],seen=new Set();const visit=n=>{if(!n||seen.has(n))return;seen.add(n);out.push(n);(n.descendants||[]).forEach(visit);};
- [...s.parents,...s.siblings,...s.friends,...s.rivals,...s.children,s.partner,...s.military.comrades].forEach(visit);return out;
+ const out=[],seen=new Set();const visit=n=>{if(!n||seen.has(n.id))return;seen.add(n.id);normalizeNPC(n,n.type);out.push(n);(n.descendants||[]).forEach(visit);};
+ [...s.parents,...s.siblings,...(s.relatives||[]),...s.friends,...s.rivals,...s.children,s.partner,...s.military.comrades].forEach(visit);return out;
 }
 function careerIssue(r){
  if(!r)return 'Görev bulunamadı.';const a=CAREER_RULES[r.id];
@@ -35,7 +96,7 @@ function careerIssue(r){
  if(s.exile&&['state','military'].includes(r.path))return 'Önce sürgün meselesini çözmelisin';return '';
 }
 function careerRequirements(r){const a=CAREER_RULES[r.id];return `${a.age} yaş • genel beceri ${Math.max(0,r.skill-10)} • ${Object.entries(a.skills).map(([k,v])=>skillName(k)+' '+v).join(' • ')}${a.months?' • '+a.months+' ay '+pathName(a.track):''}${a.prestige?' • itibar '+a.prestige:''}${a.campaigns?' • '+a.campaigns+' sefer':''}`;}
-function getFamilyGroup(group){return group==='partner'?(s.partner?[s.partner]:[]):['parents','siblings','friends','rivals','children'].includes(group)?s[group]:[];}
+function getFamilyGroup(group){return group==='partner'?(s.partner?[s.partner]:[]):['parents','siblings','relatives','friends','rivals','children'].includes(group)?(s[group]||[]):[];}
 function accessIssue(a){
  if(!s?.alive)return 'Bu yaşam sona erdi.';
  if(s.pendingEventId||s.pendingDecision)return 'Önce karar kartını çöz.';
@@ -53,9 +114,11 @@ function accessIssue(a){
   if(!a.sell&&s.wealth<r.cost)return `${r.cost} servet gerekiyor.`;
   if(!a.sell&&a.id==='smithy'&&(s.skills.craft<40||(s.experience.craft||0)<12))return 'Zanaat 40 ve 12 ay zanaat tecrübesi gerekiyor.';
  }else if(a.kind==='npc'){
-  if(!['spend','gift','advice','reconcile'].includes(a.id))return 'Etkileşim bulunamadı.';
-  min=a.id==='gift'?10:a.id==='advice'?6:5;const n=getFamilyGroup(a.group)[a.index];if(!n?.alive)return 'Bu kişiyle görüşemezsin.';
+  if(!['spend','gift','advice','reconcile','confide','help','work'].includes(a.id))return 'Etkileşim bulunamadı.';
+  min=a.id==='gift'||a.id==='help'||a.id==='work'?10:a.id==='confide'?8:a.id==='advice'?6:5;const n=getFamilyGroup(a.group)[a.index];if(!n?.alive)return 'Bu kişiyle görüşemezsin.';
   if(a.id==='gift'&&s.wealth<3)return '3 servet gerekiyor.';
+  if(a.id==='help'&&s.wealth<2)return 'Yardım için 2 servet gerekiyor.';
+  if(a.id==='confide'&&(n.bonds?.trust??0)<25)return 'Önce aranızda biraz güven oluşmalı.';
   if(a.id==='advice'&&(n.age<16||n.age<=s.age))return 'Senden büyük, en az 16 yaşında birini seç.';
   if(a.id==='reconcile'&&a.group!=='rivals')return 'Bir rakip seç.';
  }else if(a.kind==='health'){min=5;if(!['rest','healer'].includes(a.id))return 'Bakım bulunamadı.';if(a.id==='healer'&&s.wealth<2)return '2 servet gerekiyor; dinlenebilirsin.';}
@@ -124,11 +187,38 @@ function retireRole(){performAction({kind:'retire'},()=>{s.retiredRole=s.role;s.
 function buyAsset(id){performAction({kind:'asset',id},()=>{const a=D.assets.find(x=>x.id===id);s.wealth-=a.cost;s.assets.push(id);apply({happiness:3});},'Alım ve takasla bir ay geçti.');}
 function sellAsset(id){performAction({kind:'asset',id,sell:true},()=>{const a=D.assets.find(x=>x.id===id);s.assets=s.assets.filter(x=>x!==id);s.wealth+=Math.floor(a.cost*.6);},'Varlığını takas ettin.');}
 function manageVenture(id){performAction({kind:'venture',id},()=>{skillGain(id==='forge'?'craft':'trade',2);apply({wealth:id==='caravan'?(Math.random()<.25?-rng(3,8):rng(3,10)):rng(1,5)});},'Malına ve üretime bir ay ayırdın.');}
-function interactNPC(group,index,id){performAction({kind:'npc',group,index,id},()=>{const n=getFamilyGroup(group)[index];if(id==='spend'){n.rel=clamp(n.rel+8);apply({happiness:2});}if(id==='gift'){s.wealth-=3;n.rel=clamp(n.rel+12);}if(id==='advice'){n.rel=clamp(n.rel+3);apply({skill:2});}if(id==='reconcile'){n.rel=clamp(n.rel+15);if(n.rel>=50){s.rivals.splice(index,1);n.type='Dost';s.friends.push(n);unlock('reconciled');}}log(safeText(n.name)+' ile ilgilendin.');},'İlişkilerine bir ay ayırdın.');}
-function addSocial(kind){performAction({kind},()=>{const gender=pick(['male','female']),age=s.age<18?Math.max(5,Math.min(17,s.age+rng(-2,2))):Math.max(18,s.age+rng(-4,4));const n=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age,alive:true,type:kind==='friend'?'Dost':'Rakip',rel:kind==='friend'?65:25});s[kind==='friend'?'friends':'rivals'].push(n);},kind==='friend'?'Bir dostluk kurdun.':'Bir yaşıtınla aranız açıldı.');}
+function interactNPC(group,index,id){
+ performAction({kind:'npc',group,index,id},()=>{
+  const n=getFamilyGroup(group)[index];if(!n)return;normalizeNPC(n,n.type);n.lastInteractionYear=s.year+s.age;
+  const has=t=>(n.traits||[]).includes(t);
+  if(id==='spend'){adjustNPC(n,{rel:has('sakin')?7:6,trust:4,respect:1},'Birlikte sakin bir zaman geçirdiniz.');apply({happiness:2});}
+  if(id==='confide'){
+   const risk=has('kuskucu')?.18:.05;
+   if(Math.random()<risk){adjustNPC(n,{rel:-4,trust:-5,grudge:has('kinci')?4:1},'Paylaştığın bir söz aranızda huzursuzluk yarattı.');apply({prestige:-1});}
+   else adjustNPC(n,{rel:6,trust:has('sadik')?9:7},'Bir sırrını ona emanet ettin.');
+  }
+  if(id==='help'){s.wealth-=2;adjustNPC(n,{rel:8,trust:has('merhametli')?12:9,respect:5,grudge:-3},'Zor bir işinde ona destek oldun.');}
+  if(id==='work'){adjustNPC(n,{rel:4,respect:has('caliskan')?9:6,trust:2},'Bir işi omuz omuza tamamladınız.');apply({skill:1});}
+  if(id==='gift'){s.wealth-=3;adjustNPC(n,{rel:has('tutumlu')?7:10,trust:has('comert')?7:4,respect:3,grudge:-2},'Ona bir armağan verdin.');}
+  if(id==='advice'){adjustNPC(n,{rel:3,respect:4,trust:2},'Ondan öğüt istedin ve sözünü dinledin.');apply({skill:2});}
+  if(id==='reconcile'){
+   const drop=has('bagislayici')?28:has('kinci')?10:20;adjustNPC(n,{rel:15,trust:5,grudge:-drop},'Aranızdaki eski meseleyi konuşup çözmeye çalıştınız.');
+   if(n.rel>=50&&n.bonds.grudge<=20){s.rivals.splice(index,1);n.type='Dost';s.friends.push(n);rememberNPC(n,'peace','Aranızdaki düşmanlık sona erdi.',5);unlock('reconciled');}
+  }
+  log(safeText(n.name)+' ile ilişkiniz yeni bir iz bıraktı.');
+ },'İlişkilerine bir eylem hakkı ayırdın.');
+}
+function addSocial(kind){
+ performAction({kind},()=>{
+  const gender=pick(['male','female']),age=s.age<18?Math.max(5,Math.min(17,s.age+rng(-2,2))):Math.max(18,s.age+rng(-4,4));
+  const n=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age,alive:true,type:kind==='friend'?'Dost':'Rakip',rel:kind==='friend'?rng(58,72):rng(18,32)});
+  if(kind==='friend'){adjustNPC(n,{trust:10,respect:4},'Tanışmanız kısa sürede dostluğa dönüştü.');s.friends.push(n);}
+  else{adjustNPC(n,{grudge:25,trust:-15},'Aranızdaki ilk anlaşmazlık düşmanlığa dönüştü.');s.rivals.push(n);}
+ },kind==='friend'?'Yeni bir dostluk için çevrene zaman ayırdın.':'Bir anlaşmazlık yeni bir rakip doğurdu.');
+}
 function addFriend(){addSocial('friend');}
 function makeRival(){addSocial('rival');}
-function meetPartner(){performAction({kind:'meet'},()=>{const g=s.gender==='male'?'female':'male';s.partner=normalizeNPC({name:pick(D.realms[s.realm][g]),gender:g,age:s.age<18?s.age:Math.max(18,s.age+rng(-4,4)),alive:true,rel:rng(55,70),type:'Eş adayı'});s.married=false;log(safeText(s.partner.name)+' ile ailelerin aracılığıyla tanıştın.');},'Aileler arası görüşmelerle bir ay geçti.');}
+function meetPartner(){performAction({kind:'meet'},()=>{const g=s.gender==='male'?'female':'male';s.partner=normalizeNPC({name:pick(D.realms[s.realm][g]),gender:g,age:s.age<18?s.age:Math.max(18,s.age+rng(-4,4)),alive:true,rel:rng(52,68),type:'Eş adayı'});adjustNPC(s.partner,{trust:5,respect:4},'Ailelerin aracılığıyla ilk kez uzun uzun görüştünüz.');s.married=false;log(safeText(s.partner.name)+' ile ailelerin aracılığıyla tanıştın.');},'Aileler arası görüşmelere bir eylem hakkı ayırdın.');}
 function marry(){performAction({kind:'marry'},()=>{if(Math.random()<.8){s.married=true;s.partner.type='Eş';unlock('family');apply({prestige:3});log(safeText(s.partner.name)+' ile ocak kurdun.','good');}else log('Bu kez ocak kurma konusunda uzlaşamadınız.');},'Ocak kurma görüşmelerine bir ay ayırdın.');}
 function militaryCall(){if(s.age<18||s.captive||s.exile||s.military.called||s.military.active||s.pendingEventId||s.pendingDecision)return;s.military.called=true;s.pendingDecision={id:'campaign_call',age:s.age,year:s.year+s.age,month:currentMonth()};activateLifeTab();renderEventBoard();save();}
 function chooseDecision(i){if(!s?.alive||s.pendingDecision?.id!=='campaign_call'||![0,1].includes(i)||s.age<18)return;if(i===0&&(s.health<40||s.captive||s.exile)){notice('Özgürlük ve en az 40 sağlık gerekiyor.');return;}if(i===0){s.military.served=true;s.military.active=true;s.military.dutyMonths=rng(4,8);s.military.campaigns++;generateComrades();s.path='military';apply({prestige:4});unlock('military');log('Sefer birliğine katıldın.','major');}else{s.flags.military_declined=true;log('Bu çağrıda obada kaldın.');}s.pendingDecision=null;render();save();}
@@ -262,7 +352,17 @@ function trainingCard(id,icon,title,desc){return actionButton(icon+' '+title,{ki
 function renderRole(){ $('tab-gorev').innerHTML=(s.role?`<div class="card"><h3>${safeText(s.role)}</h3><p>${s.age<18?'Büyüklerin gözetiminde':'Mevcut görevin'}</p></div><div class="grid2">${actionButton('Görevinde çalış',{kind:'work'},'workRole()')}${s.age>=50?actionButton('Ağır görevi bırak',{kind:'retire'},'retireRole()'):''}</div>`:'')+`<div class="grid2">${D.careers.map(r=>actionButton(r.name,{kind:'role',id:r.id},`takeRole('${r.id}')`,careerRequirements(r))).join('')}</div>`;}
 function renderActivities(){const cats=[...new Set(PERIOD_ACTIVITIES.map(x=>x.cat))];$('tab-faaliyet').innerHTML=cats.map(cat=>`<h3 class="sectionTitle">${cat}</h3><div class="grid2">${PERIOD_ACTIVITIES.filter(x=>x.cat===cat).map(a=>actionButton(a.icon+' '+a.name,{kind:'period',id:a.id},`doPeriodActivity('${a.id}')`,a.desc+' • '+a.age+' yaş')).join('')}</div>`).join('');}
 function renderAssets(){ $('tab-varlik').innerHTML=`<div class="grid2">${D.assets.filter(a=>!s.assets.includes(a.id)).map(a=>actionButton(a.icon+' '+a.name,{kind:'asset',id:a.id},`buyAsset('${a.id}')`,a.cost+' servet • '+ASSET_AGES[a.id]+' yaş')).join('')}</div><h3>Sahip oldukların</h3><div class="grid2">${s.assets.map(id=>{const a=D.assets.find(x=>x.id===id);return a?actionButton(a.icon+' '+a.name,{kind:'asset',id,sell:true},`sellAsset('${id}')`,'Takas değeri '+Math.floor(a.cost*.6)) :'';}).join('')}</div><h3>Üretim</h3><div class="grid2">${[['herd','Sürüyü yönet'],['forge','Ocakta üret'],['caravan','Kervan payını yönet']].map(([id,n])=>actionButton(n,{kind:'venture',id},`manageVenture('${id}')`)).join('')}</div>`;}
-function familyCard(n,group,index){normalizeNPC(n,n.type);const actions=n.alive&&s.age>=5?[['spend','Vakit geçir'],['advice','Öğüt al'],['gift','Armağan'],...(group==='rivals'?[['reconcile','Uzlaş']]:[])].map(([id,label])=>{const issue=accessIssue({kind:'npc',group,index,id});return `<button class="mini" ${issue?'disabled':''} title="${safeText(issue)}" onclick="interactNPC('${group}',${index},'${id}')">${label}</button>`;}).join(''):'';return `<div class="card familycard"><div><h3>${n.alive?'':'† '}${safeText(n.name)}</h3><p>${safeText(n.type)} • ${n.age} yaş • ${safeText(n.role)}<br>İlişki ${n.rel}${n.partner?' • Eş: '+safeText(n.partner.name):''}${n.children?' • Çocuk: '+n.children:''}</p><div class="rbar"><i style="width:${n.rel}%"></i></div></div><div class="actions">${actions}</div></div>`;}
+function familyCard(n,group,index){
+ normalizeNPC(n,n.type);
+ const options=[['spend','Vakit geçir'],...(s.age>=8?[['confide','Dertleş']]:[]),...(s.age>=10?[['help','Yardım et'],['work','Birlikte çalış'],['gift','Armağan']]:[]),['advice','Öğüt al'],...(group==='rivals'?[['reconcile','Uzlaş']]:[])];
+ const actions=n.alive&&s.age>=5?options.map(([id,label])=>{const issue=accessIssue({kind:'npc',group,index,id});return `<button class="mini" ${issue?'disabled':''} title="${safeText(issue)}" onclick="interactNPC('${group}',${index},'${id}')">${label}</button>`;}).join(''):'';
+ const traits=npcTraitNames(n).map(x=>`<span class="trait">${safeText(x)}</span>`).join('');
+ const b=normalizeBonds(n),memory=recentNPCMemory(n);
+ return `<div class="card familycard"><div><h3>${n.alive?'':'† '}${safeText(n.name)}</h3><p>${safeText(n.type)} • ${n.age} yaş • ${safeText(n.role)}<br>İlişki ${n.rel}${n.partner?' • Eş: '+safeText(n.partner.name):''}${n.children?' • Çocuk: '+n.children:''}</p>
+ <div class="traitrow">${traits}</div><div class="npcgoal">Amaç: ${safeText(npcGoalName(n))}</div>
+ <div class="rbar"><i style="width:${n.rel}%"></i></div><div class="bondrow"><span class="bond good">Güven ${b.trust}</span><span class="bond">Saygı ${b.respect}</span>${b.grudge?'<span class="bond bad">Kin '+b.grudge+'</span>':''}${b.fear>15?'<span class="bond bad">Çekince '+b.fear+'</span>':''}</div>
+ ${memory?`<div class="memoryline">Hatırladığı: ${safeText(memory)}</div>`:''}</div><div class="actions">${actions}</div></div>`;
+}
 function renderSystems(){
  $('lifeCare').innerHTML=`<h3 class="sectionTitle">${lifeStage(s.age)}</h3><div class="grid2">${s.age<5?actionButton('Aile bakımında bir ay',{kind:'guardian'},'guardianCare()'):actionButton('Dinlen',{kind:'health',id:'rest'},"healthAction('rest')")+actionButton(s.age<12?'Ailenle otacıya git':'Otacı',{kind:'health',id:'healer'},"healthAction('healer')",'2 servet')}</div>${s.ailments.length?'<p class="note">'+s.ailments.map(x=>AILMENTS[x.id].name+' • '+x.remaining+' ay').join('<br>')+'</p>':''}${s.pregnancy?'<p class="note">Doğum bekleniyor • yaklaşık '+s.pregnancy.remaining+' ay.</p>':''}`;
  $('tab-yetisme').insertAdjacentHTML('beforeend','<h3 class="sectionTitle">Yetişme tecrübesi</h3><p class="note">'+Object.entries(s.experience).map(([k,v])=>pathName(k)+': '+v+' ay').join(' • ')+'</p>');
