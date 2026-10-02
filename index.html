@@ -149,6 +149,40 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
 .treeEmpty{text-align:center;color:#8a7b60;font-size:10px;padding:7px}
 .treeLegend{display:flex;gap:6px;flex-wrap:wrap}.treeLegend span{font-size:9px;background:#e4d5ad;border:1px solid #cfbd8d;border-radius:999px;padding:3px 7px;color:#66583e}
 @media(max-width:700px){.treeNode{min-width:105px;max-width:145px;padding:9px}.treeCouple{gap:5px}.generation{gap:8px;padding-left:0;padding-right:0}.treeBranchBar{width:84%}}
+.pedigree{position:relative;display:flex;flex-direction:column;align-items:center;padding:12px 8px 22px;min-width:620px}
+.pedigreeSelf{position:relative;z-index:3;margin-bottom:28px}
+.pedigreeSelf:after{content:"";position:absolute;left:50%;top:100%;width:2px;height:29px;background:#9d895f}
+.pedigreeParents{position:relative;width:min(86%,760px);display:grid;grid-template-columns:1fr 1fr;gap:70px;padding-top:19px}
+.pedigreeParents:before{content:"";position:absolute;left:25%;right:25%;top:0;height:2px;background:#9d895f}
+.pedigreeParent{position:relative;display:flex;flex-direction:column;align-items:center}
+.pedigreeParent:before{content:"";position:absolute;top:-19px;left:50%;width:2px;height:20px;background:#9d895f}
+.pedigreeGrandparents{position:relative;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:31px;padding-top:18px}
+.pedigreeGrandparents:before{content:"";position:absolute;left:25%;right:25%;top:0;height:2px;background:#9d895f}
+.pedigreeGrandparents:after{content:"";position:absolute;left:50%;top:-31px;width:2px;height:32px;background:#9d895f}
+.pedigreeGrand{position:relative;display:flex;justify-content:center}
+.pedigreeGrand:before{content:"";position:absolute;left:50%;top:-18px;width:2px;height:19px;background:#9d895f}
+.pedigree .treeNode{width:150px;max-width:150px;min-width:150px}
+.pedigree .treeNode.self{width:170px;max-width:170px;min-width:170px;transform:none}
+.pedigreeSide{width:min(92%,850px);margin:4px auto 0;border-top:1px dashed #c2ae7d;padding-top:12px}
+.pedigreeSideTitle{text-align:center;font-size:10px;font-weight:900;color:#796849;margin-bottom:8px}
+.pedigreeSideNodes{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
+.descTree{margin-top:18px;border-top:1px solid #cdbb8f;padding-top:18px}
+.descRoot{display:flex;justify-content:center;position:relative;margin-bottom:28px}
+.descRoot:after{content:"";position:absolute;left:50%;top:100%;height:29px;width:2px;background:#9d895f}
+.descChildren{position:relative;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;padding-top:18px}
+.descChildren:before{content:"";position:absolute;top:0;left:18%;right:18%;height:2px;background:#9d895f}
+.descChild{position:relative;display:flex;flex-direction:column;align-items:center}
+.descChild:before{content:"";position:absolute;top:-18px;left:50%;height:19px;width:2px;background:#9d895f}
+.descGrandchildren{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:10px}
+.treeSectionTitle{text-align:center;font-size:11px;font-weight:1000;color:#725f3f;letter-spacing:.08em;text-transform:uppercase;margin:4px 0 10px}
+@media(max-width:700px){
+ .pedigree{min-width:520px;padding-left:0;padding-right:0}
+ .pedigreeParents{width:94%;gap:28px}
+ .pedigree .treeNode{width:118px;max-width:118px;min-width:118px}
+ .pedigree .treeNode.self{width:140px;max-width:140px;min-width:140px}
+ .pedigreeGrandparents{gap:6px}
+}
+
 
 </style>
 </head>
@@ -845,63 +879,82 @@ function renderTore(){
  ${s.crimeRecord.length?`<h3>Kayıt</h3><div class="grid2">${s.crimeRecord.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.result}</p></div>`).join("")}</div>`:""}`
 }
 function renderLegacy(){
- const rel=s.relatives||[],grands=rel.filter(x=>["Dede","Nine"].includes(x.type));
- const sideKin=rel.filter(x=>!["Dede","Nine"].includes(x.type));
- const grandkids=s.children.flatMap(c=>(c.descendants||[]).map(g=>({...g,_parentName:c.name})));
- const living=allNPCs().filter(x=>x.alive).length;
+ const rel=s.relatives||[],grands=rel.filter(x=>["Dede","Nine"].includes(x.type)),sideKin=rel.filter(x=>!["Dede","Nine"].includes(x.type));
+ const living=allNPCs().filter(x=>x.alive).length,past=s.legacy.past||[];
+ const father=s.parents.find(x=>x.gender==="male")||s.parents[0],mother=s.parents.find(x=>x.gender==="female")||s.parents[1];
+ const parentGrandparents=p=>{
+   if(!p)return [];
+   const byIds=p.parentIds?.length?grands.filter(g=>p.parentIds.includes(g.id)):[];
+   if(byIds.length)return byIds.slice(0,2);
+   if(p===father)return grands.slice(0,2);
+   if(p===mother)return grands.slice(2,4);
+   return [];
+ };
  const icon=p=>p?.alive===false?"†":p?.gender==="female"?"♀":p?.gender==="male"?"♂":"•";
- const node=(p,cls="",typeOverride="")=>{
-   if(!p)return "";
-   const role=p.role&&p.role!=="Çocuk"?p.role:"";
-   return `<div class="treeNode ${p.alive===false?"dead":""} ${cls}">
-    <div class="treeNodeName">${icon(p)} ${safeText(p.name||"Bilinmiyor")}</div>
-    <div class="treeNodeMeta">${safeText(typeOverride||p.type||"Yakın")} • ${p.age??"?"} yaş</div>
-    ${role?`<span class="treeNodeRole">${safeText(role)}</span>`:""}
+ const node=(p,cls="",label="")=>{
+  if(!p)return `<div class="treeNode dead"><div class="treeNodeName">?</div><div class="treeNodeMeta">Bilinmiyor</div></div>`;
+  const role=p.role&&p.role!=="Çocuk"?p.role:"";
+  return `<div class="treeNode ${p.alive===false?"dead":""} ${cls}">
+   <div class="treeNodeName">${icon(p)} ${safeText(p.name||"Bilinmiyor")}</div>
+   <div class="treeNodeMeta">${safeText(label||p.type||"Yakın")} • ${p.age??"?"} yaş</div>
+   ${role?`<span class="treeNodeRole">${safeText(role)}</span>`:""}
+  </div>`;
+ };
+ const mini=p=>`<span class="treeMiniNode">${icon(p)} ${safeText(p.name)} • ${safeText(p.type||"Akraba")}${p.age!=null?" • "+p.age:""}</span>`;
+ const parentBranch=(p,label)=>{
+   const gs=parentGrandparents(p);
+   return `<div class="pedigreeParent">
+     ${node(p,"",label)}
+     <div class="pedigreeGrandparents">
+       ${[0,1].map(i=>`<div class="pedigreeGrand">${node(gs[i],"",gs[i]?.type||"Dede / Nine")}</div>`).join("")}
+     </div>
    </div>`;
  };
- const mini=p=>`<span class="treeMiniNode ${p.alive===false?"dead":""}">${icon(p)} ${safeText(p.name)} • ${safeText(p.type||"Akraba")}${p.age!=null?" • "+p.age:""}</span>`;
- const father=s.parents.find(x=>x.gender==="male")||s.parents[0],mother=s.parents.find(x=>x.gender==="female")||s.parents[1];
- const paternal=father?.parentIds?.length?grands.filter(g=>father.parentIds.includes(g.id)):grands.slice(0,2);
- const maternal=mother?.parentIds?.length?grands.filter(g=>mother.parentIds.includes(g.id)):grands.slice(2,4);
- const grandPair=(arr,label)=>arr.length?`<div><div class="generationLabel">${label}</div><div class="treeCouple">${arr.map(x=>node(x)).join("")}</div></div>`:"";
- const siblings=s.siblings||[];
  const children=s.children||[];
- const past=s.legacy.past||[];
+ const grandkids=children.flatMap(ch=>(ch.descendants||[]).map(g=>({...g,_parent:ch.name})));
+
  $("tab-soy").innerHTML=`
  <div class="familyTreeHeader">
   <div><h3>${safeText(s.legacy.familyName)} Soyu</h3><p class="note">${s.legacy.generation}. nesil • ${living} yaşayan yakın • ${past.length} geçmiş yaşam</p></div>
   <div class="treeLegend"><span>Turkuaz = Sen</span><span>† = Ölü</span></div>
  </div>
+
  <div class="tree">
-  ${grands.length?`
-   <div class="generationLabel">Dede / Nine</div>
-   <div class="generation" style="gap:28px">${grandPair(paternal,"Ata tarafı")}${grandPair(maternal,"Ana tarafı")}</div>
-   <div class="treeLinkV"></div>`:""}
-
-  <div class="generationLabel">Ana / Ata</div>
-  <div class="generation"><div class="treeCouple">${s.parents.map(x=>node(x)).join("")}</div></div>
-  <div class="treeLinkV"></div>
-
-  ${sideKin.length?`<div class="treeSideBranch"><div class="treeSideBranchTitle">Yan Kollar • Amca / Hala / Dayı / Teyze / Kuzen</div><div class="treeMiniNodes">${sideKin.map(mini).join("")}</div></div><div class="treeLinkV short"></div>`:""}
-
-  <div class="generationLabel">Senin Kuşağın</div>
-  <div class="generation treeSiblings">
-   ${siblings.map(x=>node(x)).join("")}
-   <div class="treeSelfCluster">${node({name:s.name,age:s.age,gender:s.gender,alive:s.alive,type:s.legacy.generation+". nesil",role:s.role},"self","Sen")}${s.partner?node(s.partner,"partner",s.married?"Eş":"Eş adayı"):""}</div>
+  <div class="treeSectionTitle">Ata Soyu</div>
+  <div class="pedigree">
+    <div class="pedigreeSelf">
+      ${node({name:s.name,age:s.age,gender:s.gender,alive:s.alive,role:s.role,type:"Sen"},"self","Sen")}
+    </div>
+    <div class="pedigreeParents">
+      ${parentBranch(mother,"Ana")}
+      ${parentBranch(father,"Ata")}
+    </div>
   </div>
 
+  ${s.siblings.length||sideKin.length?`
+   <div class="pedigreeSide">
+    <div class="pedigreeSideTitle">Aynı Kuşak ve Yan Kollar</div>
+    <div class="pedigreeSideNodes">
+      ${s.siblings.map(x=>mini(x)).join("")}
+      ${sideKin.map(x=>mini(x)).join("")}
+    </div>
+   </div>`:""}
+
   ${children.length?`
-   <div class="treeLinkV"></div><div class="treeBranchBar"></div><div class="treeLinkV short"></div>
-   <div class="generationLabel">Çocuklar</div>
-   <div class="generation">${children.map(x=>node(x)).join("")}</div>`:""}
-
-  ${grandkids.length?`
-   <div class="treeLinkV"></div><div class="treeBranchBar"></div><div class="treeLinkV short"></div>
-   <div class="generationLabel">Torunlar</div>
-   <div class="generation">${grandkids.map(x=>node(x,"",x._parentName+" soyundan")).join("")}</div>`:""}
-
-  ${!children.length?`<div class="treeLinkV short"></div><div class="treeEmpty">Henüz alt soy oluşmadı.</div>`:""}
+   <div class="descTree">
+    <div class="treeSectionTitle">Alt Soy</div>
+    <div class="descRoot">
+      <div class="treeSelfCluster">
+        ${node({name:s.name,age:s.age,gender:s.gender,alive:s.alive,role:s.role,type:"Sen"},"self","Sen")}
+        ${s.partner?node(s.partner,"partner",s.married?"Eş":"Eş adayı"):""}
+      </div>
+    </div>
+    <div class="descChildren">
+      ${children.map(ch=>`<div class="descChild">${node(ch,"","Çocuk")}${(ch.descendants||[]).length?`<div class="descGrandchildren">${(ch.descendants||[]).map(g=>mini({...g,type:"Torun"})).join("")}</div>`:""}</div>`).join("")}
+    </div>
+   </div>`:""}
  </div>
+
  <h3>Geçmiş Yaşamlar</h3>
  <div class="grid2">${past.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.age} yaş • ${safeText(x.role||"Görevsiz")} • ün ${x.prestige}</p></div>`).join("")||'<div class="card"><p>Henüz geçmiş yaşam yok.</p></div>'}</div>`;
 }
