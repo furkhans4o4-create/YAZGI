@@ -787,7 +787,7 @@ function renderMilitary(){
  <button class="card" onclick="militaryTrain('drill')"><h3>🛡 Birlik Tatbikatı</h3><p>Düzen ve savaş becerisi.</p></button>
  <button class="card" onclick="militaryTrain('watch')"><h3>🌙 Nöbet Tut</h3><p>İtibar ve savaş tecrübesi.</p></button>
  </div>
- <h3 class="sectionTitle">Sefer Yoldaşları</h3><div class="grid2">${s.military.comrades.map(n=>`<div class="card comrade"><div><h3>${n.alive?"":"† "}${n.name}</h3><p>${n.age} yaş • ilişki ${n.rel}</p></div></div>`).join("")}</div>`;
+ <h3 class="sectionTitle">Sefer Yoldaşları</h3><div class="grid2">${s.military.comrades.map((n,i)=>familyCard(n,"comrades",i)).join("")}</div>`;
  if(s.military.active)h+=`<h3 class="sectionTitle">Tehlikeli Karar</h3><button class="dangerBtn" onclick="desertCampaign()">Birliği İzinsiz Terk Et</button>`;
  $("tab-sefer").innerHTML=h;
 }
