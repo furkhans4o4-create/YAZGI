@@ -39,7 +39,7 @@ function getFamilyGroup(group){return group==='partner'?(s.partner?[s.partner]:[
 function accessIssue(a){
  if(!s?.alive)return 'Bu yaşam sona erdi.';
  if(s.pendingEventId||s.pendingDecision)return 'Önce karar kartını çöz.';
- if(s.monthsRemaining<=0)return '12 ay tamamlandı. Yeni yaşa geçebilirsin.';
+ if(s.monthsRemaining<=0)return 'Bu yıl için 12 eylem hakkını kullandın. 1 Yıl Geçir ile yeni yıla geç.';
  if(s.captive&&!['captivity','escape'].includes(a.kind))return 'Tutsakken bu eyleme erişemezsin.';
  if(s.military.active&&!['military','desert','wait','health'].includes(a.kind))return 'Önce seferdeki görevini tamamlamalısın.';
  let min=0;
@@ -76,17 +76,17 @@ function accessIssue(a){
  else if(a.kind!=='wait')return 'Eylem bulunamadı.';
  return s.age<min?`${min} yaşında açılır.`:'';
 }
-function canSpendMonth(){if(!s?.alive)return false;if(s.pendingEventId||s.pendingDecision){notice('Önce karar kartını çöz.');return false;}if(s.monthsRemaining<=0){notice('Yeni yaşa geçebilirsin.');return false;}return true;}
+function canSpendMonth(){if(!s?.alive)return false;if(s.pendingEventId||s.pendingDecision){notice('Önce karar kartını çöz.');return false;}if(s.monthsRemaining<=0){notice('Bu yıl için eylem hakkın kalmadı. 1 Yıl Geçir ile devam et.');return false;}return true;}
 function performAction(a,work,reason){const issue=accessIssue(a);if(issue){notice(issue);return false;}$('gameNotice').textContent='';s.lastAction={...a,age:s.age,year:s.year+s.age,month:currentMonth()};work();s.wealth=Math.max(0,Math.round(s.wealth));return spendMonth(reason,a);}
 function spendMonth(reason='',action={kind:'wait'}){
  if(!canSpendMonth())return false;const month=currentMonth();s.monthsRemaining--;if(reason)log(`<b>${month}. Ay:</b> ${reason}`);monthlyTick(month,action);
- if(s.alive&&s.monthsRemaining===0)log('12 ay tamamlandı. Son kararın ardından yeni yaşa geçebilirsin.','major');render();save();return true;
+ if(s.alive&&s.monthsRemaining===0)log('Bu yılın 12 eylem hakkını kullandın. Hazır olduğunda yeni yıla geçebilirsin.','major');render();save();return true;
 }
 function acquireAilment(id){const d=AILMENTS[id];if(d&&s.age>=d.min&&!s.ailments.some(x=>x.id===id)){s.ailments.push({id,remaining:d.duration});log(d.name+' yaşamını zorlaştırıyor.','bad');}}
 function addExperience(path){if(path)s.experience[path]=(s.experience[path]||0)+1;}
 function checkAchievements(){if(s.age>=18)unlock('adult');if(s.age>=65)unlock('old');if(s.wealth>=100)unlock('rich');if(Object.values(s.skills).some(x=>x>=60))unlock('trained');}
 function canHaveChild(){if(!s.married||!s.partner?.alive||s.age<18||s.partner.age<18||s.captive||s.military.active||s.pregnancy)return false;return (s.gender==='female'?s.age:s.partner.age)<45&&s.health>=35&&s.partner.health>=35;}
-function monthlyTick(month,action){
+function monthlyTick(month,action,allowEvent=true){
  tickEventCooldowns();
  for(const n of allNPCs())if(n.alive&&n.birthYear!=null){const before=n.age;n.age=Math.max(0,s.year+s.age-n.birthYear-(month<n.birthMonth?1:0));if(before!==n.age&&[8,12,18].includes(n.age))n.role=npcRole(n.age);}
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
@@ -97,9 +97,22 @@ function monthlyTick(month,action){
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
   if(s.married&&s.partner?.alive&&s.age>=18&&s.partner.age>=18){const gender=pick(['male','female']);const c=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age:0,type:'Çocuk',birthYear:s.year+s.age,birthMonth:month,alive:true,rel:80,realm:s.realm,place:s.place,tribe:s.tribe},'Çocuk');s.children.push(c);unlock('parent');log(safeText(c.name)+' dünyaya geldi.','major');}s.pregnancy=null;
  }
- checkAchievements();if(s.health<=0)die();if(s.alive)triggerContextEvent(true,{...action,month});
+ checkAchievements();if(s.health<=0)die();if(s.alive&&allowEvent)triggerContextEvent(true,{...action,month});
 }
-function passOneMonth(){if(!s?.alive)return;if(s.monthsRemaining===0)return ageUp();if(s.captive)return captivityMonth();if(s.age<5)return guardianCare();performAction({kind:'wait'},()=>{},'Günlük düzenin içinde bir ay geçti.');}
+function passOneYear(){
+ if(!s?.alive)return;
+ if(s.pendingEventId||s.pendingDecision){notice('Önce karar kartını çöz.');return;}
+ const unused=s.monthsRemaining??12;
+ while(s.alive&&s.monthsRemaining>0){
+  const month=currentMonth();
+  s.lastAction={kind:'wait',age:s.age,year:s.year+s.age,month};
+  s.monthsRemaining--;
+  monthlyTick(month,{kind:'wait'},false);
+ }
+ if(!s.alive){render();save();return;}
+ if(unused>0)log(unused===12?'Bu yılı doğrudan geride bıraktın.':`Kalan ${unused} eylem hakkını kullanmadan yılı tamamladın.`,'major');
+ ageUp();
+}
 function guardianCare(){performAction({kind:'guardian'},()=>apply({happiness:1}),'Bakımını ailen ve bakıcıların üstlendi.');}
 function healthAction(id){performAction({kind:'health',id},()=>{if(id==='healer')s.wealth-=2;apply({health:id==='healer'?7:4,happiness:1});s.ailments.forEach(x=>x.remaining-=id==='healer'?2:1);s.ailments=s.ailments.filter(x=>x.remaining>0);},id==='healer'?'Otacıdan yardım aldın.':'Dinlenmeye zaman ayırdın.');}
 function activity(t){performAction({kind:'activity',id:t},()=>{if(t==='at'){skillGain('riding',3);apply({skill:2,happiness:2});}if(t==='ok'){skillGain('archery',3);skillGain('combat',1);apply({skill:2});}if(t==='av'){skillGain('archery',2);apply(Math.random()<.65?{wealth:rng(1,3),skill:2}:{health:-2});}if(t==='toy'){skillGain('speech',1);apply({happiness:4,prestige:2});}},s.age<18?'Büyüklerin gözetiminde faaliyetine zaman ayırdın.':'Faaliyetinle bir ay geçirdin.');}
@@ -137,7 +150,7 @@ function familyTick(){
  }
  if(canHaveChild()&&Math.random()<.18){s.pregnancy={remaining:9};log('Ocağınızda bir çocuk bekleniyor.','major');}
 }
-function ageUp(){if(!s?.alive)return;if(s.pendingEventId||s.pendingDecision){notice('Önce son karar kartını çöz.');return;}if(s.monthsRemaining>0){notice('Önce kalan ayları tamamla.');return;}s.age++;s.monthsRemaining=12;s.lastAction=null;if(s.age>40)apply({health:-rng(0,2)});familyTick();checkAchievements();mortality();if(s.alive){log(animalYearName(s.year+s.age)+' Yılı başladı; önünde 12 ay var.','major');if(s.age>=18&&!s.captive&&!s.exile&&!s.military.called)militaryCall();else if(s.age>=18&&!s.captive&&!s.exile&&!s.military.active&&s.military.served&&Math.random()<.08){s.military.called=false;militaryCall();}}render();save();}
+function ageUp(){if(!s?.alive)return;if(s.pendingEventId||s.pendingDecision){notice('Önce son karar kartını çöz.');return;}if(s.monthsRemaining>0){notice('Yeni yıla geçmeden önce kalan haklar atlanmalı.');return;}s.age++;s.monthsRemaining=12;s.lastAction=null;if(s.age>40)apply({health:-rng(0,2)});familyTick();checkAchievements();mortality();if(s.alive){log(animalYearName(s.year+s.age)+' Yılı başladı; bu yıl 12 eylem hakkın var.','major');if(s.age>=18&&!s.captive&&!s.exile&&!s.military.called)militaryCall();else if(s.age>=18&&!s.captive&&!s.exile&&!s.military.active&&s.military.served&&Math.random()<.08){s.military.called=false;militaryCall();}}render();save();}
 function die(){if(!s?.alive)return;s.alive=false;s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;clearTransient();log(`${s.age} yaşında, ${s.year+s.age} yılında yaşamın sona erdi.`,'bad');s.legacy.past.push({name:s.name,age:s.age,role:s.role,prestige:s.prestige,wealth:s.wealth});render();save();showHeirModal();}
 function setWill(id){if(id!=='equal'&&!s.children.some(x=>x.id===id&&x.alive))return;performAction({kind:'will'},()=>{s.will=id;},'Mal paylaşımı isteğini yakınlarınla konuştun.');}
 function continueAsHeir(i){
