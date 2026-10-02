@@ -792,14 +792,18 @@ function renderMilitary(){
  $("tab-sefer").innerHTML=h;
 }
 function renderFamily(){
- s.parents.forEach(x=>normalizeNPC(x,x.type));s.siblings.forEach(x=>normalizeNPC(x,x.type));s.children.forEach(x=>normalizeNPC(x,"Çocuk"));
- let html=`<h3>Aile</h3><div class="grid2">${s.parents.map((r,i)=>familyCard(r,"parents",i)).join("")}${s.siblings.map((r,i)=>familyCard(r,"siblings",i)).join("")}</div>`;
+ s.parents.forEach(x=>normalizeNPC(x,x.type));s.siblings.forEach(x=>normalizeNPC(x,x.type));(s.relatives||[]).forEach(x=>normalizeNPC(x,x.type));s.children.forEach(x=>normalizeNPC(x,"Çocuk"));
+ const living=allNPCs().filter(x=>x.alive),close=[...s.parents,...s.siblings,...s.children,...(s.partner?[s.partner]:[])].filter(x=>x?.alive);
+ const avg=close.length?Math.round(close.reduce((a,n)=>a+(n.rel||0),0)/close.length):0;
+ let html=`<div class="familySummary"><span class="badge">Yaşayan yakın ${living.length}</span><span class="badge">Yakın bağ ort. ${avg}</span><span class="badge">Geniş aile ${(s.relatives||[]).length}</span><span class="badge">Dost ${s.friends.length} • Rakip ${s.rivals.length}</span></div>`;
+ html+=`<h3>Aile</h3><div class="grid2">${s.parents.map((r,i)=>familyCard(r,"parents",i)).join("")}${s.siblings.map((r,i)=>familyCard(r,"siblings",i)).join("")}</div>`;
  html+=`<h3>Ocak</h3><div class="grid2">`;
- if(!s.partner?.alive&&s.age>=16)html+=`<button class="card" onclick="meetPartner()"><h3>❤️ Eş Adayı Bul</h3><p>Başka bir aileyle bağ kur.</p></button>`;
+ if(!s.partner?.alive&&s.age>=16)html+=`<button class="card" onclick="meetPartner()"><h3>❤️ Eş Adayı Bul</h3><p>Başka bir aileyle bağ kur. Karakteri ve sana güveni ilerideki kararları etkiler.</p></button>`;
  if(s.partner)html+=familyCard(s.partner,"partner",0);
- if(s.partner?.alive&&!s.married)html+=actionButton("🔥 Ocak Kur",{kind:"marry"},"marry()","İkiniz de 18 yaşında, ilişkiniz en az 65 olmalı.");
+ if(s.partner?.alive&&!s.married)html+=actionButton("🔥 Ocak Kur",{kind:"marry"},"marry()","İkiniz de 18 yaşında olmalı; ilişki ve güven başarı ihtimalini etkiler.");
  html+=`</div>`;
  if(s.children.length)html+=`<h3>Çocuklar</h3><div class="grid2">${s.children.map((r,i)=>familyCard(r,"children",i)).join("")}</div>`;
+ if((s.relatives||[]).length)html+=`<h3>Geniş Aile</h3><div class="grid2">${s.relatives.map((r,i)=>familyCard(r,"relatives",i)).join("")}</div>`;
  if(s.friends.length)html+=`<h3>Dostlar</h3><div class="grid2">${s.friends.map((r,i)=>familyCard(r,"friends",i)).join("")}</div>`;
  if(s.rivals.length)html+=`<h3>Rakipler</h3><div class="grid2">${s.rivals.map((r,i)=>familyCard(r,"rivals",i)).join("")}</div>`;
  $("tab-aile").innerHTML=html;
@@ -814,20 +818,26 @@ function renderTore(){
  ${s.crimeRecord.length?`<h3>Kayıt</h3><div class="grid2">${s.crimeRecord.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.result}</p></div>`).join("")}</div>`:""}`
 }
 function renderLegacy(){
- const chips=a=>a.map(x=>`<span class="personChip ${x.alive===false?"dead":""}">${x.alive===false?"† ":""}${safeText(x.name)}${x.age!=null?` • ${x.age}`:""}</span>`).join("");
- $("tab-soy").innerHTML=`<div class="card"><h3>${s.legacy.familyName} Soyu</h3><p>${s.legacy.generation}. nesil • geçmiş yaşam sayısı ${s.legacy.past.length}</p></div>
+ const chips=a=>a.map(x=>`<span class="personChip ${x.alive===false?"dead":""}">${x.alive===false?"† ":""}${safeText(x.name)}${x.age!=null?` • ${x.age}`:""}${x.type?` • ${safeText(x.type)}`:""}</span>`).join("");
+ const grands=(s.relatives||[]).filter(x=>["Dede","Nine"].includes(x.type)),otherKin=(s.relatives||[]).filter(x=>!["Dede","Nine"].includes(x.type));
+ const grandkids=s.children.flatMap(c=>c.descendants||[]);
+ $("tab-soy").innerHTML=`<div class="card"><h3>${s.legacy.familyName} Soyu</h3><p>${s.legacy.generation}. nesil • geçmiş yaşam sayısı ${s.legacy.past.length} • yaşayan soy halkası ${allNPCs().filter(x=>x.alive).length}</p></div>
  <div class="tree">
+  ${grands.length?`<div class="treeRow"><div class="treeLabel">Dede / Nine</div><div class="treePeople">${chips(grands)}</div></div>`:""}
   <div class="treeRow"><div class="treeLabel">Ana / Ata</div><div class="treePeople">${chips(s.parents)}</div></div>
+  ${otherKin.length?`<div class="treeRow"><div class="treeLabel">Geniş Aile</div><div class="treePeople">${chips(otherKin)}</div></div>`:""}
   <div class="treeRow"><div class="treeLabel">Kardeşler</div><div class="treePeople">${chips(s.siblings)}</div></div>
-  <div class="treeRow"><div class="treeLabel">Sen</div><div class="treePeople"><span class="personChip"><b>${safeText(s.name)}</b> • ${s.age}</span>${s.partner?`<span class="personChip">❤️ ${s.partner.name}</span>`:""}</div></div>
+  <div class="treeRow"><div class="treeLabel">Sen</div><div class="treePeople"><span class="personChip"><b>${safeText(s.name)}</b> • ${s.age}</span>${s.partner?`<span class="personChip">❤️ ${safeText(s.partner.name)}</span>`:""}</div></div>
   <div class="treeRow"><div class="treeLabel">Çocuklar</div><div class="treePeople">${chips(s.children)}</div></div>
+  ${grandkids.length?`<div class="treeRow"><div class="treeLabel">Torunlar</div><div class="treePeople">${chips(grandkids)}</div></div>`:""}
  </div>
- <h3>Geçmiş Yaşamlar</h3><div class="grid2">${s.legacy.past.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.age} yaş • ${x.role||"Görevsiz"} • ün ${x.prestige}</p></div>`).join("")}</div>`
+ <h3>Geçmiş Yaşamlar</h3><div class="grid2">${s.legacy.past.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.age} yaş • ${x.role||"Görevsiz"} • ün ${x.prestige}</p></div>`).join("")}</div>`;
 }
 function renderSide(){
  $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} yara<br>📜 ${(s.eventArchive||[]).length} seçimli olay<br>🧭 ${Object.keys(s.flags||{}).length} yaşam izi</p></div>`;
- $("sideRel").innerHTML=[...s.parents,...s.siblings].slice(0,5).map(r=>`<div class="card relation"><span>${r.name}</span><span class="badge">${r.rel}</span></div>`).join("");
- let acts=`${s.captive?`<button class="sidebtn" onclick="captivityMonth()">⛓ Tutsaklıkta 1 Ay Geçir</button>${s.age>=12?`<button class="sidebtn" onclick="attemptEscape()">↗ Kaçmayı dene</button>`:""}`:""}`;
+ const closest=[...s.parents,...s.siblings,...s.children,...s.friends,...(s.partner?[s.partner]:[]),...(s.relatives||[])].filter(x=>x?.alive).sort((a,b)=>(b.rel||0)-(a.rel||0)).slice(0,5);
+ $("sideRel").innerHTML=closest.map(r=>`<div class="card relation"><span>${safeText(r.name)}<small style="display:block;color:#7b6d52">${safeText(r.type||"Yakın")}</small></span><span class="badge">${r.rel}</span></div>`).join("");
+ let acts=`${s.captive?`<button class="sidebtn" onclick="captivityMonth()">⛓ Tutsaklıkta eylem yap</button>${s.age>=12?`<button class="sidebtn" onclick="attemptEscape()">↗ Kaçmayı dene</button>`:""}`:""}`;
  if(s.age>=6)acts+=`<button class="sidebtn" onclick="addFriend()">🤝 Dost edin</button>`;
  if(s.age>=10)acts+=`<button class="sidebtn" onclick="makeRival()">⚔ Rakip edin</button>`;
  if(s.age<6)acts+=`<div class="card"><p class="note">Bu yaşta sosyal çevreni çoğunlukla ailen şekillendiriyor.</p></div>`;
