@@ -182,15 +182,64 @@ function chooseContextEvent(i){
  s.eventArchive.push({id:ev.id,cat:ev.cat,...context,choice:i,actor:hasDirectAgency(ev)?'self':'guardian'});s.eventArchive=s.eventArchive.slice(-300);log(`<b>${ev.cat}:</b> ${ev.text} <i>${hasDirectAgency(ev)?'':'Ailen/bakıcıların: '}${ch[0]}</i>`);
  s.pendingEventId=null;s.pendingEventContext=null;s.decisionOffset=0;window._contextEvent=null;checkAchievements();if(s.health<=0)die();render();save();
 }
-function currentDecisionPayload(){if(!s?.alive)return null;const e=activeContextEvent();if(e)return {kind:'event',cat:e.cat,title:hasDirectAgency(e)?'Hayat Olayı':'Ailenin / Bakıcının Kararı',text:e.text,choices:e.choices,context:s.pendingEventContext};if(s.pendingDecision?.id==='campaign_call')return {kind:'system',cat:'Sefer',title:'Boydan Haber',text:'Yaklaşan sefer için savaşçılar toplanıyor. Birliğe katılmak birkaç ay sürecek.',choices:[['Birliğe katıl',{}],['Obada kal',{}]],context:s.pendingDecision};return null;}
+function currentDecisionPayload(){if(!s?.alive)return null;const e=activeContextEvent();if(e)return {kind:'event',cat:e.cat,title:hasDirectAgency(e)?'Hayat Olayı':'Ailenin / Bakıcının Kararı',text:e.text,choices:e.choices,context:s.pendingEventContext};if(s.pendingDecision?.id==='campaign_call')return {kind:'system',cat:'Sefer',title:'Boydan Haber',text:'Yaklaşan sefer için savaşçılar toplanıyor. Birliğe katılmak birkaç ay sürecek.',choices:[['Birliğe katıl',{prestige:4,combat:2,path:'military'}],['Obada kal',{happiness:1}]],context:s.pendingDecision};return null;}
+const CHOICE_STAT_META={
+ health:["❤️","Sağlık"],happiness:["☀","Dirlik"],skill:["✦","Beceri"],prestige:["🐺","İtibar"],wealth:["🐎","Servet"],
+ riding:["🐎","Binicilik"],archery:["🏹","Okçuluk"],combat:["⚔","Savaş"],craft:["🔨","Zanaat"],literacy:["𐱅","Bitig"],speech:["🪕","Söz"],trade:["🧺","Ticaret"]
+};
+function choiceImpactItems(choice,more=false){
+ if(more)return [{cls:"neutral",label:"⋯ Diğer seçenekleri gör"}];
+ const x=choice?.[1]||{},items=[];
+ for(const [k,[icon,name]] of Object.entries(CHOICE_STAT_META)){
+   const v=x[k];if(typeof v!=="number"||!v)continue;
+   items.push({cls:v>0?"pos":"neg",label:`${icon} ${name} ${v>0?"+":""}${v}`});
+ }
+ if(x.wound)items.push({cls:"neg",label:`🩸 Yara +${x.wound}`});
+ if(x.clearExile)items.push({cls:"pos",label:"↩ Sürgün sona erer"});
+ if(x.setRole)items.push({cls:"neutral",label:`🏕 Görev: ${x.setRole}`});
+ if(x.asset)items.push({cls:"pos",label:"🎒 Yeni varlık"});
+ if(x.path)items.push({cls:"neutral",label:"🧭 Yeni yaşam yolu"});
+ if(!items.length)items.push({cls:"neutral",label:"Sonuç olaydan sonra belli olacak"});
+ return items;
+}
+function impactHtml(choice,more=false){
+ return choiceImpactItems(choice,more).map(x=>`<span class="impact ${x.cls}">${safeText(x.label)}</span>`).join("");
+}
 function renderEventBoard(){
- const board=$('eventBoard'),p=currentDecisionPayload();if(!p){board.innerHTML='';return;}const offset=s.decisionOffset||0,more=offset+2<p.choices.length,l=p.choices[offset],r=more?['Diğer seçenekler',{}]:p.choices[offset+1],ctx=p.context||{age:s.age,year:s.year+s.age,month:currentMonth()};
+ const board=$('eventBoard'),p=currentDecisionPayload();if(!p){board.innerHTML='';return;}
+ const offset=s.decisionOffset||0,more=offset+2<p.choices.length,l=p.choices[offset],r=more?['Diğer seçenekler',{}]:p.choices[offset+1],ctx=p.context||{age:s.age,year:s.year+s.age,month:currentMonth()};
  const issue=i=>p.kind==='event'?eventChoiceIssue(p.choices[i]):i===0&&(s.health<40||s.captive||s.exile)?'Özgürlük ve 40 sağlık gerekiyor':'';
  const li=issue(offset),ri=more?'':issue(offset+1),target=allNPCs().find(n=>n.id===ctx.targetId);
- board.innerHTML=`<div class="eventBoard"><div class="swipeArena" id="swipeArena"><button class="swipeSide left" id="swipeLeft" ${li?'disabled':''} onclick="animateSwipeOut(0)"><span>←<br>${l[0]}${li?'<br>'+li:''}</span></button><button class="swipeSide right" id="swipeRight" ${ri?'disabled':''} onclick="animateSwipeOut(1)"><span>→<br>${r[0]}${ri?'<br>'+ri:''}</span></button><div class="swipeCard" id="swipeCard" tabindex="0" aria-label="${safeText(p.title)}"><div class="swipeLeftStamp" id="swipeLeftStamp">←</div><div class="swipeRightStamp" id="swipeRightStamp">→</div><div class="swipeTop"><div class="swipeTitle">${p.title}</div><span class="swipeBadge">${p.cat}</span></div><div class="swipeMeta">${ctx.age} yaş • ${animalYearName(ctx.year)} Yılı • ${ctx.month}. Ay${target?' • '+safeText(target.name):''}</div><div class="swipeText">${p.text}</div><div class="swipeInstruction">← ${l[0]}<br>→ ${r[0]}<br>Kartı sürükle veya ok tuşlarını kullan</div></div></div>${offset?'<button class="qbtn" onclick="s.decisionOffset=0;renderEventBoard();save()">Önceki seçenekler</button>':''}</div>`;setupSwipeCard();
+ board.innerHTML=`<div class="decisionOverlay" id="decisionOverlay">
+   <div class="decisionStage">
+     <button class="decisionSide left" id="decisionLeft" ${li?'disabled':''} onclick="animateSwipeOut(0)">
+       <span class="decisionDirection">←</span>
+       <span class="decisionChoice">${safeText(l[0])}</span>
+       ${li?`<span class="decisionIssue">${safeText(li)}</span>`:''}
+       <span class="impactList">${impactHtml(l,false)}</span>
+     </button>
+     <div class="swipeCard" id="swipeCard" tabindex="0" aria-label="${safeText(p.title)}">
+       <div class="swipeLeftStamp" id="swipeLeftStamp">← ${safeText(l[0])}</div>
+       <div class="swipeRightStamp" id="swipeRightStamp">${safeText(r[0])} →</div>
+       <div class="swipeTop"><div class="swipeTitle">${safeText(p.title)}</div><span class="swipeBadge">${safeText(p.cat)}</span></div>
+       <div class="swipeMeta">${ctx.age} yaş • ${animalYearName(ctx.year)} Yılı • ${ctx.month}. Ay${target?' • '+safeText(target.name):''}</div>
+       <div class="swipeText">${safeText(p.text)}</div>
+       <div class="swipeInstruction">Kartı sola veya sağa sürükle</div>
+     </div>
+     <button class="decisionSide right" id="decisionRight" ${ri?'disabled':''} onclick="animateSwipeOut(1)">
+       <span class="decisionDirection">→</span>
+       <span class="decisionChoice">${safeText(r[0])}</span>
+       ${ri?`<span class="decisionIssue">${safeText(ri)}</span>`:''}
+       <span class="impactList">${impactHtml(r,more)}</span>
+     </button>
+     ${offset?`<button class="decisionPager" onclick="s.decisionOffset=0;renderEventBoard();save()">← İlk seçeneklere dön</button>`:''}
+     <div class="decisionHint">Sola: ${safeText(l[0])} &nbsp; • &nbsp; Sağa: ${safeText(r[0])}</div>
+   </div>
+ </div>`;
+ setupSwipeCard();
 }
 function animateSwipeOut(index){
- if(window._swipeBusy||!currentDecisionPayload()||$(index===0?'swipeLeft':'swipeRight')?.disabled)return;const card=$('swipeCard');if(!card)return finishSwipeChoice(index);window._swipeBusy=true;
+ if(window._swipeBusy||!currentDecisionPayload()||$(index===0?'decisionLeft':'decisionRight')?.disabled)return;const card=$('swipeCard');if(!card)return finishSwipeChoice(index);window._swipeBusy=true;
  const epoch=window._swipeEpoch||0,life=s.id,event=s.pendingEventId,decision=s.pendingDecision?.id,offset=s.decisionOffset||0;
  card.style.transform=`translateX(${index===0?-700:700}px) rotate(${index===0?-25:25}deg)`;card.style.opacity='0';setTimeout(()=>{window._swipeBusy=false;if(epoch!==(window._swipeEpoch||0)||s.id!==life||s.pendingEventId!==event||s.pendingDecision?.id!==decision||(s.decisionOffset||0)!==offset)return;finishSwipeChoice(index);},180);
 }
