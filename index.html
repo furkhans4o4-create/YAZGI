@@ -142,8 +142,8 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
    <div class="calendarline" id="calendarLine">-</div>
  </div>
  <div class="timebox">
-   <div class="monthrights" id="monthRights">12/12 ay hakkı</div>
-   <button class="agebtn" id="ageBtn" onclick="passOneMonth()">1 Ay Geçir</button>
+   <div class="monthrights" id="monthRights">12/12 eylem hakkı</div>
+   <button class="agebtn" id="ageBtn" onclick="passOneYear()">1 Yıl Geçir</button>
  </div>
 </section>
    <section class="panel">
@@ -609,8 +609,8 @@ function render(){
  const ceYear=s.year+s.age, month=currentMonth();
  $("meta").innerHTML=`${s.tribe} • ${s.place}<br>${s.realm}<br><b>${animalYearName(ceYear)} Yılı</b> • ${MONTH_LABELS[month-1]}<br>${seasonForMonth(month)} • ${ceYear}<br>${s.legacy.generation}. nesil`;
  $("calendarLine").innerHTML=`<b>${animalYearName(ceYear)} Yılı</b> • ${MONTH_LABELS[month-1]} • ${seasonForMonth(month)}`;
- $("monthRights").textContent=`${s.monthsRemaining??12}/12 ay hakkı`;
- $("ageBtn").textContent=(s.monthsRemaining??12)>0?"1 Ay Geçir":"+ 1 Yaş";
+ $("monthRights").textContent=`${s.monthsRemaining??12}/12 eylem hakkı`;
+ $("ageBtn").textContent="1 Yıl Geçir";
  $("wealth").textContent=`🐎 ${s.wealth} servet`;$("age").textContent=s.age;$("status").textContent=statusText();
  ensureSkills();
  $("quickActions").innerHTML=[
