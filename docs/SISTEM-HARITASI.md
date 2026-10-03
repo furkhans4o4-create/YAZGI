@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 17’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v17` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 18’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v18` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -260,3 +260,14 @@ Oyuncu bir çocuğun bakımına özel zaman ayırabilir, ona bir şey öğretebi
 Kardeşler arasında ilgi farkı büyürse rekabet değeri artabilir ve gerçek NPC-NPC kardeş bağını bozabilir. Ebeveyn arabuluculuk yaparak iki çocuğun da rekabetini ve sosyal husumetini azaltabilir. Çocuğun yalan söylemesi, kendi istediği yolu savunması ve kardeş çatışması gibi seçimli olaylar da doğrudan ebeveynlik profiline işler.
 
 Eski kayıtlar göç sırasında mevcut çocuklar için otomatik yetiştirme profili üretir ve mümkünse ebeveyn kimliklerini bağlar. Böylece v16 kayıtlar çocuk sistemi kaybolmadan v17'ye taşınır.
+
+
+### Yetimlik, akraba himayesi ve koruyuculuk
+
+v18 ile çocuk yaşta ebeveyn kaybı ayrı bir yaşam durumudur. 18 yaşından küçük oyuncunun yaşayan ebeveyni kalmadığında sistem önce yetişkin kardeş, dede/nine, amca-dayı/hala-teyze ve güvenilir aile dostları arasından ilişki, güven, sağlık, servet, kişilik ve coğrafi yakınlığa göre uygun koruyucuyu seçer. Uygun yakın bulunamazsa oba içinden kalıcı bir Oba Koruyucusu NPC oluşturulur; bu kişi sosyal ağda aile dostu olarak yaşamaya devam eder.
+
+Koruyuculuk profilinde bakım kalitesi, hane istikrarı, kaç ay himayede kalındığı, kaç kez koruyucu değiştiği, birlikte kalan ve başka himaye ocaklarına ayrılan küçük kardeşler ile bütün geçişlerin geçmişi saklanır. Koruyucunun hane kapasitesi elverdiği ölçüde küçük kardeşler oyuncuyla aynı yurtta tutulur; kapasite yetmezse kalan kardeşler başka uygun yakınlara yerleştirilir. Ayrı yaşayan kardeşlerin ilişki ve güveni zamanla aşınabilir, oyuncu onları ziyaret ederek bu bağı güçlendirebilir.
+
+Himaye ocağında oyuncu koruyucusuyla vakit geçirebilir, yurt işlerine yardım edebilir, ondan bir beceri öğrenebilir ve ölen anne/atası hakkında konuşabilir. İlişki sistemi ve koruyucunun özellikleri bakım kalitesini belirler. Yüksek kaliteli bakım çocuk oyuncunun sağlık ve mutluluğunu destekleyebilir; düşük kalite ve istikrarsızlık mutluluğu, uzun süre devam ederse sağlığı da olumsuz etkileyebilir. Koruyucu ölürse sistem geçmişi silmeden bir sonraki uygun yetişkin yakını arar.
+
+Aynı koruyucu yanında başka himaye çocukları da bulunabilir; bunlar kalıcı Himaye Yoldaşı NPC'leridir. Himaye anıları, koruyucu hanedeki gerilim ve ayrı yaşayan kardeşle mesafe seçimli olaylara bağlanmıştır. Oyuncu 18 yaşına ulaştığında aktif koruyuculuk otomatik biter; eski koruyucu ve himaye döneminin bütün hafızası sosyal ağda kalır.
