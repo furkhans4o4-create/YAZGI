@@ -9,26 +9,46 @@ const CAREER_RULES={
 const ASSET_AGES={horse:12,bow:12,flock:18,sword:18,armor:18,yurt:18,caravan_share:18,smithy:18};
 const AILMENTS={fever:{name:'Ateşli rahatsızlık',min:0,loss:2,duration:3},chill:{name:'Soğukta güçten düşme',min:0,loss:1,duration:2},injury:{name:'İyileşen yara',min:12,loss:2,duration:4},joints:{name:'Eklem ağrısı',min:50,loss:1,duration:8}};
 const STORY_ARCS={
- smith:{name:'Demir Ocağının Yolu',icon:'🔥',start:'smith_offer',maxStage:5,nodes:{
+ smith:{name:'Demir Ocağının Yolu',icon:'🔥',start:'smith_offer',maxStage:7,nodes:{
   smith_offer:{stage:0,next:{0:'smith_first_mistake'},end:{1:'abandoned'}},
   smith_first_mistake:{stage:1,next:{0:'smith_master_test',1:'smith_master_test'}},
-  smith_master_test:{stage:2,next:{0:'smith_own_hearth'},end:{1:'abandoned'}},
-  smith_own_hearth:{stage:3,next:{0:'smith_state_order'},end:{1:'abandoned'}},
-  smith_state_order:{stage:4,end:{0:'completed',1:'completed'}}
+  smith_master_test:{stage:2,next:{0:'smith_customer_order',1:'smith_customer_order'}},
+  smith_customer_order:{stage:3,next:{0:'smith_own_hearth',1:'smith_own_hearth'}},
+  smith_own_hearth:{stage:4,next:{0:'smith_rival_contract',1:'smith_rival_contract'}},
+  smith_rival_contract:{stage:5,next:{0:'smith_state_order',1:'smith_state_order'}},
+  smith_state_order:{stage:6,end:{0:'completed',1:'completed'}}
  }},
- scribe:{name:'Bitigden Elçiliğe',icon:'𐱅',start:'scribe_offer',maxStage:5,nodes:{
+ scribe:{name:'Bitigden Elçiliğe',icon:'𐱅',start:'scribe_offer',maxStage:7,nodes:{
   scribe_offer:{stage:0,next:{0:'scribe_copy'},end:{1:'abandoned'}},
-  scribe_copy:{stage:1,next:{0:'scribe_record_dispute'},end:{1:'abandoned'}},
-  scribe_record_dispute:{stage:2,next:{0:'scribe_envoy_list'},end:{1:'abandoned'}},
-  scribe_envoy_list:{stage:3,next:{0:'envoy_border_talk'},end:{1:'abandoned'}},
-  envoy_border_talk:{stage:4,end:{0:'completed',1:'completed'}}
+  scribe_copy:{stage:1,next:{0:'scribe_record_dispute',1:'scribe_record_dispute'}},
+  scribe_record_dispute:{stage:2,next:{0:'scribe_secret_record',1:'scribe_secret_record'}},
+  scribe_secret_record:{stage:3,next:{0:'scribe_envoy_list',1:'scribe_envoy_list'}},
+  scribe_envoy_list:{stage:4,next:{0:'envoy_gift_dilemma',1:'envoy_gift_dilemma'}},
+  envoy_gift_dilemma:{stage:5,next:{0:'envoy_border_talk',1:'envoy_border_talk'}},
+  envoy_border_talk:{stage:6,end:{0:'completed',1:'completed'}}
  }},
- caravan:{name:'Kervan Yolu',icon:'🐫',start:'caravan_invite',maxStage:5,nodes:{
+ caravan:{name:'Kervan Yolu',icon:'🐫',start:'caravan_invite',maxStage:7,nodes:{
   caravan_invite:{stage:0,next:{0:'caravan_first_crossing'},end:{1:'completed'}},
-  caravan_first_crossing:{stage:1,next:{0:'caravan_market'},end:{1:'abandoned'}},
-  caravan_market:{stage:2,next:{0:'caravan_partner'},end:{1:'completed'}},
-  caravan_partner:{stage:3,next:{0:'caravan_master'},end:{1:'completed'}},
-  caravan_master:{stage:4,end:{0:'completed',1:'completed'}}
+  caravan_first_crossing:{stage:1,next:{0:'caravan_market',1:'caravan_market'}},
+  caravan_market:{stage:2,next:{0:'caravan_loss',1:'caravan_loss'}},
+  caravan_loss:{stage:3,next:{0:'caravan_partner',1:'caravan_partner'}},
+  caravan_partner:{stage:4,next:{0:'caravan_route_rival',1:'caravan_route_rival'}},
+  caravan_route_rival:{stage:5,next:{0:'caravan_master',1:'caravan_master'}},
+  caravan_master:{stage:6,end:{0:'completed',1:'completed'}}
+ }},
+ bardcareer:{name:'Ozanın Sözü',icon:'🪕',start:'bard_mentor_offer',maxStage:5,nodes:{
+  bard_mentor_offer:{stage:0,next:{0:'bard_first_toy'},end:{1:'abandoned'}},
+  bard_first_toy:{stage:1,next:{0:'bard_rival_verse',1:'bard_rival_verse'}},
+  bard_rival_verse:{stage:2,next:{0:'bard_patron_offer',1:'bard_patron_offer'}},
+  bard_patron_offer:{stage:3,next:{0:'bard_legacy_song',1:'bard_legacy_song'}},
+  bard_legacy_song:{stage:4,end:{0:'completed',1:'completed'}}
+ }},
+ merchantcareer:{name:'Pazarın Güveni',icon:'🧺',start:'merchant_first_stall',maxStage:5,nodes:{
+  merchant_first_stall:{stage:0,next:{0:'merchant_credit_request',1:'merchant_credit_request'}},
+  merchant_credit_request:{stage:1,next:{0:'merchant_bad_debt',1:'merchant_bad_debt'}},
+  merchant_bad_debt:{stage:2,next:{0:'merchant_market_name',1:'merchant_market_name'}},
+  merchant_market_name:{stage:3,next:{0:'merchant_partner_offer',1:'merchant_partner_offer'}},
+  merchant_partner_offer:{stage:4,end:{0:'completed',1:'completed'}}
  }},
  military:{name:'Savaşçının Yükselişi',icon:'⚔',start:'military_comrade',maxStage:4,nodes:{
   military_comrade:{stage:0,next:{0:'military_night_watch'},end:{1:'abandoned'}},
@@ -628,7 +648,8 @@ function eventChoiceIssue(ch){const x=ch[1]||{};if(x.wealth<0&&s.wealth<-x.wealt
 function eventTargetCandidates(target){
  const pools={
   child:()=>s.children.filter(n=>n.alive),trainingChild:()=>s.children.filter(n=>n.alive&&n.age>=7&&n.age<18),friend:()=>s.friends.filter(n=>n.alive),
-  rival:()=>s.rivals.filter(n=>n.alive),partner:()=>s.partner?.alive?[s.partner]:[],comrade:()=>s.military.comrades.filter(n=>n.alive),trustedComrade:()=>s.military.comrades.filter(n=>n.alive&&((n.bonds?.trust||0)>=60||(n.rel||0)>=72)),familyFriend:()=>s.friends.filter(n=>n.alive&&n.statusFlags?.familyFriend),familyEnemy:()=>s.rivals.filter(n=>n.alive&&n.statusFlags?.familyEnemy),
+  rival:()=>s.rivals.filter(n=>n.alive),partner:()=>s.partner?.alive?[s.partner]:[],comrade:()=>s.military.comrades.filter(n=>n.alive),trustedComrade:()=>s.military.comrades.filter(n=>n.alive&&((n.bonds?.trust||0)>=60||(n.rel||0)>=72)),
+  smithMaster:()=>{const n=careerContact('smith');return n?[n]:[]},scribeMaster:()=>{const n=careerContact('scribe');return n?[n]:[]},caravanMaster:()=>{const n=careerContact('caravan');return n?[n]:[]},bardMaster:()=>{const n=careerContact('bard');return n?[n]:[]},merchantContact:()=>{const n=careerContact('merchant');return n?[n]:[]},familyFriend:()=>s.friends.filter(n=>n.alive&&n.statusFlags?.familyFriend),familyEnemy:()=>s.rivals.filter(n=>n.alive&&n.statusFlags?.familyEnemy),
   parent:()=>s.parents.filter(n=>n.alive),sibling:()=>s.siblings.filter(n=>n.alive),relative:()=> (s.relatives||[]).filter(n=>n.alive),
   closeKin:()=>[...s.parents,...s.siblings,...s.children,...(s.relatives||[])].filter(n=>n.alive),trusted:()=>allNPCs().filter(n=>n.alive&&(n.bonds?.trust||0)>=55)
  };
@@ -660,7 +681,8 @@ function applyEventChoice(x={}){
  apply(Object.fromEntries(Object.entries(x).filter(([k])=>['health','happiness','skill','prestige','wealth'].includes(k))));
  for(const k of Array.isArray(x.setFlag)?x.setFlag:[x.setFlag])if(k)s.flags[k]=true;for(const k of [x.clearFlag,x.clearFlag2])if(k)delete s.flags[k];
  if(x.path)s.path=x.path;for(const k of Object.keys(s.skills))if(x[k])skillGain(k,x[k]);
- if(x.setRole){const r=D.careers.find(r=>r.name===x.setRole);if(r&&!careerIssue(r)){s.role=r.name;s.path=r.path;}}
+ if(x.setRole){const r=D.careers.find(r=>r.name===x.setRole);if(r&&!careerIssue(r)){s.role=r.name;s.path=r.path;careerProfile(r.id);}}
+ if(x.career){const p=careerProfile(x.career.id);p.reputation=clamp(p.reputation+(x.career.reputation||0));p.mastery=clamp(p.mastery+(x.career.mastery||0));p.orders=Math.max(0,p.orders+(x.career.orders||0));p.failures=Math.max(0,p.failures+(x.career.failures||0));if(x.career.earnings){p.earnings=Math.max(0,p.earnings+x.career.earnings);s.wealth=Math.max(0,s.wealth+x.career.earnings);}}
  if(x.asset&&!s.assets.includes(x.asset))s.assets.push(x.asset);if(x.wound){s.military.wounds+=x.wound;acquireAilment('injury');}if(x.clearExile)s.exile=false;
 }
 function chooseContextEvent(i){
@@ -708,6 +730,9 @@ function choiceImpactItems(choice,more=false){
  for(const spec of [...(Array.isArray(x.scheduleEvents)?x.scheduleEvents:[]),...(x.scheduleEvent?[x.scheduleEvent]:[])]){const y=spec.years,txt=Array.isArray(y)?(y[0]+"–"+y[1]+" yıl sonra"):(y+" yıl sonra");items.push({cls:"neutral",label:"⏳ "+txt+" sonuç doğurabilir"});}
  if(x.targetState)items.push({cls:"neutral",label:"🧭 Bu kişinin yolu değişir"});
  if(x.targetPrestige)items.push({cls:x.targetPrestige>0?"pos":"neg",label:`🐺 Onun itibarı ${x.targetPrestige>0?"+":""}${x.targetPrestige}`});
+ if(x.career?.reputation)items.push({cls:x.career.reputation>0?"pos":"neg",label:`🏅 Meslek itibarı ${x.career.reputation>0?"+":""}${x.career.reputation}`});
+ if(x.career?.mastery)items.push({cls:x.career.mastery>0?"pos":"neg",label:`🛠 Ustalık ${x.career.mastery>0?"+":""}${x.career.mastery}`});
+ if(x.career?.orders)items.push({cls:x.career.orders>0?"pos":"neg",label:`📦 İş kaydı ${x.career.orders>0?"+":""}${x.career.orders}`});
  if(x.promoteTarget)items.push({cls:"pos",label:"🏕 Yoldaşın konum kazanır"});
  if(x.makeTargetFriend)items.push({cls:"pos",label:"🤝 Eski yoldaş dost olur"});
  if(x.makeTargetRival)items.push({cls:"neg",label:"⚔ Eski yoldaş hasım olur"});
