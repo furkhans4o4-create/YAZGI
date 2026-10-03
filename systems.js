@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=24,ADULT_AGE=18;
+const SAVE_VERSION=25,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -476,6 +476,167 @@ function npcWorldSummaryHtml(){
  const w=ensureNPCWorld(),active=allNPCs().filter(n=>n.alive&&npcWorldRelevant(n)&&normalizeNPCLifeState(n).status!=='normal').sort((a,b)=>(b.rel||0)-(a.rel||0)),recent=w.history.slice(0,4);
  let html='<div class="card"><h3>🌍 Yaşayan Dünya</h3><p>'+w.total+' bağımsız NPC hayat olayı • hastalık '+w.counts.illness+' • tutsaklık '+w.counts.captivity+' • sürgün '+w.counts.exile+' • göç '+w.counts.migration+'</p>'+(recent.length?'<div class="memoryline">'+recent.map(x=>safeText(x.name)+' — '+safeText(x.note)).join('<br>')+'</div>':'')+'</div>';
  if(active.length)html+='<div class="grid2">'+active.slice(0,8).map(n=>'<div class="card"><h3>'+safeText(n.name)+'</h3><p>'+safeText(npcLifeStatusLabel(n))+'<br>'+npcLifeStatusDetail(n)+'</p><div class="actions">'+npcLifeActionsHtml(n)+'</div></div>').join('')+'</div>';
+ return html;
+}
+
+
+function ensureBereavement(){
+ if(!s.bereavement||typeof s.bereavement!=='object'||Array.isArray(s.bereavement))s.bereavement={};
+ const b=s.bereavement;
+ b.losses=Array.isArray(b.losses)?b.losses.slice(0,60):[];
+ b.grief=b.grief&&typeof b.grief==='object'&&!Array.isArray(b.grief)?b.grief:{};
+ b.caregiving=b.caregiving&&typeof b.caregiving==='object'&&!Array.isArray(b.caregiving)?b.caregiving:{};
+ b.funeralCount=Math.max(0,Math.round(b.funeralCount||0));
+ b.missedFunerals=Math.max(0,Math.round(b.missedFunerals||0));
+ b.memorials=Math.max(0,Math.round(b.memorials||0));
+ b.careMonths=Math.max(0,Math.round(b.careMonths||0));
+ b.history=Array.isArray(b.history)?b.history.slice(0,80):[];
+ for(const loss of b.losses){
+  loss.funeral=loss.funeral&&typeof loss.funeral==='object'?loss.funeral:{status:'closed'};
+  loss.funeral.status=loss.funeral.status||'closed';
+  loss.funeral.travelCost=Math.max(0,Math.round(loss.funeral.travelCost||0));
+  loss.memorials=Math.max(0,Math.round(loss.memorials||0));
+ }
+ for(const [id,g0] of Object.entries(b.grief)){
+  const g=g0&&typeof g0==='object'?g0:{};
+  g.npcId=g.npcId||id;g.intensity=clamp(Number.isFinite(g.intensity)?g.intensity:0);g.monthsLeft=Math.max(0,Math.round(g.monthsLeft||0));
+  g.closure=clamp(Number.isFinite(g.closure)?g.closure:0);g.resolved=!!g.resolved;g.lastMemorialYear=Number.isFinite(g.lastMemorialYear)?g.lastMemorialYear:null;b.grief[id]=g;
+ }
+ for(const [id,r0] of Object.entries(b.caregiving)){
+  const r=r0&&typeof r0==='object'?r0:{};
+  r.npcId=r.npcId||id;r.months=Math.max(0,Math.round(r.months||0));r.healer=Math.max(0,Math.round(r.healer||0));r.farewells=Math.max(0,Math.round(r.farewells||0));
+  r.closure=clamp(Number.isFinite(r.closure)?r.closure:0);r.strain=clamp(Number.isFinite(r.strain)?r.strain:0);r.status=r.status||'active';b.caregiving[id]=r;
+ }
+ return b;
+}
+function lifeSerial(year=s.year+s.age,month=currentMonth()){return Math.round(year)*12+Math.max(1,Math.min(12,Math.round(month||1)));}
+function funeralTravelCost(n){if(!n)return 0;if(n.realm&&n.realm!==s.realm)return 4;if(n.place&&n.place!==s.place)return 2;return 0;}
+function deathCloseness(n){
+ if(!n)return 0;const role=kinRole(n);let v=Math.round((n.rel||50)*.42+(n.bonds?.trust||50)*.18);
+ if(n.id===s.partner?.id||role==='Eş')v+=48;
+ else if(['Ata','Ana','Çocuk'].includes(role))v+=42;
+ else if(['Erkek kardeş','Kız kardeş'].includes(role))v+=34;
+ else if(['Dede','Nine','Torun'].includes(role))v+=25;
+ else if(s.friends.some(x=>x.id===n.id))v+=26;
+ else if(s.military?.comrades?.some(x=>x.id===n.id))v+=18;
+ else if((s.relatives||[]).some(x=>x.id===n.id))v+=15;
+ if(s.rivals.some(x=>x.id===n.id))v-=30;if((n.bonds?.grudge||0)>55)v-=12;return clamp(v);
+}
+function caregivingRecord(n,create=true){
+ if(!n)return null;const b=ensureBereavement();
+ if(!b.caregiving[n.id]&&create)b.caregiving[n.id]={npcId:n.id,name:n.name,months:0,healer:0,farewells:0,closure:0,strain:0,status:'active',startedYear:s.year+s.age,lastYear:s.year+s.age};
+ return b.caregiving[n.id]||null;
+}
+function recordCaregiving(n,kind='visit'){
+ const r=caregivingRecord(n,true),b=ensureBereavement();if(!r)return null;r.status='active';r.lastYear=s.year+s.age;
+ if(kind==='visit'){r.closure=clamp(r.closure+2);r.strain=clamp(r.strain+1);}
+ if(kind==='care'){r.months++;b.careMonths++;r.closure=clamp(r.closure+4);r.strain=clamp(r.strain+5);if(r.months%3===0)apply({happiness:-1,health:-1});}
+ if(kind==='healer'){r.healer++;r.closure=clamp(r.closure+3);r.strain=clamp(r.strain+2);}
+ if(kind==='farewell'){r.farewells++;r.closure=clamp(r.closure+12);r.strain=clamp(r.strain+1);}
+ return r;
+}
+function bereavementLossById(id){return ensureBereavement().losses.find(x=>x.id===id)||null;}
+function activeGriefRecords(){return Object.values(ensureBereavement().grief).filter(g=>!g.resolved&&g.monthsLeft>0&&g.intensity>8).sort((a,b)=>b.intensity-a.intensity);}
+function strongestGrief(){return activeGriefRecords()[0]||null;}
+function griefCompanion(loss){
+ const dead=npcById(loss?.npcId);if(!dead)return null;
+ const living=[...s.parents,...s.siblings,...s.children,...(s.relatives||[]),...s.friends].filter(n=>n?.alive&&n.id!==dead.id);
+ const connected=living.filter(n=>closeKinPair(n,dead)||n.partner?.id===dead.id||dead.partner?.id===n.id||Math.abs(socialLinkBetween(n,dead)?.score||0)>=35);
+ return connected.sort((a,b)=>(b.rel||0)-(a.rel||0))[0]||living.sort((a,b)=>(b.rel||0)-(a.rel||0))[0]||null;
+}
+function rippleFamilyGrief(dead,intensity){
+ if(!dead)return;
+ for(const n of allNPCs().filter(x=>x?.alive&&x.id!==dead.id)){
+  const linked=closeKinPair(n,dead)||n.partner?.id===dead.id||dead.partner?.id===n.id||(socialLinkBetween(n,dead)?.score||0)>=50;if(!linked)continue;
+  n.statusFlags=n.statusFlags||{};n.statusFlags.griefFor=dead.id;n.statusFlags.griefUntil=s.year+s.age+1;rememberNPC(n,'loss',dead.name+' kaybının yasını taşıyor.',Math.max(3,Math.round(intensity/18)));
+ }
+}
+function npcDeathCauseLabel(n){
+ const l=n?normalizeNPCLifeState(n):null;if(l?.status==='ill')return l.source?('rahatsızlık: '+l.source):'uzun süren rahatsızlık';
+ if((n?.age||0)>=72)return 'ileri yaş';if((n?.health||100)<35)return 'zayıflayan sağlık';return 'ani yaşam sonu';
+}
+function registerNPCDeath(n,cause='',opt={}){
+ if(!n)return null;n.statusFlags=n.statusFlags||{};const b=ensureBereavement();
+ if(n.statusFlags.deathRegistered)return b.losses.find(x=>x.npcId===n.id)||null;
+ const closeness=deathCloseness(n),care=caregivingRecord(n,false),closure=care?.closure||0,initial=clamp(Math.max(0,closeness-Math.round(closure*.45))),month=currentMonth(),year=s.year+s.age,serial=lifeSerial(year,month);
+ n.alive=false;n.health=0;n.statusFlags.deathRegistered=true;n.statusFlags.deathYear=year;n.statusFlags.deathCause=cause||npcDeathCauseLabel(n);rememberNPC(n,'death','Yaşamı sona erdi: '+n.statusFlags.deathCause+'.',10);
+ if(care)care.status='deceased';if(opt.inherit!==false)maybeExtendedInheritance(n);
+ let loss=null;
+ if(closeness>=25){
+  loss={id:'loss_'+n.id+'_'+year+'_'+month,npcId:n.id,name:n.name,kin:kinRole(n),year,month,cause:n.statusFlags.deathCause,place:n.place||'',realm:n.realm||'',closeness,memorials:0,funeral:{status:'pending',travelCost:funeralTravelCost(n),deadlineSerial:serial+3,attendedYear:null,attendedMonth:null}};
+  b.losses.unshift(loss);b.losses=b.losses.slice(0,60);
+  b.grief[n.id]={npcId:n.id,lossId:loss.id,name:n.name,intensity:initial,initialIntensity:initial,monthsLeft:Math.max(3,Math.ceil(initial/7)),closure,funeralStatus:'pending',resolved:initial<=8,lastMemorialYear:null};
+  const hit=initial>=80?5:initial>=60?4:initial>=40?2:initial>=25?1:0;if(hit)apply({happiness:-hit});
+  rippleFamilyGrief(n,initial);b.history.unshift({year,month,type:'loss',npcId:n.id,name:n.name,cause:n.statusFlags.deathCause,intensity:initial});b.history=b.history.slice(0,80);
+ }
+ if(n===s.partner){s.married=false;s.pregnancy=null;}
+ if(opt.logDeath!==false)log(safeText(n.name)+' yaşamını yitirdi'+(cause?': '+safeText(cause):'')+'.','bad');
+ return loss;
+}
+function bereavementActionIssue(lossId,id){
+ const loss=bereavementLossById(lossId);if(!loss)return 'Kayıp kaydı bulunamadı.';const g=ensureBereavement().grief[loss.npcId],now=lifeSerial();
+ if(id==='attend'){if(loss.funeral.status!=='pending')return 'Bu cenaze kararı artık kapandı.';if(now>loss.funeral.deadlineSerial)return 'Cenaze için zaman geçti.';if(s.wealth<loss.funeral.travelCost)return loss.funeral.travelCost+' servet yol masrafı gerekiyor.';}
+ else if(id==='lament'){if(loss.funeral.status!=='pending'||now>loss.funeral.deadlineSerial)return 'Bu veda kararı artık kapandı.';}
+ else if(id==='memorial'){if(!g||g.lastMemorialYear===s.year+s.age)return 'Bu yıl onun hatırası için zaten özel zaman ayırdın.';}
+ else if(id==='share'){if(!g||g.resolved)return 'Aktif bir yas yükü kalmadı.';if(!griefCompanion(loss))return 'Bu kaybı paylaşacağın yaşayan bir yakın yok.';}
+ else return 'Yas eylemi bulunamadı.';return '';
+}
+function bereavementAction(lossId,id){
+ const issue=bereavementActionIssue(lossId,id);if(issue){notice(issue);return false;}
+ const loss=bereavementLossById(lossId),b=ensureBereavement(),g=b.grief[loss.npcId],dead=npcById(loss.npcId);
+ return performAction({kind:'grief',id,lossId},()=>{
+  if(id==='attend'){
+   const cost=loss.funeral.travelCost;s.wealth-=cost;loss.funeral.status='attended';loss.funeral.attendedYear=s.year+s.age;loss.funeral.attendedMonth=currentMonth();b.funeralCount++;
+   if(g){g.funeralStatus='attended';g.intensity=clamp(g.intensity-22);g.monthsLeft=Math.max(1,g.monthsLeft-3);g.closure=clamp(g.closure+22);}apply({happiness:2,prestige:1});
+   const companion=griefCompanion(loss);if(companion)adjustNPC(companion,{rel:3,trust:4,grudge:-2},(dead?.name||loss.name)+' için düzenlenen cenazede birlikteydiniz.');
+   log(safeText(loss.name)+' için cenazeye katıldın'+(cost?' ve yol için '+cost+' servet harcadın':'')+'.','major');
+  }else if(id==='lament'){
+   loss.funeral.status='remote_farewell';if(g){g.funeralStatus='remote_farewell';g.intensity=clamp(g.intensity-10);g.monthsLeft=Math.max(1,g.monthsLeft-1);g.closure=clamp(g.closure+10);}apply({happiness:1});log(safeText(loss.name)+' için uzaktan ağıt ve veda zamanı ayırdın.','major');
+  }else if(id==='memorial'){
+   loss.memorials++;b.memorials++;g.lastMemorialYear=s.year+s.age;g.intensity=clamp(g.intensity-12);g.monthsLeft=Math.max(1,g.monthsLeft-1);g.closure=clamp(g.closure+8);apply({happiness:3,prestige:1});log(safeText(loss.name)+' adına bir hatıra günü ayırdın.','major');
+  }else if(id==='share'){
+   const n=griefCompanion(loss);if(n){adjustNPC(n,{rel:6,trust:7,grudge:-4},loss.name+' kaybını birlikte konuştunuz.');g.intensity=clamp(g.intensity-8);g.closure=clamp(g.closure+5);apply({happiness:2});log(safeText(n.name)+' ile '+safeText(loss.name)+' hakkında konuştun.','good');}
+  }
+ },safeText(loss.name)+' kaybıyla ilgili bir ay geçirdin.');
+}
+function bereavementMonthTick(month,action={}){
+ const b=ensureBereavement(),now=lifeSerial(s.year+s.age,month);
+ for(const loss of b.losses){
+  if(loss.funeral?.status==='pending'&&now>loss.funeral.deadlineSerial){
+   loss.funeral.status='missed';b.missedFunerals++;const g=b.grief[loss.npcId];
+   if(g&&!g.resolved){g.funeralStatus='missed';g.intensity=clamp(g.intensity+6);g.monthsLeft+=2;if(g.intensity>=55)apply({happiness:-2});}
+   log(safeText(loss.name)+' için cenaze zamanı geçti; törene katılamadın.','bad');
+  }
+ }
+ for(const g of Object.values(b.grief)){
+  if(g.resolved||g.monthsLeft<=0)continue;
+  if(!(action.kind==='grief'&&action.lossId===g.lossId)){if(month%3===0&&g.intensity>=65)apply({happiness:-1});g.intensity=clamp(g.intensity-(g.funeralStatus==='attended'?2:1));g.monthsLeft=Math.max(0,g.monthsLeft-1);}
+  if(g.monthsLeft<=0||g.intensity<=8){g.resolved=true;g.intensity=Math.max(0,g.intensity);}
+ }
+ for(const r of Object.values(b.caregiving))if(r.status==='active'&&r.lastYear<(s.year+s.age))r.strain=clamp(r.strain-2);
+}
+function caregiverStrain(){return Math.max(0,...Object.values(ensureBereavement().caregiving).filter(r=>r.status==='active').map(r=>r.strain||0));}
+function applyBereavementEffect(target,spec={}){
+ const b=ensureBereavement();
+ if(spec.grief){const g=strongestGrief();if(g)g.intensity=clamp(g.intensity+spec.grief);}
+ if(spec.strain){const rows=Object.values(b.caregiving).filter(r=>r.status==='active').sort((a,b)=>(b.strain||0)-(a.strain||0));if(rows[0])rows[0].strain=clamp(rows[0].strain+spec.strain);}
+}
+function bereavementSummaryHtml(){
+ const b=ensureBereavement(),now=lifeSerial(),pending=b.losses.filter(x=>x.funeral?.status==='pending'&&now<=x.funeral.deadlineSerial),griefs=activeGriefRecords();
+ const care=Object.values(b.caregiving).filter(r=>r.status==='active'&&npcById(r.npcId)?.alive&&normalizeNPCLifeState(npcById(r.npcId)).status==='ill').sort((a,b)=>(b.strain||0)-(a.strain||0));
+ if(!pending.length&&!griefs.length&&!care.length&&!b.losses.length)return '';
+ let html='<div class="card"><h3>🕯 Yas, Cenaze ve Bakım</h3><p>Cenazeye katılım '+b.funeralCount+' • kaçırılan '+b.missedFunerals+' • hatıra günü '+b.memorials+' • bakım ayı '+b.careMonths+(caregiverStrain()>=25?'<br>Bakım yükü şu anda ağırlaşıyor.':'')+'</p></div>';
+ if(pending.length)html+='<div class="grid2">'+pending.slice(0,6).map(loss=>{
+  const g=b.grief[loss.npcId],cost=loss.funeral.travelCost,remote=cost?(' • yol '+cost+' servet'):' • aynı bölgede';
+  const attendCall="bereavementAction('"+loss.id+"','attend')",lamentCall="bereavementAction('"+loss.id+"','lament')";
+  return '<div class="card"><h3>⚱ '+safeText(loss.name)+'</h3><p>'+safeText(loss.kin)+' • '+safeText(loss.cause)+remote+'<br>Yas '+(g?.intensity||0)+'/100 • cenaze için sınırlı zaman</p><div class="actions">'+actionButton('Cenazeye katıl',{kind:'grief',id:'attend',lossId:loss.id},attendCall,cost?cost+' servet yol masrafı • göç etmeden gidip dönersin.':'Törene katılıp yakınlarla vedalaş.')+actionButton('Uzaktan veda et',{kind:'grief',id:'lament',lossId:loss.id},lamentCall,'Yolculuk yapmadan ağıt ve veda ile kaybı işle.')+'</div></div>';
+ }).join('')+'</div>';
+ if(griefs.length)html+='<div class="grid2">'+griefs.slice(0,6).map(g=>{
+  const loss=bereavementLossById(g.lossId),memCall="bereavementAction('"+g.lossId+"','memorial')",shareCall="bereavementAction('"+g.lossId+"','share')";
+  const status=loss?.funeral?.status==='attended'?'cenazesine katıldın':loss?.funeral?.status==='remote_farewell'?'uzaktan vedalaştın':loss?.funeral?.status==='missed'?'cenazeyi kaçırdın':'cenaze kararı açık';
+  return '<div class="card"><h3>🌑 '+safeText(g.name)+'</h3><p>Yas yoğunluğu '+g.intensity+'/100 • yaklaşık '+g.monthsLeft+' ay etkisi<br>Kapanış '+g.closure+'/100 • '+safeText(status)+'</p><div class="actions">'+actionButton('Hatırasını yaşat',{kind:'grief',id:'memorial',lossId:g.lossId},memCall,'Yası azaltır ve aile hatırasına kalıcı bir kayıt ekler.')+actionButton('Yakınınla konuş',{kind:'grief',id:'share',lossId:g.lossId},shareCall,'Kaybı tek başına taşımak yerine yaşayan bir yakınla paylaş.')+'</div></div>';
+ }).join('')+'</div>';
+ if(care.length)html+='<div class="card"><h3>🤲 Süren Bakım Yükü</h3><p>'+care.slice(0,5).map(r=>safeText(r.name)+' — '+r.months+' ay doğrudan bakım • yük '+r.strain+'/100 • vedalaşma/kapanış '+r.closure+'/100').join('<br>')+'</p></div>';
  return html;
 }
 
