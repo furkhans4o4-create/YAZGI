@@ -38,6 +38,14 @@
 - Yetişkin çocuğun aile planı konuşulabilir ama çocuk sahibi olması zorlanmaz; kabul edilen plan yalnızca sonraki yıllardaki aile kurma ihtimalini etkiler
 - Yetişkin çocukların eşleri kalıcı çocuk-eşi NPC’leridir; hastalık, tutsaklık, sürgün ve göç gibi Yaşayan Dünya durumları kendi aile kollarını gerçekten etkiler
 - Torunlarla doğrudan vakit geçirme, beceri öğretme ve armağan verme eylemleri; ayrıca aile geçmişini merak eden torunlara özel bağlamsal olaylar eklendi
+- Evlilik krizi sistemi: sadakat ihlali tamamen rastgele değildir; gerilim, uzun ihmal, düşük bağlılık/ahenk, uyumsuzluk, uzaklık ve eş kişiliğinden hesaplanan riskle açılır
+- Sağlam ve sadık evliliklerde ihanet olayı kapalı kalır; kriz oluştuğunda üçüncü kişi gerçek kalıcı NPC olarak kaydedilir ve olay yalnız metin olarak kaybolmaz
+- İhanet karşısında yüzleşme, bir şans daha verme veya ocağı ayırma seçenekleri; affedilen ihlal de ilişkinin kalıcı geçmişinde tutulur
+- Evlilik bitişi artık tek düğmelik değildir: dostça ocak ayırma, töre önünde paylaşım ve ortaya çıkmış ihanet nedeniyle ayrılık farklı sonuçlar doğurur
+- Ayrılıkta evlilik süresi, ortak emek ve ihlal durumu servet paylaşımını etkiler; uygun durumda bir varlık eski eşe geçebilir, önceden adı yazılmış çocuk mirası korunur
+- Küçük çocuklar için senin ocağın, diğer ebeveynin ocağı veya iki ocakla ortak bağ düzeni kaydedilir; ayrı hane sonrası çocukların ilişki ve yerleşim durumu buna göre devam eder
+- Çocuğun ana hanesi tek taraftaysa yıllık bakım payı işler; çocuklar ayrıca 1–2 yıl sonra ayrılık düzenine alışma olayları yaşayabilir
+- Aile ekranında Ocak Güveni ve son ayrılık özeti sadakat, dayanak, paylaşım ve çocuk düzenini görünür gösterir
 - Derin dostluk ve sosyal çevre: çocukluk dostu, yakın dost, sırdaş, uzaklaşmış dost ve kalıcı yeniden buluşma geçmişi
 - 3+ güçlü dostla arkadaş çevresi, grup uyumu/gerilimi, ortak buluşmalar ve NPC-NPC dostluk bağları
 - Dost aracılığıyla görev çevresine giriş, eş adayı tanıştırması ve askerî dostun sefer yoldaşına dönüşmesi
@@ -89,7 +97,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 23’e taşınır; sürüm değişiminde önce `yazgi_before_v23` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 24’e taşınır; sürüm değişiminde önce `yazgi_before_v24` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
