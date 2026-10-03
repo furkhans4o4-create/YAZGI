@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=28,ADULT_AGE=18;
+const SAVE_VERSION=29,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -1429,6 +1429,163 @@ const AMBITION_DEFS=[
 
 
 
+
+
+function ensureCommunityReputation(){
+ if(!s.communityReputation||typeof s.communityReputation!=='object'||Array.isArray(s.communityReputation))s.communityReputation={};
+ const q=s.communityReputation;
+ q.honor=clamp(Number.isFinite(q.honor)?q.honor:50);
+ q.reliability=clamp(Number.isFinite(q.reliability)?q.reliability:50);
+ q.generosity=clamp(Number.isFinite(q.generosity)?q.generosity:45);
+ q.fear=clamp(Number.isFinite(q.fear)?q.fear:10);
+ q.rumorHeat=clamp(Number.isFinite(q.rumorHeat)?q.rumorHeat:0);
+ q.rumors=Array.isArray(q.rumors)?q.rumors.slice(0,40):[];
+ q.history=Array.isArray(q.history)?q.history.slice(0,100):[];
+ q.opinions=q.opinions&&typeof q.opinions==='object'&&!Array.isArray(q.opinions)?q.opinions:{};
+ q.countered=Math.max(0,Math.round(q.countered||0));q.spreadCount=Math.max(0,Math.round(q.spreadCount||0));q.repaired=Math.max(0,Math.round(q.repaired||0));
+ for(const r of q.rumors){
+  r.id=r.id||('rumor_'+Math.random().toString(36).slice(2));r.kind=r.kind||'word';r.text=r.text||'Hakkında bir söz dolaşıyor.';
+  r.truth=r.truth!==false;r.polarity=r.polarity<0?-1:1;r.severity=clamp(Number.isFinite(r.severity)?r.severity:20);
+  r.year=Number.isFinite(r.year)?r.year:s.year+s.age;r.month=Number.isFinite(r.month)?r.month:currentMonth();r.realm=r.realm||s.realm;r.place=r.place||s.place;
+  r.sourceId=r.sourceId||null;r.knownIds=Array.isArray(r.knownIds)?[...new Set(r.knownIds.filter(Boolean))]:[];r.status=r.status||'active';r.expiresYear=Number.isFinite(r.expiresYear)?r.expiresYear:r.year+4;
+  r.spreadPenalty=Math.max(0,Math.min(.8,Number(r.spreadPenalty||0)));r.responses=Math.max(0,Math.round(r.responses||0));
+ }
+ for(const [id,o0] of Object.entries(q.opinions)){
+  const o=o0&&typeof o0==='object'?o0:{};o.npcId=id;o.score=Math.max(-100,Math.min(100,Math.round(o.score||0)));o.heard=Array.isArray(o.heard)?[...new Set(o.heard)].slice(-30):[];
+  o.lastYear=Number.isFinite(o.lastYear)?o.lastYear:null;q.opinions[id]=o;
+ }
+ recalcRumorHeat();return q;
+}
+function communityOpinion(n,create=true){
+ if(!n)return null;const q=ensureCommunityReputation();if(!q.opinions[n.id]&&create)q.opinions[n.id]={npcId:n.id,score:0,heard:[],lastYear:null};return q.opinions[n.id]||null;
+}
+function communityGoodName(){
+ const q=ensureCommunityReputation();return clamp(Math.round(q.honor*.36+q.reliability*.34+q.generosity*.16+(100-q.fear)*.14-q.rumorHeat*.18));
+}
+function communityReputationLabel(){
+ const v=communityGoodName(),q=ensureCommunityReputation();if(q.rumorHeat>=65)return 'Sözü çok tartışmalı';if(v>=78)return 'Adı güvenle anılıyor';if(v>=62)return 'İyi adı var';if(v>=45)return 'Karışık bir ün';if(v>=28)return 'Adı kuşkuyla anılıyor';return 'Ağır kötü ün';
+}
+function rumorLocalWeight(r){
+ if(!r)return 0;let w=1;if(r.realm&&r.realm!==s.realm)w*=.28;else if(r.place&&r.place!==s.place)w*=.62;return w;
+}
+function recalcRumorHeat(){
+ if(!s?.communityReputation)return 0;const q=s.communityReputation,active=(q.rumors||[]).filter(r=>r.status==='active'&&r.expiresYear>=s.year+s.age);
+ const neg=active.filter(r=>r.polarity<0).reduce((sum,r)=>sum+r.severity*Math.max(1,r.knownIds?.length||1)*rumorLocalWeight(r)/9,0);
+ const pos=active.filter(r=>r.polarity>0).reduce((sum,r)=>sum+r.severity*Math.max(1,r.knownIds?.length||1)*rumorLocalWeight(r)/18,0);
+ q.rumorHeat=clamp(Math.round(Math.max(0,neg-pos*.35)));return q.rumorHeat;
+}
+function applyCommunityAxes(delta={},memory=''){
+ const q=ensureCommunityReputation();for(const k of ['honor','reliability','generosity','fear'])if(delta[k])q[k]=clamp(q[k]+delta[k]);
+ if(memory){q.history.unshift({year:s.year+s.age,age:s.age,month:currentMonth(),text:memory,delta:{...delta}});q.history=q.history.slice(0,100);}return q;
+}
+function rumorOpinionDelta(r,n){
+ let d=Math.max(1,Math.round(r.severity/8))*r.polarity;
+ if(n?.traits?.includes('kuskucu')&&r.polarity<0)d=Math.round(d*1.35);
+ if(n?.traits?.includes('sadik')&&n.rel>=65&&r.polarity<0)d=Math.round(d*.65);
+ if(n?.traits?.includes('merhametli')&&r.kind==='generosity'&&r.polarity>0)d=Math.round(d*1.25);
+ if(n?.traits?.includes('kinci')&&r.polarity<0)d=Math.round(d*1.15);
+ return Math.max(-18,Math.min(18,d));
+}
+function hearCommunityRumor(n,r){
+ if(!n?.alive||!r)return false;const o=communityOpinion(n,true);if(o.heard.includes(r.id))return false;
+ const d=rumorOpinionDelta(r,n);o.heard.push(r.id);o.heard=o.heard.slice(-30);o.score=Math.max(-100,Math.min(100,o.score+d));o.lastYear=s.year+s.age;
+ if(d>0)adjustNPC(n,{rel:Math.max(0,Math.round(d/5)),trust:Math.max(0,Math.round(d/4)),respect:Math.max(1,Math.round(d/3)),grudge:-Math.max(0,Math.round(d/6))},'Hakkında iyi bir söz duydu: '+r.text);
+ else if(d<0)adjustNPC(n,{rel:Math.min(0,Math.round(d/5)),trust:Math.min(-1,Math.round(d/4)),respect:Math.min(-1,Math.round(d/4)),grudge:Math.max(1,Math.round(-d/3)),fear:r.kind==='crime'?Math.max(0,Math.round(-d/5)):0},'Hakkında olumsuz bir söz duydu: '+r.text);
+ return true;
+}
+function createCommunityRumor(kind,text,opts={}){
+ const q=ensureCommunityReputation(),polarity=opts.polarity<0?-1:1,severity=clamp(Math.max(5,Math.round(opts.severity||20))),sourceId=opts.sourceId||null;
+ const known=[...(opts.knownIds||[]),sourceId].filter(Boolean),r={id:'rumor_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2),kind,text:String(text||'Hakkında bir söz dolaşıyor.'),truth:opts.truth!==false,polarity,severity,year:s.year+s.age,month:currentMonth(),realm:s.realm,place:s.place,sourceId,knownIds:[...new Set(known)],status:'active',expiresYear:s.year+s.age+Math.max(2,Math.ceil(severity/18)),spreadPenalty:0,responses:0};
+ q.rumors.unshift(r);q.rumors=q.rumors.slice(0,40);for(const id of r.knownIds){const n=npcById(id);if(n?.alive)hearCommunityRumor(n,r);}recalcRumorHeat();
+ q.history.unshift({year:s.year+s.age,age:s.age,month:currentMonth(),type:'rumor',rumorId:r.id,text:r.text,polarity:r.polarity,severity:r.severity});q.history=q.history.slice(0,100);return r;
+}
+function recordPublicWord(kind,text,delta={},opts={}){
+ applyCommunityAxes(delta,text);const magnitude=Math.max(...['honor','reliability','generosity','fear'].map(k=>Math.abs(delta[k]||0)),0);
+ if(opts.rumor===false||(!opts.severity&&!magnitude))return null;
+ const polarity=opts.polarity??(((delta.honor||0)+(delta.reliability||0)+(delta.generosity||0)-(delta.fear||0)*.25)>=0?1:-1);
+ return createCommunityRumor(kind,text,{...opts,polarity,severity:opts.severity||Math.max(8,magnitude*4)});
+}
+function activeCommunityRumors(polarity=0){
+ return ensureCommunityReputation().rumors.filter(r=>r.status==='active'&&r.expiresYear>=s.year+s.age&&(!polarity||r.polarity===polarity)).sort((a,b)=>b.severity*(b.knownIds.length+1)-a.severity*(a.knownIds.length+1));
+}
+function rumorSpreadCandidates(r){
+ const known=new Set(r.knownIds||[]),people=allNPCs().filter(n=>n?.alive&&!known.has(n.id));if(!people.length)return [];
+ return people.map(n=>{
+  let score=0;if(n.realm===r.realm)score+=10;if(n.place===r.place)score+=16;if(n.realm===s.realm)score+=4;if(n.place===s.place)score+=7;
+  for(const id of r.knownIds||[]){const k=npcById(id),l=k?socialLinkBetween(n,k):null;if(l)score+=Math.max(0,Math.abs(l.score)/8+l.trust/16);}
+  if(n.traits?.includes('kuskucu'))score+=5;if(n.type?.includes('Ozan'))score+=5;return {n,score};
+ }).sort((a,b)=>b.score-a.score);
+}
+function tickCommunityReputationMonth(month){
+ const q=ensureCommunityReputation(),year=s.year+s.age;
+ for(const r of q.rumors){
+  if(r.status!=='active')continue;if(year>r.expiresYear){r.status='faded';continue;}
+  const candidates=rumorSpreadCandidates(r);if(!candidates.length)continue;
+  const reach=r.knownIds.length,chance=Math.max(.03,Math.min(.72,.11+r.severity/220+Math.min(.18,reach/80)-r.spreadPenalty));
+  if(Math.random()<chance){
+   const top=candidates.slice(0,Math.min(4,candidates.length)),row=pick(top),n=row?.n;if(n&&hearCommunityRumor(n,r)){r.knownIds.push(n.id);r.knownIds=[...new Set(r.knownIds)];q.spreadCount++;if(r.knownIds.length>=Math.max(12,Math.round(r.severity/3)))r.spreadPenalty=Math.min(.75,r.spreadPenalty+.04);}
+  }
+ }
+ if(month===12){q.honor=clamp(q.honor+(q.honor>50?-1:q.honor<50?1:0));q.reliability=clamp(q.reliability+(q.reliability>50?-1:q.reliability<50?1:0));q.fear=clamp(q.fear-(q.fear>10?1:0));}
+ recalcRumorHeat();
+}
+function counterRumorOpinions(r,factor=.5){
+ const q=ensureCommunityReputation();for(const id of r.knownIds||[]){const n=npcById(id),o=q.opinions[id];if(!o)continue;const raw=rumorOpinionDelta(r,n);const restore=Math.max(1,Math.round(Math.abs(raw)*factor));o.score=Math.max(-100,Math.min(100,o.score-r.polarity*restore));if(n?.alive){if(r.polarity<0)adjustNPC(n,{rel:Math.round(restore/5),trust:Math.round(restore/4),respect:Math.round(restore/4),grudge:-Math.round(restore/3)},'Dolaşan sözün başka bir yüzünü de duymaya başladı.');}}
+}
+function reputationActionIssue(rumorId,id){
+ const r=ensureCommunityReputation().rumors.find(x=>x.id===rumorId);if(!r||r.status!=='active')return 'Bu söz artık açık bir mesele değil.';
+ if(id==='answer')return '';
+ if(id==='confront'){if(!r.sourceId||!npcById(r.sourceId)?.alive)return 'Sözün yaşayan kaynağı belli değil.';return '';}
+ if(id==='repair'){if(r.polarity>=0||!r.truth)return 'Telafi edilecek doğrulanmış bir zarar sözü yok.';const cost=Math.max(2,Math.ceil(r.severity/14));if(s.wealth<cost)return cost+' servet telafi payı gerekiyor.';return '';}
+ return 'İtibar eylemi bulunamadı.';
+}
+function reputationAction(rumorId,id){
+ const issue=reputationActionIssue(rumorId,id);if(issue){notice(issue);return false;}const q=ensureCommunityReputation(),r=q.rumors.find(x=>x.id===rumorId);
+ return performAction({kind:'reputation',id,rumorId},()=>{
+  r.responses++;
+  if(id==='answer'){
+   const chance=Math.max(.12,Math.min(.92,.28+(s.skills.speech||0)/180+q.reliability/450+q.honor/650-r.severity/260+(r.truth?-.08:.12)));
+   if(Math.random()<chance){r.status='countered';r.spreadPenalty=.8;q.countered++;counterRumorOpinions(r,r.truth?.45:.85);applyCommunityAxes({reliability:r.truth?2:4,honor:r.truth?1:3},'Dolaşan söze açıkça cevap verdin.');log('Dolaşan söze verdiğin açık cevap etkili oldu.','good');}
+   else{r.severity=clamp(r.severity+5);r.spreadPenalty=Math.max(0,r.spreadPenalty-.05);applyCommunityAxes({reliability:-2},'Verdiğin cevap ikna edici bulunmadı.');log('Verdiğin cevap sözü susturmadı.','bad');}
+  }else if(id==='confront'){
+   const src=npcById(r.sourceId),chance=Math.max(.15,Math.min(.88,.32+(s.skills.speech||0)/220+(s.prestige||0)/500+(src?.bonds?.respect||0)/600-(src?.bonds?.grudge||0)/300));
+   if(chance>Math.random()){r.spreadPenalty=Math.min(.8,r.spreadPenalty+.38);adjustNPC(src,{rel:-3,trust:-2,fear:4,grudge:3},'Yaydığı söz nedeniyle doğrudan yüzleştin.');log(safeText(src.name)+' sözü daha fazla yaymama konusunda geri adım attı.','good');}
+   else{r.severity=clamp(r.severity+4);adjustNPC(src,{rel:-5,trust:-4,grudge:7},'Yaydığı söz nedeniyle sert biçimde yüzleştin.');log('Yüzleşme sözü daha da büyüttü.','bad');}
+  }else if(id==='repair'){
+   const cost=Math.max(2,Math.ceil(r.severity/14));s.wealth-=cost;economyLedger('reputation',-cost,'Toplumsal telafi');r.status='repaired';r.spreadPenalty=.8;q.repaired++;counterRumorOpinions(r,.72);applyCommunityAxes({honor:Math.max(2,Math.round(r.severity/12)),reliability:2,generosity:2},'Doğrulanmış bir zararı telafi edip açıkça sorumluluk aldın.');log(cost+' servetlik telafiyle dolaşan sözün etkisini azalttın.','good');
+  }
+  recalcRumorHeat();
+ },'Adın hakkında dolaşan sözle ilgilenmekle bir ay geçti.');
+}
+function communityCareerBonus(r){
+ const q=ensureCommunityReputation(),good=communityGoodName(),localNeg=activeCommunityRumors(-1).reduce((a,x)=>a+x.severity*rumorLocalWeight(x),0);
+ let b=(q.reliability-50)/520+(good-50)/750-localNeg/6500;
+ if(r?.path==='state')b+=(q.honor-50)/650;if(r?.path==='trade')b+=(q.reliability-50)/700;if(r?.path==='culture')b+=(good-50)/900;return Math.max(-.16,Math.min(.13,b));
+}
+function communityMarriageBonus(n){
+ const q=ensureCommunityReputation(),o=communityOpinion(n,false)?.score||0;return Math.max(-.14,Math.min(.12,(q.honor-50)/700+(q.reliability-50)/900+o/500-q.rumorHeat/1200));
+}
+function communityCouncilModifier(n){
+ const q=ensureCommunityReputation(),o=communityOpinion(n,false)?.score||0;let v=o/28+(q.reliability-50)/24+(q.honor-50)/30-q.rumorHeat/55;return Math.max(-2,Math.min(2,Math.round(v)));
+}
+function communityJusticePressure(){
+ const q=ensureCommunityReputation(),bad=activeCommunityRumors(-1).reduce((a,r)=>a+r.severity*rumorLocalWeight(r),0);return Math.max(-.08,Math.min(.18,bad/1200+(50-q.honor)/700+(50-q.reliability)/900));
+}
+function applyCommunityReputationEffect(target,spec={}){
+ if(!spec)return null;const known=[];if(target?.id)known.push(target.id);for(const id of spec.knownIds||[])known.push(id);
+ return recordPublicWord(spec.kind||'event',spec.text||'Bu olay hakkında çevrede söz dolaşmaya başladı.',{honor:spec.honor||0,reliability:spec.reliability||0,generosity:spec.generosity||0,fear:spec.fear||0},{truth:spec.truth!==false,polarity:spec.polarity,severity:spec.severity,sourceId:spec.sourceTarget?target?.id:(spec.sourceId||null),knownIds:known,rumor:spec.rumor!==false});
+}
+function communityReputationSummaryHtml(){
+ const q=ensureCommunityReputation(),bad=activeCommunityRumors(-1),good=activeCommunityRumors(1);
+ let html='<div class="card"><h3>🗣 Sözün ve Adın</h3><p><b>'+safeText(communityReputationLabel())+'</b> • iyi ad '+communityGoodName()+'/100<br>Onur '+q.honor+' • sözüne güven '+q.reliability+' • cömertlik '+q.generosity+' • çekince '+q.fear+'<br>Dolaşan söz baskısı '+q.rumorHeat+'/100 • yayılan aktarım '+q.spreadCount+'</p></div>';
+ if(bad.length)html+='<h3 class="sectionTitle">Hakkında Dolaşan Sözler</h3><div class="grid2">'+bad.slice(0,6).map(r=>{const src=npcById(r.sourceId),answer="reputationAction('"+r.id+"','answer')",confront="reputationAction('"+r.id+"','confront')",repair="reputationAction('"+r.id+"','repair')";return '<div class="card"><h3>🔥 '+safeText(r.kind==='crime'?'Töre Sözü':r.truth?'Olumsuz Söz':'Doğrulanmamış Söz')+'</h3><p>'+safeText(r.text)+'<br>Yayılım '+r.knownIds.length+' kişi • ağırlık '+r.severity+'/100'+(src?'<br>İlk kaynak: '+safeText(src.name):'')+'</p><div class="actions">'+actionButton('Açıkça cevap ver',{kind:'reputation',id:'answer',rumorId:r.id},answer,'Hitabet, mevcut güven ve sözün ağırlığı etkiler.')+(src?.alive?actionButton('Kaynağıyla yüzleş',{kind:'reputation',id:'confront',rumorId:r.id},confront,'Yayılımı durdurabilir; başarısız olursa sözü büyütebilir.'):'')+(r.truth?actionButton('Zararı telafi et',{kind:'reputation',id:'repair',rumorId:r.id},repair,Math.max(2,Math.ceil(r.severity/14))+' servet • sorumluluk alıp sözün etkisini azalt.'):'')+'</div></div>';}).join('')+'</div>';
+ if(good.length)html+='<div class="card"><h3>🌿 İyi Sözler</h3><p>'+good.slice(0,5).map(r=>safeText(r.text)+' • '+r.knownIds.length+' kişi duymuş').join('<br>')+'</p></div>';
+ return html;
+}
+function inheritCommunityReputation(oldQ,oldName='Ailen'){
+ if(!oldQ)return null;const q={honor:clamp(50+Math.round(((oldQ.honor??50)-50)*.28)),reliability:clamp(50+Math.round(((oldQ.reliability??50)-50)*.24)),generosity:clamp(45+Math.round(((oldQ.generosity??45)-45)*.22)),fear:clamp(10+Math.round(((oldQ.fear??10)-10)*.18)),rumorHeat:0,rumors:[],history:[{year:s.year+s.age,age:s.age,type:'legacy',text:oldName+' adından kalan aile ünü yeni kuşağa gölge ve dayanak oldu.'}],opinions:{},countered:0,spreadCount:0,repaired:0};
+ return q;
+}
 
 function ensureSocialLife(){
  if(!s.socialLife||typeof s.socialLife!=='object'||Array.isArray(s.socialLife))s.socialLife={};
