@@ -630,7 +630,7 @@ function ensureSocialLife(){
  const x=s.socialLife;x.profiles=x.profiles&&typeof x.profiles==='object'&&!Array.isArray(x.profiles)?x.profiles:{};x.groups=Array.isArray(x.groups)?x.groups:[];x.referrals=Array.isArray(x.referrals)?x.referrals:[];x.history=Array.isArray(x.history)?x.history.slice(-80):[];
  x.totalGatherings=Math.max(0,Math.round(x.totalGatherings||0));x.reconnections=Math.max(0,Math.round(x.reconnections||0));
  for(const n of s.friends||[])if(n)ensureFriendProfile(n);
- x.groups=x.groups.filter(g=>g&&Array.isArray(g.memberIds)&&g.memberIds.length>=2).map(g=>({...g,id:g.id||('circle_'+Math.random().toString(36).slice(2)),name:g.name||'Dost Çevresi',memberIds:[...new Set(g.memberIds)],cohesion:clamp(Number.isFinite(g.cohesion)?g.cohesion:55),tension:clamp(Number.isFinite(g.tension)?g.tension:5),gatherings:Math.max(0,Math.round(g.gatherings||0)),history:Array.isArray(g.history)?g.history.slice(-20):[]}));
+ x.groups=x.groups.filter(g=>g&&Array.isArray(g.memberIds)&&g.memberIds.length>=2);for(const g of x.groups){g.id=g.id||('circle_'+Math.random().toString(36).slice(2));g.name=g.name||'Dost Çevresi';g.memberIds=[...new Set(g.memberIds)];g.cohesion=clamp(Number.isFinite(g.cohesion)?g.cohesion:55);g.tension=clamp(Number.isFinite(g.tension)?g.tension:5);g.gatherings=Math.max(0,Math.round(g.gatherings||0));g.history=Array.isArray(g.history)?g.history.slice(-20):[];}
  return x;
 }
 function ensureFriendProfile(n){
