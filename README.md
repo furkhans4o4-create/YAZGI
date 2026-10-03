@@ -15,6 +15,9 @@
 - Yaşlılıkta aile meclisi, vasiyet hazırlığı ve son dilek
 - Ölüm nedeni ve malvarlığı kaydı; eşit paylaşım veya ana varis
 - Ölüm sonrası çocukla devam ve kardeşlerin mirasa uzun vadeli tepkileri
+- Mevsime ve kıtlığa göre değişen takas/pazar fiyatları
+- Hane geçimi, varlık bakımı, sürü–demir ocağı–kervan için riskli üretim ve zarar
+- Servet sınıfı ve son ekonomik hareketleri gösteren ekonomi özeti
 - LocalStorage kayıt sistemi
 
 ## Çalıştırma
@@ -37,7 +40,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 6’ya taşınır; sürüm değişiminde önce `yazgi_before_v6` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 7’ye taşınır; sürüm değişiminde önce `yazgi_before_v7` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
