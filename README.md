@@ -46,6 +46,16 @@
 - Küçük çocuklar için senin ocağın, diğer ebeveynin ocağı veya iki ocakla ortak bağ düzeni kaydedilir; ayrı hane sonrası çocukların ilişki ve yerleşim durumu buna göre devam eder
 - Çocuğun ana hanesi tek taraftaysa yıllık bakım payı işler; çocuklar ayrıca 1–2 yıl sonra ayrılık düzenine alışma olayları yaşayabilir
 - Aile ekranında Ocak Güveni ve son ayrılık özeti sadakat, dayanak, paylaşım ve çocuk düzenini görünür gösterir
+- NPC ölümü tek merkezden işlenir; yakınlık düzeyi ölümün ne kadar yas oluşturacağını belirler, düşük ilişkili/hasım ölümleri aynı ağırlıkta ceza vermez
+- Yakın ölümünde sınırlı süreli cenaze kararı açılır; aynı bölgede ücretsiz, başka yerleşimde 2, başka devlette 4 servet yol masrafıyla cenazeye gidip geri dönülebilir
+- Cenazeye gitmek oyuncuyu göç ettirmez; yalnızca yol masrafı ve bir aylık eylem kullanır. Yolculuk mümkün değilse uzaktan ağıt ve veda seçeneği bulunur
+- Cenazeyi kaçırmak özellikle güçlü bağlarda yas süresini/yoğunluğunu artırır; cenazeye katılmak, yaşayan bir yakınla konuşmak ve hatıra günü düzenlemek yası farklı biçimde azaltır
+- Yas tek anlık mutluluk cezası değildir: yoğunluk, kalan ay, kapanış ve cenaze durumu kalıcı olarak saklanır ve zamanla çözülür
+- Bir ölüm aynı ailedeki bağlantılı NPC'lere de yas hatırası bırakır; böylece anne, ata, kardeş veya çocuk ölümü yaşayan aile üyelerinin geçmişinde iz bırakır
+- Hasta yakınlar için ziyaretin yanında doğrudan bakım üstlenme, otacı getirme ve ağır durumda söylenmemiş sözleri konuşma seçenekleri vardır
+- Uzun süre bakım vermek bakım yükü oluşturur; belirli seviyede oyuncunun sağlığı/dirliği ve aile içinde bakım paylaşımı hakkında özel olaylar açılır
+- Hastalık sırasında bakım ve vedalaşma birikimi, kişi daha sonra ölürse ilk yas şiddetini azaltan gerçek bir kapanış etkisi sağlar
+- Aile ekranında Yas, Cenaze ve Bakım bölümü açık cenazeleri, süren yasları, hatıraları ve bakım yükünü gösterir
 - Derin dostluk ve sosyal çevre: çocukluk dostu, yakın dost, sırdaş, uzaklaşmış dost ve kalıcı yeniden buluşma geçmişi
 - 3+ güçlü dostla arkadaş çevresi, grup uyumu/gerilimi, ortak buluşmalar ve NPC-NPC dostluk bağları
 - Dost aracılığıyla görev çevresine giriş, eş adayı tanıştırması ve askerî dostun sefer yoldaşına dönüşmesi
@@ -97,7 +107,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 24’e taşınır; sürüm değişiminde önce `yazgi_before_v24` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 25’e taşınır; sürüm değişiminde önce `yazgi_before_v25` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
