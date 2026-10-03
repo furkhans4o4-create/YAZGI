@@ -223,10 +223,14 @@ function targetPastLabel(n){
  const v=n?.statusFlags?.guidance;return v==='war'?'at ve ok talimine':v==='craft'?'bir ustanın yanında zanaata':v==='free'?'kendi yolunu bulmaya':'kendi yolunu bulmaya';
 }
 function applyChildPathConsequence(n,context,choiceIndex){
- if(!n)return;const path=context?.delayedPayload?.path||n.statusFlags?.guidance||'free';n.goal=path==='war'?'war':path==='craft'?'mastery':chooseNPCGoal(n);n.skills=n.skills||{};
+ if(!n)return;const prof=s.children.some(c=>c.id===n.id)?ensureChildProfile(n):null,path=context?.delayedPayload?.path||prof?.guidance||n.statusFlags?.guidance||'free',def=PARENTING_PATHS[path]||PARENTING_PATHS.free;n.goal=def.goal||chooseNPCGoal(n);n.skills=n.skills||{};
  if(path==='war'){n.skills.combat=clamp((n.skills.combat||0)+8);n.skills.riding=clamp((n.skills.riding||0)+6);n.skills.archery=clamp((n.skills.archery||0)+6);}
  else if(path==='craft'){n.skills.craft=clamp((n.skills.craft||0)+10);}
+ else if(path==='wisdom'){n.skills.literacy=clamp((n.skills.literacy||0)+8);n.skills.speech=clamp((n.skills.speech||0)+5);}
+ else if(path==='trade'){n.skills.trade=clamp((n.skills.trade||0)+9);n.skills.speech=clamp((n.skills.speech||0)+4);}
+ else if(path==='family'){n.skills.riding=clamp((n.skills.riding||0)+4);n.skills.trade=clamp((n.skills.trade||0)+4);}
  else{n.skills.speech=clamp((n.skills.speech||0)+4);n.prestige=clamp((n.prestige||0)+2);}
+ if(prof){n.prestige=clamp((n.prestige||0)+Math.round((prof.wellbeing+prof.expectation-90)/20));}
  n.role=npcCareerFor(n);n.roleHistory.push({year:s.year+s.age,role:n.role});rememberNPC(n,'milestone','Yıllar önce seçilen yetişme yolunun ardından '+n.role+' oldu.',6);
  if(choiceIndex===0){n.prestige=clamp((n.prestige||0)+4);adjustNPC(n,{rel:5,trust:6,respect:5},'Yıllar sonra yolunu desteklemeye devam ettin.');}
  else adjustNPC(n,{rel:-1,trust:-2,respect:2},'Yetişkin olduğunda kendi sorumluluğunu almasını istedin.');
@@ -637,7 +641,7 @@ function childProfile(childOrId){
  const id=typeof childOrId==='string'?childOrId:childOrId?.id;if(!id)return null;ensureParenting();return s.parenting.children[id]||null;
 }
 function ensureChildProfile(c){
- if(!c)return null;if(!s.parenting||typeof s.parenting!=='object'||Array.isArray(s.parenting))s.parenting={children:{},history:[],monthsParenting:0,familyStyle:'balanced'};
+ if(!c)return null;if(!Array.isArray(c.parentIds)||!c.parentIds.length)c.parentIds=[s.id,...(s.partner?.id?[s.partner.id]:[])];if(!s.parenting||typeof s.parenting!=='object'||Array.isArray(s.parenting))s.parenting={children:{},history:[],monthsParenting:0,familyStyle:'balanced'};
  s.parenting.children=s.parenting.children&&typeof s.parenting.children==='object'&&!Array.isArray(s.parenting.children)?s.parenting.children:{};
  let p=s.parenting.children[c.id];
  if(!p)p=s.parenting.children[c.id]={childId:c.id,bornYear:c.birthYear??(s.year+s.age-c.age),warmth:55,discipline:45,freedom:45,expectation:40,attention:55,wellbeing:65,neglectMonths:0,rivalry:0,guidance:'free',careMonths:0,teachingMonths:0,disciplineMonths:0,listeningMonths:0,milestones:[],history:[]};
@@ -740,6 +744,10 @@ function applyParentingEvent(eventId,choiceIndex,target){
  if(eventId==='parenting_child_lie'){if(choiceIndex===0){p.discipline=clamp(p.discipline+5);p.warmth=clamp(p.warmth+3);p.wellbeing=clamp(p.wellbeing+2);}else{p.discipline=clamp(p.discipline+9);p.warmth=clamp(p.warmth-4);p.wellbeing=clamp(p.wellbeing-3);}}
  if(eventId==='parenting_child_choice'){if(choiceIndex===0){p.freedom=clamp(p.freedom+8);p.attention=clamp(p.attention+4);}else{p.expectation=clamp(p.expectation+7);p.freedom=clamp(p.freedom-3);}}
  if(eventId==='parenting_sibling_conflict'){for(const x of s.children.filter(c=>c.alive&&c.id!==target.id)){const op=ensureChildProfile(x);if(choiceIndex===0){p.rivalry=clamp(p.rivalry-10);op.rivalry=clamp(op.rivalry-6);}else{p.rivalry=clamp(p.rivalry+8);}}}
+ if(eventId==='child_training_choice'){
+  p.guidance=choiceIndex===0?'war':choiceIndex===1?'craft':'free';p.expectation=clamp(p.expectation+(choiceIndex===2?-4:7));p.freedom=clamp(p.freedom+(choiceIndex===2?8:-2));
+  p.history.unshift({year:s.year+s.age,age:target.age,id:'story_guidance',path:p.guidance,style:parentingStyleLabel(p)});p.history=p.history.slice(0,30);
+ }
 }
 
 function ensureExtendedFamily(){
@@ -2141,7 +2149,7 @@ function chooseContextEvent(i){
  if(target?.alive&&fx.makeTargetFriend)makeTargetFriend(target,'Eski sefer yoldaşı');
  if(target?.alive&&fx.makeTargetRival)makeTargetRival(target,'Eski sefer yoldaşı / Hasım');
  if(['crime_old_accusation','crime_witness_returns','crime_feud_returns'].includes(ev.id))applyJusticeEventOutcome(ev.id,i,context,target);
- if(target?.alive&&['parenting_child_lie','parenting_child_choice','parenting_sibling_conflict'].includes(ev.id))applyParentingEvent(ev.id,i,target);
+ if(target?.alive&&['parenting_child_lie','parenting_child_choice','parenting_sibling_conflict','child_training_choice'].includes(ev.id))applyParentingEvent(ev.id,i,target);
  if(target?.alive){if(['education_mentor_trial','education_peer_competition','education_peer_help'].includes(ev.id)){const d=EDUCATION_TRACKS[target.statusFlags?.educationTrack];if(d)skillGain(d.skill,ev.id==='education_mentor_trial'?(i===0?3:1):ev.id==='education_peer_competition'?(i===0?2:3):(i===0?2:1));}
   if(ev.id==='child_ill')target.health=clamp(target.health+(i===0?4:7));if(ev.id==='friend_quarrel')target.rel=clamp(target.rel+(i===0?6:-6));if(ev.id==='child_training_choice'){target.skills=target.skills||{};const k=i===0?'archery':i===1?'craft':'speech';target.skills[k]=clamp((target.skills[k]||0)+3);}if(ev.id==='child_path_consequence')applyChildPathConsequence(target,context,i);}
  if(target?.alive&&fx.resolveRival){const ri=s.rivals.findIndex(n=>n.id===target.id);if(ri>=0){s.rivals.splice(ri,1);target.type='Dost';if(!s.friends.some(n=>n.id===target.id))s.friends.push(target);rememberNPC(target,'peace','Uzun süren husumet sona erdi.',7);unlock('reconciled');}}
