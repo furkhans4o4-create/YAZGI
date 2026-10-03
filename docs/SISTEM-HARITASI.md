@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 7’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v7` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 8’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v8` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -176,3 +176,8 @@ Başvuru çerçevesi: [UNESCO Orkhon Valley Cultural Landscape](https://whc.unes
 ## Uygulama kapsamı ve kalan araştırma
 
 Bu değişiklik, mevcut oynanabilir sistemlerin yaş/zaman/kayıt tutarlılığını güçlendirir ve sağlık, uzmanlık tecrübesi, üretim, NPC ilişkileri ve mal paylaşımı için çalışan temel ekler. Referansların bütün özel kariyer minioyunları, yüzlerce hastalığı veya bütün native senaryoları uygulanmış değildir. TC’nin gerçek sayısal açılma sabitleri ve BitLife’ın tablo dışı native/sunucu kapıları daha ileri doğrulama gerektirir. Bu sınırları “eksiksiz kod çözümü” diye gizlemek yerine eklerde gözlenen veriyi ve tasarım kararını ayrı tutuyoruz.
+
+
+### Tutsaklık, sürgün ve barınma uyarlaması
+
+Modern yaşam simlerindeki hapishane/evsizlik derinliği isteği YAZGI’ya dönem bağlamında uyarlandı. Hapishane işi yerine tutsak kampında emek ve erzak, telefon/ziyaret yerine yakınlara haber-fidye desteği, evsizlik yerine sürgünde barınak ve erzak güveni kullanılır. Tutsak veya sürgünde tanışılan NPC’ler kalıcı ilişkiye dönüşebilir; önceki bölümden çıkınca geçmiş kaydı saklanır.
