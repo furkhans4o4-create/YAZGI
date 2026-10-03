@@ -1156,8 +1156,14 @@ function callStateVote(){
  return performAction({kind:'stateCouncil',id:'vote',proposalId:p.id},()=>{
   const q=ensureStateCourt(),t=stateVoteTally(p),passed=t.yes>=3,year=s.year+s.age;
   q.proposalHistory.unshift({id:p.id,name:d.name,year,age:s.age,passed,yes:t.yes,no:t.no,abstain:t.abstain,stances:{...p.stances},lobbiedIds:[...p.lobbiedIds]});q.proposalHistory=q.proposalHistory.slice(0,60);
-  if(passed){q.passed++;applyStatePolicyPass(p.id);q.proposalCooldowns[p.id]=year+d.duration;apply({prestige:2});log(d.name+' mecliste '+t.yes+' destekle kabul edildi.','good');}
-  else{q.failed++;q.proposalCooldowns[p.id]=year+2;adjustStateCourt({influence:-3,trust:-2,rival:4},d.name+' mecliste yeterli destek bulamadı.');apply({prestige:-1});log(d.name+' mecliste reddedildi: '+t.yes+' destek, '+t.no+' karşı.','bad');}
+  if(passed){
+   q.passed++;applyStatePolicyPass(p.id);q.proposalCooldowns[p.id]=year+d.duration;apply({prestige:2});
+   const rep=p.id==='winter_share'?{honor:2,reliability:2,generosity:4}:p.id==='feud_peace'?{honor:4,reliability:2}:p.id==='muster_order'?{honor:3,reliability:3}:p.id==='caravan_guard'?{reliability:4,honor:1}:{reliability:3,honor:2};
+   recordPublicWord('council',d.name+' kararını meclisten geçirip uygulamaya koyduğun konuşuluyor.',rep,{severity:22,polarity:1,truth:true,knownIds:t.rows.map(x=>x.id)});
+   log(d.name+' mecliste '+t.yes+' destekle kabul edildi.','good');
+  }else{
+   q.failed++;q.proposalCooldowns[p.id]=year+2;adjustStateCourt({influence:-3,trust:-2,rival:4},d.name+' mecliste yeterli destek bulamadı.');apply({prestige:-1});if(t.yes===0)applyCommunityAxes({reliability:-2},d.name+' teklifinde meclisten hiç destek çıkaramadın.');log(d.name+' mecliste reddedildi: '+t.yes+' destek, '+t.no+' karşı.','bad');
+  }
   for(const row of t.rows){const n=npcById(row.id);if(!n)continue;if((row.vote==='yes')===passed)adjustNPC(n,{rel:2,trust:2,respect:2},d.name+' oylamasında aynı sonuç tarafında kaldınız.');else if(row.vote!=='abstain')adjustNPC(n,{rel:-1,grudge:2},d.name+' oylamasında karşı taraflarda kaldınız.');}
   q.currentProposal=null;
  },d.name+' için meclis oylamasıyla bir ay geçti.');
@@ -3069,7 +3075,7 @@ function migrateTo(realm,place,mode='alone'){
   if(mode==='alone'&&s.partner?.alive){adjustNPC(s.partner,{rel:-8,trust:-6,grudge:2},'Göç kararında yanında götürülmedi.');}
   if(mode==='household')for(const n of [...s.parents,...s.siblings].filter(n=>n.alive))adjustNPC(n,{rel:-2,trust:-1},'Göçten sonra daha uzakta yaşamaya başladınız.');
   applyDistanceConsequences(movedIds,oldRealm,oldPlace);housingAfterMigration(mode);
-  m.moves++;m.localStanding=dest.cross?18:28;m.monthsHere=0;m.arrivalYear=s.year+s.age;m.arrivalAge=s.age;m.history.unshift({year:s.year+s.age,age:s.age,fromRealm:oldRealm,from:oldPlace,toRealm:realm,to:place,mode,cost,trouble});m.history=m.history.slice(0,30);
+  m.moves++;m.localStanding=clamp((dest.cross?18:28)+Math.round((communityGoodName()-50)*(dest.cross?.03:.08)));m.monthsHere=0;m.arrivalYear=s.year+s.age;m.arrivalAge=s.age;m.history.unshift({year:s.year+s.age,age:s.age,fromRealm:oldRealm,from:oldPlace,toRealm:realm,to:place,mode,cost,trouble});m.history=m.history.slice(0,30);
   if(s.role&&['Boy Beyi','Elçi','Bitigçi'].includes(s.role)&&dest.cross){s.retiredRole=s.role;s.role=null;log('Başka siyasi çevreye göçün eski devlet görevini sona erdirdi.','major');}
   log(oldPlace+' çevresinden '+place+' çevresine göç ettin'+(members.length?' • yanında '+members.length+' yakın vardı':'')+'.','major');
  },place+' çevresine göç yolculuğuyla bir ay geçti.');
@@ -3736,6 +3742,10 @@ function commitCrime(id){
   else{const gain=rng(...c.gain);rec.gain=gain;s.wealth+=gain;rec.result=gain+' servet kazandın; mesele hemen açılmadı';log(gain+' servet kazandın; fakat iz ve tanık ihtimali kayıtta kaldı.','bad');
    if(trace>=34||witnesses.length){const target=witnesses[0]||victim;scheduleDelayedEvent({id:witnesses.length?'crime_witness_returns':'crime_old_accusation',years:[1,4],payload:{caseId:rec.id,detail:'Yıllar önce kapanmış görünen '+c.name+' meselesi yeniden konuşulmaya başladı.'}},{targetId:target.id,sourceEventId:'crime:'+id});}
   }
+  if(rec.status==='summoned'||witnesses.length){
+   const severity=Math.max(18,Math.min(70,Math.round(profile.severity*.72+witnesses.length*5)));
+   recordPublicWord('crime',c.name+' meselesinde adının geçtiği oba içinde konuşulmaya başladı.',{honor:-Math.max(2,Math.round(profile.severity/18)),reliability:-Math.max(1,Math.round(profile.severity/25)),fear:Math.max(1,Math.round(profile.severity/28))},{severity,polarity:-1,truth:true,sourceId:witnesses[0]?.id||victim.id,knownIds:[victim.id,...witnesses.map(n=>n.id)],caseId:rec.id});
+  }
   s.crimeRecord.unshift({id:rec.id,name:c.name,result:rec.result,age:s.age,month:rec.month,victimId:victim.id,witnesses:witnesses.length,evidence:trace,status:rec.status});s.crimeRecord=s.crimeRecord.slice(0,80);
  },'Töre dışı girişimin sonuçlarıyla bir ay geçti.');
 }
@@ -3905,7 +3915,8 @@ function choiceImpactItems(choice,more=false){
    const v=x[k];if(typeof v!=="number"||!v)continue;
    items.push({cls:v>0?"pos":"neg",label:`${icon} ${name} ${v>0?"+":""}${v}`});
  }
- if(x.targetRel)items.push({cls:x.targetRel>0?"pos":"neg",label:`🤝 İlişki ${x.targetRel>0?"+":""}${x.targetRel}`});
+ if(x.reputation){const r=x.reputation,parts=[];if(r.honor)parts.push('Onur '+(r.honor>0?'+':'')+r.honor);if(r.reliability)parts.push('Güven '+(r.reliability>0?'+':'')+r.reliability);if(r.generosity)parts.push('Cömertlik '+(r.generosity>0?'+':'')+r.generosity);if(r.fear)parts.push('Çekince '+(r.fear>0?'+':'')+r.fear);if(parts.length)items.push({cls:(r.honor||0)+(r.reliability||0)+(r.generosity||0)-(r.fear||0)>=0?"pos":"neg",label:'🗣 '+parts.join(' • ')});}
+  if(x.targetRel)items.push({cls:x.targetRel>0?"pos":"neg",label:`🤝 İlişki ${x.targetRel>0?"+":""}${x.targetRel}`});
  if(x.targetTrust)items.push({cls:x.targetTrust>0?"pos":"neg",label:`🔒 Güven ${x.targetTrust>0?"+":""}${x.targetTrust}`});
  if(x.targetRespect)items.push({cls:x.targetRespect>0?"pos":"neg",label:`🐺 Saygı ${x.targetRespect>0?"+":""}${x.targetRespect}`});
  if(x.targetGrudge)items.push({cls:x.targetGrudge>0?"neg":"pos",label:`🔥 Kin ${x.targetGrudge>0?"+":""}${x.targetGrudge}`});
@@ -4290,6 +4301,23 @@ if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)&&!EVENT_DECK.some(
    text:'Süregelen sağlık yükün bu ay günlük işlerde daha fazla kendini gösterdi.',choices:[
     ['Yükü hafifletip dinlen',{happiness:1,longHealth:{management:6,health:2}}],
     ['Aynı tempoyu sürdür',{prestige:1,health:-2,longHealth:{management:-4}}]
+   ]}
+ );
+}
+
+
+/* v29 — reputation, gossip and community memory. */
+if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)&&!EVENT_DECK.some(e=>e.id==='rival_false_rumor_v29')){
+ EVENT_DECK.push(
+  {id:'rival_false_rumor_v29',cat:'Oba',min:12,max:110,w:7,cool:20,req:'hasRival',target:'rival',
+   text:'{name}, sözünde durmadığını ve çıkarına göre konuştuğunu çevrede anlatmaya başladı.',choices:[
+    ['Toyda kendi sözünü açıkça anlat',{happiness:1,targetRel:-2,targetTrust:-1,reputation:{kind:'false_rumor',text:'Bir rakibin sözünde durmadığını iddia ediyor.',truth:false,polarity:-1,severity:20,reliability:-1,sourceTarget:true}}],
+    ['Şimdilik karşılık verme',{happiness:-1,reputation:{kind:'false_rumor',text:'Bir rakibin sözünde durmadığını çevrede anlatıyor.',truth:false,polarity:-1,severity:36,reliability:-3,sourceTarget:true}}]
+   ]},
+  {id:'good_name_request_v29',cat:'Oba',min:16,max:110,w:5,cool:24,req:'hasTrustedPerson',target:'trusted',
+   text:'{name}, çevrede sözünün güvenilir bulunmasından dolayı bir anlaşmazlıkta şahitlik etmeni istedi.',choices:[
+    ['Sözünün arkasında dur',{prestige:1,targetRel:3,targetTrust:4,reputation:{kind:'word',text:'Bir anlaşmazlıkta verdiğin sözü açıkça taşıdığın anlatılıyor.',truth:true,polarity:1,severity:18,honor:2,reliability:4,sourceTarget:true}}],
+    ['Bu işe karışma',{targetRel:-1,reputation:{rumor:false,reliability:-1,text:'Bir topluluk meselesinde geri durmayı seçtin.'}}]
    ]}
  );
 }
