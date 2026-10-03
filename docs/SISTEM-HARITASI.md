@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 9’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v9` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 10’dur. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v10` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -186,3 +186,10 @@ Modern yaşam simlerindeki hapishane/evsizlik derinliği isteği YAZGI’ya dön
 ### Yaşam çeşitliliği ve tekrar karşıtı döngü
 
 Oyuncunun her yıl aynı birkaç eylemi tekrarlamasını azaltmak için v9 ile kalıcı yaşam çeşitliliği profili eklendi. Her yıl karakterin yaşına ve mevcut durumuna uygun bir yıllık amaç seçilir; farklı faaliyet, eğitim, aile, meslek, ticaret, sağlık, işletme ve mevsim hedefleri arasında dönüşür. İlkbahar, yaz, sonbahar ve kışta görünen mevsimlik faaliyetler farklıdır. Faaliyet geçmişi saklanır; yeni veya seyrek yapılan uğraşlar ek canlılık verirken aynı faaliyetin arka arkaya aşırı tekrarı ek mutluluk sağlamaz ve küçük bir tekrar yorgunluğu yaratır. Bu yapı sadece daha fazla buton eklemek yerine yılların birbirinden farklı akmasını hedefler.
+
+
+### Göç, yerleşim ve uzaklık
+
+v10 ile karakter artık doğduğu yerde bütün ömrünü geçirmek zorunda değildir. Faaliyetler ekranından mevcut yılda erişilebilir yerleşimlere göç planlanabilir. Aynı siyasi çevrede yer değiştirme ile başka bir siyasi çevreye geçiş ayrılır; başka siyasi çevreye geçişte eski devlet nüfuzu büyük ölçüde kaybolur ancak karakterin boy kimliği korunur. Oyuncu yalnız, eşi ve çocuklarıyla veya ebeveyn/kardeşleri de kapsayan yakın grubuyla gidebilir. Yol maliyeti; mesafe, kişi sayısı ve taşınan varlıklarla artar. Binicilik ve at sahibi olmak yol riskini azaltır; kış yolculuğu riski artırır.
+
+Geride kalan NPC'ler eski yerlerinde yaşamaya devam eder. Uzakta yaşayan yakınlarla etkileşim mümkündür fakat yol masrafı ve küçük bağ aşınması vardır. Yeni yerleşimde yerel kabul ayrı bir değer olarak tutulur; komşularla tanışma, ortak iş ve toy/toplantılara katılma ile artar. Göç geçmişi, nereden nereye gidildiği, kiminle gidildiği, maliyet ve yol sorunu yaşanıp yaşanmadığıyla saklanır.
