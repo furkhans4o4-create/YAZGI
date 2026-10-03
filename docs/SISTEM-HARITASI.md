@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 18’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v18` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 19’dur. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v19` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -271,3 +271,14 @@ Koruyuculuk profilinde bakım kalitesi, hane istikrarı, kaç ay himayede kalın
 Himaye ocağında oyuncu koruyucusuyla vakit geçirebilir, yurt işlerine yardım edebilir, ondan bir beceri öğrenebilir ve ölen anne/atası hakkında konuşabilir. İlişki sistemi ve koruyucunun özellikleri bakım kalitesini belirler. Yüksek kaliteli bakım çocuk oyuncunun sağlık ve mutluluğunu destekleyebilir; düşük kalite ve istikrarsızlık mutluluğu, uzun süre devam ederse sağlığı da olumsuz etkileyebilir. Koruyucu ölürse sistem geçmişi silmeden bir sonraki uygun yetişkin yakını arar.
 
 Aynı koruyucu yanında başka himaye çocukları da bulunabilir; bunlar kalıcı Himaye Yoldaşı NPC'leridir. Himaye anıları, koruyucu hanedeki gerilim ve ayrı yaşayan kardeşle mesafe seçimli olaylara bağlanmıştır. Oyuncu 18 yaşına ulaştığında aktif koruyuculuk otomatik biter; eski koruyucu ve himaye döneminin bütün hafızası sosyal ağda kalır.
+
+
+### Dostluk, sırdaşlık ve sosyal çevre
+
+v19 ile dostlar yalnızca tek ilişki çubuğuna sahip NPC'ler olmaktan çıkarıldı. Her dost için tanışma yaşı/yılı, çocukluk dostu olup olmadığı, birlikte geçirilen aylar, ortak deneyim sayısı, paylaşılan sırlar, verilen/alınan destek, son temas, uzaklaşma süresi ve yeniden bağ kurma geçmişi saklanır. İlişki ve güven yeterince yükseldiğinde dost yakın dosta; oyuncunun açık seçimiyle sırdaşa dönüşebilir. Uzun süre görüşülmeyen veya uzak bölgede yaşayan dostlar silinmez, “uzaklaşmış dost” durumuna geçer ve yıllar sonra yeniden görüşülebilir.
+
+Üç veya daha fazla güçlü dost bir arkadaş çevresi oluşturabilir. Çevrenin uyumu, gerilimi, buluşma sayısı ve ortak geçmişi saklanır. Grup buluşmaları sadece oyuncu-dost ilişkilerini değil, grup üyelerinin birbirleriyle gerçek NPC-NPC sosyal bağlarını da güçlendirir. Grup içinde husumet birikirse gerilim yükselir; oyuncu arabuluculuk yapabilir. Dost çevresi çatışmaları seçimli hayat olaylarına bağlanmıştır.
+
+Dostların hayat yolları oyuncuya somut kapılar açabilir. Bir meslekte çalışan dost, kendi görev çevresinde iki yıl geçerli küçük bir kabul avantajı sağlayabilir; bu avantaj hiçbir temel yaş/beceri/tecrübe şartını atlamaz. Uygun yaşta ve mevcut eş adayı yokken dosttan güvenilir biriyle tanıştırmasını istemek mümkündür; yeni eş adayı kimin aracılığıyla tanışıldığını kalıcı olarak hatırlar. Alp/Akıncı/Tarkan olan yetişkin bir dost sefer yoldaşı havuzuna aynı NPC kimliğiyle eklenebilir.
+
+Arkadaşlıklar dünya akışıyla değişir. Dost NPC'ler zaman zaman başka yerleşimlere taşınabilir; coğrafi mesafe ve uzun süre iletişimsizlik bağın yavaşça soğumasına yol açar. Çocukluk dostlarının yıllar sonra geri dönmesi, meslek kapısı önermesi ve arkadaş çevresindeki gerilim gibi yeni seçimli olaylar eklenmiştir.
