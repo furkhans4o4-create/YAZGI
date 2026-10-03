@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 16’dır. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v16` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 17’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v17` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -247,3 +247,16 @@ Yeni eş adayı oluştuğunda onun ailesi de yaratılır: kayın ana, kayın ata
 Aynı bölgede yaşayan aile üyeleriyle büyük aile buluşması yapılabilir. Buluşma oyuncu-NPC bağlarının yanında bazı NPC-NPC akrabalık bağlarını da güçlendirir ve eski kinleri azaltabilir. Geniş aile üyelerine maddi destek verilebilir; güveni ve ilişkisi yüksek, serveti olan yakınlardan yardım istenebilir. İlişkisi yüksek ve varlıklı bazı yaşlı akrabalardan ölüm sonrası küçük aile payları kalabilir.
 
 Uzun legacy kayıtlarının kontrolsüz biçimde binlerce NPC üretmemesi için yaşayan aile dallarının otomatik evlilik/çocuk üretiminde üst sınır vardır. Bu sınır mevcut akrabaları silmez; yalnızca aile ağının yeni dallar üretmesini durdurarak performansı korur. Kayın aile ve kuzenler ayrıca seçimli aile olaylarının doğrudan hedefi olabilir.
+
+
+### Ebeveynlik ve çocuk yetiştirme
+
+v17 ile çocuklar doğduktan sonra yalnızca yaşlanan normal NPC'ler olmaktan çıkarıldı. Her yaşayan çocuk için ayrı yetiştirme profili tutulur: sıcaklık, disiplin, özgürlük, beklenti, ilgi, iyi oluş, ihmal süresi, kardeş rekabeti, seçilen yetişme yolu ve ebeveynlik geçmişi. Aynı oyuncu farklı çocuklarına farklı davranabilir; sistem bunu çocuk bazında saklar.
+
+Oyuncu bir çocuğun bakımına özel zaman ayırabilir, ona bir şey öğretebilir, fikrini dinleyebilir, sınır koyabilir, kardeşleriyle arasındaki gerilimi çözebilir veya at-savaş, zanaat, bitig-söz, ticaret, ocak/oba ya da serbest gelişim yollarından birine yönlendirebilir. Bakım ve dinleme güven/sıcaklığı yükseltirken, yüksek disiplin düşük sıcaklıkla birleşirse korku, kırgınlık ve düşük iyi oluş üretebilir. Uzun süre zaman ayrılmayan çocuklarda ilgi ve iyi oluş düşer; çok uzun ihmal ebeveyn-çocuk güvenini de aşındırır.
+
+5, 8, 12, 16 ve 18 yaş dönümlerinde o zamana kadar biriken ebeveynlik tarzı çocuğa kalıcı biçimde işlenir. Sıcak bakım merhamet/güven, dengeli disiplin çalışkanlık, sert disiplin temkin/korku, yüksek özgürlük konuşkanlık ve bağımsızlık, yüksek beklenti hırs gibi kişilik sonuçlarına katkı sağlar. Yetişme yolu ilgili becerileri ve amacı etkiler; 18 yaşta çocuk NPC kariyerini bu birikimle seçer. Eski “at-ok / usta / kendi yolu” karar kartı da aynı profile bağlandı ve artık ayrı, çelişen bir sistem değildir.
+
+Kardeşler arasında ilgi farkı büyürse rekabet değeri artabilir ve gerçek NPC-NPC kardeş bağını bozabilir. Ebeveyn arabuluculuk yaparak iki çocuğun da rekabetini ve sosyal husumetini azaltabilir. Çocuğun yalan söylemesi, kendi istediği yolu savunması ve kardeş çatışması gibi seçimli olaylar da doğrudan ebeveynlik profiline işler.
+
+Eski kayıtlar göç sırasında mevcut çocuklar için otomatik yetiştirme profili üretir ve mümkünse ebeveyn kimliklerini bağlar. Böylece v16 kayıtlar çocuk sistemi kaybolmadan v17'ye taşınır.
