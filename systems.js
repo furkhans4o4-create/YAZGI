@@ -874,6 +874,32 @@ if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)){
  );
 }
 
+
+if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)&&!EVENT_DECK.some(e=>e.id==='romance_family_disapproval')){
+ EVENT_DECK.push(
+  {id:'romance_family_disapproval',cat:'Ocak',min:16,max:75,w:8,cool:18,actions:['romance','npc'],target:'partner',req:['partnered','romanceFamilyLow'],
+   text:'Yakınlarından bazıları {name} ile kurduğun bağ konusunda çekincelerini açıkça söyledi.',choices:[
+    ['İki tarafı bir araya getir',{romance:{familyApproval:12,harmony:3,tension:-4},targetRel:3,targetTrust:3,targetRespect:2}],
+    ['Kendi kararının arkasında dur',{romance:{commitment:7,familyApproval:-3,tension:3},targetRel:2,targetTrust:4,targetRespect:3}]
+   ]},
+  {id:'romance_jealousy',cat:'Ocak',min:16,max:75,w:7,cool:16,actions:['romance','npc'],target:'partner',req:['partnered','romanceJealous'],
+   text:'{name}, son zamanlarda başka insanlarla yakınlığından rahatsız olduğunu söyledi.',choices:[
+    ['Açıkça konuşup güven ver',{romance:{jealousy:-15,harmony:5,tension:-5},targetTrust:5,targetRel:3,targetGrudge:-3}],
+    ['Bu kuşkuyu haksız bulduğunu söyle',{romance:{jealousy:-3,harmony:-3,tension:9,argument:1},targetTrust:-4,targetRel:-3,targetGrudge:5}]
+   ]},
+  {id:'romance_household_strain',cat:'Ocak',min:18,max:80,w:7,cool:20,actions:['romance','work','migration','wait'],target:'partner',req:['married','romanceTense'],
+   text:'{name} ile ortak ocağınızda bir süredir biriken meseleler sonunda açık bir tartışmaya dönüştü.',choices:[
+    ['Meseleyi birlikte çözmeye çalış',{romance:{tension:-16,harmony:6,reconcile:1},targetTrust:5,targetRel:4,targetGrudge:-7}],
+    ['Sözünden geri durma',{romance:{tension:12,harmony:-7,argument:1},targetTrust:-5,targetRel:-5,targetGrudge:7}]
+   ]},
+  {id:'romance_shared_plan',cat:'Ocak',min:18,max:75,w:5,cool:24,actions:['romance'],target:'partner',req:['partnered','romanceStable'],
+   text:'{name}, birlikte geleceğiniz için yeni bir düzen kurmayı önerdi.',choices:[
+    ['Ortak planı benimse',{romance:{commitment:9,harmony:5},happiness:3,targetTrust:4,targetRespect:4}],
+    ['Şimdilik düzeni değiştirmeyin',{romance:{commitment:2,harmony:1},targetTrust:1}]
+   ]}
+ );
+}
+
 function ensureMobility(){
  if(!s.mobility||typeof s.mobility!=='object'||Array.isArray(s.mobility))s.mobility={};
  const m=s.mobility;m.moves=Math.max(0,Math.round(m.moves||0));m.localStanding=clamp(Number.isFinite(m.localStanding)?m.localStanding:50);m.monthsHere=Math.max(0,Math.round(m.monthsHere||0));m.history=Array.isArray(m.history)?m.history.slice(-30):[];m.arrivalYear=m.arrivalYear??(s.year+s.age);m.arrivalAge=m.arrivalAge??s.age;m.homePlace=m.homePlace||s.place;m.homeRealm=m.homeRealm||s.realm;
@@ -1501,7 +1527,7 @@ function continueAsHeir(i){
 }
 function eventRequirementOK(ev){
  const check=r=>{if(!r)return true;if(Array.isArray(r))return r.every(check);if(r.startsWith('flag:'))return !!s.flags[r.slice(5)];if(r.startsWith('notflag:'))return !s.flags[r.slice(8)];if(r.startsWith('asset:'))return s.assets.includes(r.slice(6));if(r.startsWith('career:'))return !careerIssue(D.careers.find(x=>x.id===r.slice(7)));if(r.startsWith('role:'))return D.careers.find(x=>x.id===r.slice(5))?.name===s.role;let cm=r.match(/^careermonths:([^:]+):(\d+)$/);if(cm)return careerProfile(cm[1]).months>=+cm[2];let cr=r.match(/^careerrep:([^:]+):(\d+)$/);if(cr)return careerProfile(cr[1]).reputation>=+cr[2];let st=r.match(/^state(influence|trust|support|rival):(\d+)$/);if(st){const q=ensureStateCourt(),k={influence:'influence',trust:'councilTrust',support:'tribeSupport',rival:'rivalPressure'}[st[1]];return q[k]>=+st[2];}const num=r.match(/^(skill|wealth|prestige)(\d+)$/);if(num)return s[num[1]]>=+num[2];
- const map={single:()=>!s.partner?.alive&&!s.married,married:()=>s.age>=18&&s.married&&s.partner?.alive&&s.partner.age>=18,hasChild:()=>s.children.some(x=>x.alive),hasAdultChild:()=>s.children.some(x=>x.alive&&x.age>=18),hasLivingSibling:()=>s.siblings.some(x=>x.alive),successionPrepared:()=>ensureSuccession().prepared,successionUnprepared:()=>!ensureSuccession().prepared,trainableChild:()=>s.children.some(x=>x.alive&&x.age>=7&&x.age<18),hasGrandchild:()=>s.children.some(x=>x.alive&&x.children>0),hasFriend:()=>s.friends.some(x=>x.alive),hasRival:()=>s.rivals.some(x=>x.alive),hasFamilyFriend:()=>s.friends.some(x=>x.alive&&x.statusFlags?.familyFriend),hasFamilyEnemy:()=>s.rivals.some(x=>x.alive&&x.statusFlags?.familyEnemy),hasRivalKinLink:()=>rivalKinPairs().length>0,hasCloseKin:()=>[...s.parents,...s.siblings,...s.children,...(s.relatives||[])].some(x=>x.alive),hasTrustedPerson:()=>allNPCs().some(x=>x.alive&&(x.bonds?.trust||0)>=55),hasComrade:()=>s.military.comrades.some(x=>x.alive),hasTrustedComrade:()=>s.military.comrades.some(x=>x.alive&&((x.bonds?.trust||0)>=60||(x.rel||0)>=72)),hasAilment:()=>s.ailments.length>0,hasScar:()=>ensureHealthProfile().scars.length>0,healthLow:()=>s.health<55,military:()=>s.age>=18&&s.military.served,activeCampaign:()=>s.age>=18&&s.military.active,recentCampaign:()=>!!s.flags.recent_campaign,captive:()=>s.captive,exile:()=>s.exile};return map[r]?!!map[r]():false;};return check(ev.req);
+ const map={single:()=>!s.partner?.alive&&!s.married,partnered:()=>!!s.partner?.alive,married:()=>s.age>=18&&s.married&&s.partner?.alive&&s.partner.age>=18,romanceTense:()=>!!currentRomance()&&currentRomance().tension>=45,romanceJealous:()=>!!currentRomance()&&currentRomance().jealousy>=35,romanceFamilyLow:()=>!!currentRomance()&&currentRomance().familyApproval<45,romanceStable:()=>!!currentRomance()&&currentRomance().harmony>=65&&currentRomance().tension<30,hasChild:()=>s.children.some(x=>x.alive),hasAdultChild:()=>s.children.some(x=>x.alive&&x.age>=18),hasLivingSibling:()=>s.siblings.some(x=>x.alive),successionPrepared:()=>ensureSuccession().prepared,successionUnprepared:()=>!ensureSuccession().prepared,trainableChild:()=>s.children.some(x=>x.alive&&x.age>=7&&x.age<18),hasGrandchild:()=>s.children.some(x=>x.alive&&x.children>0),hasFriend:()=>s.friends.some(x=>x.alive),hasRival:()=>s.rivals.some(x=>x.alive),hasFamilyFriend:()=>s.friends.some(x=>x.alive&&x.statusFlags?.familyFriend),hasFamilyEnemy:()=>s.rivals.some(x=>x.alive&&x.statusFlags?.familyEnemy),hasRivalKinLink:()=>rivalKinPairs().length>0,hasCloseKin:()=>[...s.parents,...s.siblings,...s.children,...(s.relatives||[])].some(x=>x.alive),hasTrustedPerson:()=>allNPCs().some(x=>x.alive&&(x.bonds?.trust||0)>=55),hasComrade:()=>s.military.comrades.some(x=>x.alive),hasTrustedComrade:()=>s.military.comrades.some(x=>x.alive&&((x.bonds?.trust||0)>=60||(x.rel||0)>=72)),hasAilment:()=>s.ailments.length>0,hasScar:()=>ensureHealthProfile().scars.length>0,healthLow:()=>s.health<55,military:()=>s.age>=18&&s.military.served,activeCampaign:()=>s.age>=18&&s.military.active,recentCampaign:()=>!!s.flags.recent_campaign,captive:()=>s.captive,exile:()=>s.exile};return map[r]?!!map[r]():false;};return check(ev.req);
 }
 function eventChoiceIssue(ch){const x=ch[1]||{};if(x.wealth<0&&s.wealth<-x.wealth)return `${-x.wealth} servet gerekiyor`;if(x.healerCare&&s.wealth<2)return 'Otacı bakımı için 2 servet gerekiyor';if(x.setRole)return careerIssue(D.careers.find(r=>r.name===x.setRole));return '';}
 function eventTargetCandidates(target){
