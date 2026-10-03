@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=26,ADULT_AGE=18;
+const SAVE_VERSION=27,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -340,8 +340,140 @@ function normalizeNPC(n,type='Yakın'){
  n.memories=Array.isArray(n.memories)?n.memories.slice(0,14):[];n.parentIds=Array.isArray(n.parentIds)?n.parentIds:[];n.origin=n.origin||s?.place||'';n.place=n.place||n.origin||s?.place||'';n.realm=n.realm||s?.realm||'';n.tribe=n.tribe||s?.tribe||'';
  n.wealth=Math.max(0,Math.round(n.wealth??rng(0,25)));n.prestige=clamp(n.prestige??rng(5,35));n.skills=n.skills||{};
  n.role=n.role||npcCareerFor(n);n.roleHistory=Array.isArray(n.roleHistory)?n.roleHistory:[];n.partner=n.partner||null;n.children=n.children||0;n.descendants=Array.isArray(n.descendants)?n.descendants:[];
- n.lastInteractionYear=n.lastInteractionYear??null;n.statusFlags=n.statusFlags||{};normalizeNPCLifeState(n);return n;
+ n.lastInteractionYear=n.lastInteractionYear??null;n.statusFlags=n.statusFlags||{};normalizeNPCLifeState(n);normalizeNPCEstate(n);return n;
 }
+
+const NPC_ESTATE_ASSETS=['horse','flock','yurt','smithy','caravan_share'];
+function ensureNPCEstates(){
+ s.npcEstates=s.npcEstates&&typeof s.npcEstates==='object'&&!Array.isArray(s.npcEstates)?s.npcEstates:{};
+ const e=s.npcEstates;e.cases=Array.isArray(e.cases)?e.cases.slice(0,80):[];e.history=Array.isArray(e.history)?e.history.slice(0,120):[];
+ e.transfers=Math.max(0,Math.round(e.transfers||0));e.disputes=Math.max(0,Math.round(e.disputes||0));e.resolved=Math.max(0,Math.round(e.resolved||0));
+ return e;
+}
+function npcEstateSeedAssets(n){
+ const out=[],add=id=>{if(NPC_ESTATE_ASSETS.includes(id)&&!out.includes(id))out.push(id);};
+ if((n.age||0)>=16&&((n.wealth||0)>=8||['Alp','Akıncı','Tarkan','Boy Beyi','Kervan Başı'].includes(n.role)))add('horse');
+ if((n.wealth||0)>=15&&(n.goal==='wealth'||['Çoban','Tüccar','Kervan Başı'].includes(n.role)||Math.random()<.35))add('flock');
+ if((n.age||0)>=22&&(n.wealth||0)>=22) add('yurt');
+ if((n.wealth||0)>=30&&['Demirci','Zanaatkâr'].includes(n.role))add('smithy');
+ if((n.wealth||0)>=34&&(n.goal==='wealth'||['Tüccar','Kervan Başı','Kervan Rehberi'].includes(n.role)))add('caravan_share');
+ return out;
+}
+function normalizeNPCEstate(n){
+ if(!n)return null;n.estate=n.estate&&typeof n.estate==='object'&&!Array.isArray(n.estate)?n.estate:{};
+ const e=n.estate;
+ const legacyAssets=Array.isArray(n.statusFlags?.settlementAssets)?n.statusFlags.settlementAssets:[];
+ if(!Array.isArray(e.assets)){e.assets=[...legacyAssets,...npcEstateSeedAssets(n)];e.seeded=true;}
+ e.assets=[...new Set(e.assets.filter(id=>NPC_ESTATE_ASSETS.includes(id)))];
+ e.seeded=e.seeded!==false;e.history=Array.isArray(e.history)?e.history.slice(0,30):[];
+ e.inheritedFrom=Array.isArray(e.inheritedFrom)?e.inheritedFrom.slice(0,20):[];
+ e.lastAssetYear=Number.isFinite(e.lastAssetYear)?e.lastAssetYear:null;
+ return e;
+}
+function npcEstateAssetName(id){return D.assets.find(a=>a.id===id)?.name||({horse:'At',flock:'Sürü',yurt:'Büyük Yurt',smithy:'Demir Ocağı',caravan_share:'Kervan Payı'}[id]||id);}
+function npcEstateValue(n){
+ const e=normalizeNPCEstate(n);let total=Math.max(0,n.wealth||0);
+ for(const id of e.assets){const a=D.assets.find(x=>x.id===id);total+=Math.max(2,Math.round((a?.cost||10)*.55));}
+ return total;
+}
+function npcEstateSummary(n){
+ const e=normalizeNPCEstate(n),assets=e.assets.map(npcEstateAssetName);return (n.wealth||0)+' servet'+(assets.length?' • '+assets.join(', '):'');
+}
+function npcEstateYearTick(n){
+ if(!n?.alive||n.age<18||npcLifeBlocksNormalInteraction(n))return;const e=normalizeNPCEstate(n),year=s.year+s.age;if(e.lastAssetYear===year)return;e.lastAssetYear=year;
+ const add=id=>{if(!e.assets.includes(id)){e.assets.push(id);e.history.unshift({year,type:'acquire',asset:id});rememberNPC(n,'property',npcEstateAssetName(id)+' edindi.',3);return true;}return false;};
+ if(n.wealth>=18&&!e.assets.includes('horse')&&Math.random()<.08)add('horse');
+ if(n.wealth>=26&&!e.assets.includes('flock')&&(n.goal==='wealth'||n.role==='Çoban')&&Math.random()<.1)add('flock');
+ if(n.wealth>=34&&!e.assets.includes('yurt')&&Math.random()<.08)add('yurt');
+ if(n.wealth>=42&&!e.assets.includes('smithy')&&['Demirci','Zanaatkâr'].includes(n.role)&&Math.random()<.12)add('smithy');
+ if(n.wealth>=48&&!e.assets.includes('caravan_share')&&(n.goal==='wealth'||String(n.role).includes('Kervan')||n.role==='Tüccar')&&Math.random()<.1)add('caravan_share');
+ if(n.wealth<=2&&e.assets.length&&Math.random()<.12){const id=e.assets.pop();n.wealth+=Math.max(2,Math.round((D.assets.find(a=>a.id===id)?.cost||8)*.18));e.history.unshift({year,type:'sell',asset:id});rememberNPC(n,'property',npcEstateAssetName(id)+' malını elden çıkardı.',3);}
+}
+function npcEstatePlayerRelation(n){
+ if(!n)return 0;if(s.parents.some(x=>x.id===n.id))return 100;
+ if((s.relatives||[]).some(x=>x.id===n.id&&['Dede','Nine'].includes(kinRole(n))))return 78;
+ if((s.relatives||[]).some(x=>x.id===n.id&&['Amca','Dayı','Hala','Teyze','Amca / Dayı','Hala / Teyze'].includes(kinRole(n))))return 45;
+ if(n.id===s.partner?.id)return 95;return 0;
+}
+function npcEstateHeirs(n){
+ const out=[],seen=new Set(),add=(id,name,kind,ref,weight=1)=>{if(!id||seen.has(id))return;seen.add(id);out.push({id,name,kind,ref:ref||null,weight});};
+ const linkedPartner=n.partner?.id?npcById(n.partner.id):null;if(linkedPartner?.alive)add(linkedPartner.id,linkedPartner.name,'partner',linkedPartner,2);
+ for(const d of (n.descendants||[]).filter(x=>x?.alive))add(d.id,d.name,'child',d,3);
+ for(const x of allNPCs().filter(x=>x.alive&&x.parentIds?.includes(n.id)))add(x.id,x.name,'child',x,3);
+ const pr=npcEstatePlayerRelation(n);if(pr>=70)add(s.id,s.name,pr>=90?'player_child':'player_grandchild',null,pr>=90?3:2);
+ if(!out.length&&pr>=40)add(s.id,s.name,'player_kin',null,1);
+ if(!out.length){
+  const kin=allNPCs().filter(x=>x.alive&&x.id!==n.id&&(shareParents(x,n)||x.parentIds?.some(id=>n.parentIds?.includes(id)))).sort((a,b)=>(b.rel||0)-(a.rel||0)).slice(0,3);
+  for(const x of kin)add(x.id,x.name,'kin',x,1);
+ }
+ return out;
+}
+function npcEstateCaseById(id){return ensureNPCEstates().cases.find(x=>x.id===id)||null;}
+function playerReceivesEstateAsset(id){
+ if(!NPC_ESTATE_ASSETS.includes(id))return;if(s.assets.includes(id)){const value=Math.max(1,Math.round((D.assets.find(a=>a.id===id)?.cost||8)*.22));s.wealth+=value;economyLedger('inheritance',value,npcEstateAssetName(id)+' zaten sende olduğu için miras payı mala çevrildi.');}
+ else{s.assets.push(id);ensureEconomy();assetState(id).condition=Math.max(assetState(id).condition||0,65);}
+}
+function transferEstateShare(heir,wealth,assets,from){
+ wealth=Math.max(0,Math.round(wealth||0));assets=Array.isArray(assets)?assets:[];
+ if(heir.id===s.id){s.wealth+=wealth;for(const id of assets)playerReceivesEstateAsset(id);if(wealth)ensureExtendedFamily().history.unshift({year:s.year+s.age,age:s.age,type:'inheritance',from:from.id,amount:wealth});}
+ else if(heir.ref){heir.ref.wealth=Math.max(0,(heir.ref.wealth||0)+wealth);const e=normalizeNPCEstate(heir.ref);for(const id of assets)if(!e.assets.includes(id))e.assets.push(id);e.inheritedFrom.unshift({id:from.id,name:from.name,year:s.year+s.age,wealth,assets:[...assets]});}
+}
+function estateDisputeRisk(n,heirs,value){
+ if(heirs.length<2||value<18)return 0;let risk=18+Math.min(35,value*.45)+(heirs.length-2)*8;
+ const grudgy=heirs.filter(h=>h.ref&&(h.ref.bonds?.grudge||0)>=30).length;risk+=grudgy*10;
+ const trusted=heirs.filter(h=>h.ref&&(h.ref.bonds?.trust||0)>=70).length;risk-=trusted*5;
+ if(heirs.some(h=>h.id===s.id))risk+=5;return clamp(Math.round(risk));
+}
+function processNPCEstate(n){
+ if(!n)return null;const root=ensureNPCEstates(),e=normalizeNPCEstate(n);if(n.statusFlags?.estateHandled)return root.cases.find(x=>x.sourceId===n.id)||null;
+ n.statusFlags=n.statusFlags||{};n.statusFlags.estateHandled=true;
+ const heirs=npcEstateHeirs(n),wealth=Math.max(0,Math.round(n.wealth||0)),assets=[...e.assets],value=npcEstateValue(n),risk=estateDisputeRisk(n,heirs,value),playerHeir=heirs.some(h=>h.id===s.id);
+ const rec={id:'estate_'+n.id+'_'+(s.year+s.age),sourceId:n.id,name:n.name,year:s.year+s.age,kin:kinRole(n),wealth,assets:[...assets],value,heirs:heirs.map(h=>({id:h.id,name:h.name,kind:h.kind,weight:h.weight})),status:'settled',risk,playerHeir,playerWealth:0,playerAssets:[],transfers:[],tension:0};
+ if(!heirs.length){rec.status='unclaimed';root.cases.unshift(rec);root.history.unshift({year:rec.year,type:'unclaimed',sourceId:n.id,name:n.name,value});n.wealth=0;e.assets=[];return rec;}
+ const weightTotal=heirs.reduce((a,h)=>a+h.weight,0),shares=[];let assigned=0;
+ for(let i=0;i<heirs.length;i++){const h=heirs[i],amount=i===heirs.length-1?Math.max(0,wealth-assigned):Math.floor(wealth*h.weight/weightTotal);assigned+=amount;shares.push({heir:h,wealth:amount,assets:[]});}
+ for(let i=0;i<assets.length;i++)shares[i%shares.length].assets.push(assets[i]);
+ const dispute=playerHeir&&heirs.length>=2&&risk>=45;
+ if(dispute){
+  rec.status='disputed';rec.tension=risk;rec.planned=shares.map(x=>({heirId:x.heir.id,wealth:x.wealth,assets:[...x.assets]}));root.disputes++;
+ }else{
+  for(const sh of shares){transferEstateShare(sh.heir,sh.wealth,sh.assets,n);rec.transfers.push({heirId:sh.heir.id,name:sh.heir.name,wealth:sh.wealth,assets:[...sh.assets]});if(sh.heir.id===s.id){rec.playerWealth+=sh.wealth;rec.playerAssets.push(...sh.assets);}}
+  rec.status='settled';root.transfers++;n.wealth=0;e.assets=[];
+  if(rec.playerWealth||rec.playerAssets.length)log(safeText(n.name)+' ardından sana '+(rec.playerWealth?rec.playerWealth+' servet ':'')+(rec.playerAssets.length?rec.playerAssets.map(npcEstateAssetName).join(', ')+' ':'')+'miras kaldı.','major');
+ }
+ root.cases.unshift(rec);root.cases=root.cases.slice(0,80);root.history.unshift({year:rec.year,type:rec.status,sourceId:n.id,name:n.name,value,risk});root.history=root.history.slice(0,120);return rec;
+}
+function inheritanceDisputeIssue(caseId,id){
+ const rec=npcEstateCaseById(caseId);if(!rec||rec.status!=='disputed')return 'Açık bir miras çekişmesi yok.';if(!rec.playerHeir)return 'Bu mirasta doğrudan taraf değilsin.';
+ if(id==='tore'&&s.wealth<2)return 'Töre görüşmesi ve arabuluculuk için 2 servet gerekiyor.';if(!['mediate','claim','yield','tore'].includes(id))return 'Miras eylemi bulunamadı.';return '';
+}
+function settleEstateCase(rec,mode){
+ const n=npcById(rec.sourceId)||{id:rec.sourceId,name:rec.name},heirs=rec.heirs.map(h=>({id:h.id,name:h.name,kind:h.kind,weight:h.weight,ref:h.id===s.id?null:npcById(h.id)}));
+ let planned=(rec.planned||[]).map(p=>({heir:heirs.find(h=>h.id===p.heirId),wealth:p.wealth,assets:[...(p.assets||[])]})).filter(x=>x.heir);
+ const me=planned.find(x=>x.heir.id===s.id),others=planned.filter(x=>x.heir.id!==s.id);
+ if(mode==='claim'&&me&&others.length){const donor=others.sort((a,b)=>b.wealth-a.wealth)[0],take=Math.min(donor.wealth,Math.max(1,Math.round(rec.wealth*.15)));donor.wealth-=take;me.wealth+=take;if(!me.assets.length&&donor.assets.length)me.assets.push(donor.assets.shift());}
+ if(mode==='yield'&&me&&others.length){const to=others.sort((a,b)=>a.wealth-b.wealth)[0],give=Math.min(me.wealth,Math.max(1,Math.round(me.wealth*.35)));me.wealth-=give;to.wealth+=give;if(me.assets.length&&Math.random()<.7)to.assets.push(me.assets.pop());}
+ if(mode==='mediate'&&me){rec.tension=Math.max(0,rec.tension-25);}
+ if(mode==='tore'&&me){rec.tension=Math.max(0,rec.tension-40);}
+ for(const sh of planned){transferEstateShare(sh.heir,sh.wealth,sh.assets,n);rec.transfers.push({heirId:sh.heir.id,name:sh.heir.name,wealth:sh.wealth,assets:[...sh.assets]});if(sh.heir.id===s.id){rec.playerWealth+=sh.wealth;rec.playerAssets.push(...sh.assets);}}
+ rec.status='settled';rec.resolution=mode;rec.resolvedYear=s.year+s.age;const root=ensureNPCEstates();root.resolved++;root.transfers++;
+ const src=npcById(rec.sourceId);if(src){src.wealth=0;normalizeNPCEstate(src).assets=[];}
+ for(const h of heirs.filter(x=>x.ref)){if(mode==='claim')adjustNPC(h.ref,{rel:-5,trust:-4,grudge:8},rec.name+' mirasında daha büyük pay istedin.');else if(mode==='yield')adjustNPC(h.ref,{rel:6,trust:6,grudge:-4},rec.name+' mirasında payından feragat ettin.');else adjustNPC(h.ref,{rel:3,trust:4,grudge:-5},rec.name+' mirasını kavga büyümeden kapatmaya çalıştın.');}
+ log(safeText(rec.name)+' miras çekişmesi '+(mode==='claim'?'payını büyüterek':mode==='yield'?'payından feragat ederek':mode==='tore'?'töre önünde':'uzlaşmayla')+' kapandı.','major');
+}
+function inheritanceDisputeAction(caseId,id){
+ const issue=inheritanceDisputeIssue(caseId,id);if(issue){notice(issue);return false;}const rec=npcEstateCaseById(caseId);
+ return performAction({kind:'inheritanceDispute',caseId,id},()=>{if(id==='tore')s.wealth-=2;settleEstateCase(rec,id);},safeText(rec.name)+' mirasını sonuçlandırmakla bir ay geçti.');
+}
+function npcEstateSummaryHtml(){
+ const root=ensureNPCEstates(),open=root.cases.filter(x=>x.status==='disputed'&&x.playerHeir),recent=root.cases.filter(x=>x.status==='settled'&&(x.playerWealth>0||x.playerAssets?.length)).slice(0,4);
+ if(!open.length&&!recent.length&&root.transfers===0)return '';
+ let html='<div class="card"><h3>🏺 Aile Malı ve Miras</h3><p>Sonuçlanan aktarım '+root.transfers+' • miras çekişmesi '+root.disputes+' • çözülen '+root.resolved+'</p></div>';
+ if(open.length)html+='<div class="grid2">'+open.map(rec=>'<div class="card"><h3>⚖ '+safeText(rec.name)+' mirası</h3><p>Toplam değer '+rec.value+' • gerilim '+rec.tension+'/100<br>Mal: '+(rec.assets.length?rec.assets.map(npcEstateAssetName).join(', '):'yalnız servet')+'<br>Hak sahipleri: '+rec.heirs.map(h=>safeText(h.name)).join(' • ')+'</p><div class="actions"><button class="mini" onclick="inheritanceDisputeAction(\''+rec.id+'\',\'mediate\')">Uzlaşmayı dene</button><button class="mini" onclick="inheritanceDisputeAction(\''+rec.id+'\',\'claim\')">Daha büyük pay iste</button><button class="mini" onclick="inheritanceDisputeAction(\''+rec.id+'\',\'yield\')">Payından feragat et</button><button class="mini" onclick="inheritanceDisputeAction(\''+rec.id+'\',\'tore\')">Töre önüne götür</button></div></div>').join('')+'</div>';
+ if(recent.length)html+='<div class="card"><h3>📜 Son Miraslar</h3><p>'+recent.map(rec=>safeText(rec.name)+' → '+rec.playerWealth+' servet'+(rec.playerAssets?.length?' • '+rec.playerAssets.map(npcEstateAssetName).join(', '):'')).join('<br>')+'</p></div>';
+ return html;
+}
+
 function allNPCs(){
  const out=[],seen=new Set();const visit=n=>{if(!n||seen.has(n.id))return;seen.add(n.id);normalizeNPC(n,n.type);out.push(n);(n.descendants||[]).forEach(visit);};
  const disp=s.displacement||{},cap=disp.captivity?.contacts||[],ex=disp.exile?.contacts||[],edu=s.education?.contacts||[],oldLove=s.exPartners||[],justice=s.justice?.contacts||[],romanceContacts=s.romance?.contacts||[],inlaws=s.extendedFamily?.inLaws||[],branchInLaws=s.familyBranches?.childInLaws||[],guardian=s.guardianship?.contacts||[],work=s.workplace?.contacts||[];
