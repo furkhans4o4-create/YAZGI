@@ -74,6 +74,16 @@
 - Miras çekişmesinde Uzlaşmayı dene, Daha büyük pay iste, Payından feragat et veya Töre önüne götür seçenekleri vardır; her biri gerçek servet/mal dağılımını ve aile ilişkilerini değiştirir
 - Daha büyük pay istemek oyuncunun payını büyütebilir ama kardeş/akraba güvenini düşürüp kin oluşturur; feragat etmek oyuncunun payını azaltırken aile bağlarını güçlendirir
 - Sonuçlanan NPC mirasları, oyuncunun aldığı servet ve fiziksel mallarla birlikte kalıcı geçmişte tutulur; aynı ölümün mirası ikinci kez işlenmez
+- Kalıcı sağlık durumları artık geçici rahatsızlıklardan ayrıdır; ağır yaralar ve bazı ileri yaş etkileri hareket, kol/el kullanımı, görme, işitme veya dayanma kapasitesinde uzun süreli değişiklik bırakabilir
+- Kalıcı durum sağlık puanını tek başına düşüren bir etiket değildir; işlev kapasitesi ağır talim, av, askerlik, meslek performansı ve göç riskine doğrudan bağlanır
+- Şiddetli hareket kısıtlılığında yalnız uzun göç ve sefer zorlaşabilir; hareket desteği, at/yol düzeni veya yakınlarla yolculuk bu kısıtı azaltabilir
+- Kol/el işlev kısıtlılığı ağır silah ve iş yükünü zorlaştırabilir; uyarlanmış araç düzeni bu kapasiteyi yükseltir ve bazı görevleri yeniden erişilebilir kılar
+- Süregelen sağlık durumu otomatik olarak 'iyileşip silinmez'; otacı, dinlenme ve bakım yönetim seviyesini yükseltir, kötü yönetimde geçici alevlenmeler oluşabilir
+- Uyum seçenekleri arasında hareket desteği, uyarlanmış araçlar, görme desteği, el işareti/dikkat düzeni, yurt düzenlemesi, görev düzenlemesi, yakın desteği ve uzun süreli otacı planı bulunur
+- Görev düzenlemesi kalıcı durumu yok etmez; sağlık kaynaklı iş performansı cezasını düşürür. Böylece oyuncu ağır bir durumdan sonra tamamen oyundan dışlanmak yerine farklı bir çalışma düzenine geçebilir
+- Yakın desteği ilişkileri de etkiler; aile üyeleri günlük yükün bir bölümünü paylaşabilir ve bu destek kalıcı sağlık yönetimini artırır
+- Süregelen durumların düşük yönetiminde özel sağlık olayları ve alevlenmeler açılır; dinlenmek veya aynı tempoyu sürdürmek farklı sonuçlar verir
+- Sağlık ekranında kalıcı durumların derecesi, yönetimi, alevlenme sayısı ve hareket/kol-görme-işitme-dayanma kapasiteleri ayrı gösterilir
 - Derin dostluk ve sosyal çevre: çocukluk dostu, yakın dost, sırdaş, uzaklaşmış dost ve kalıcı yeniden buluşma geçmişi
 - 3+ güçlü dostla arkadaş çevresi, grup uyumu/gerilimi, ortak buluşmalar ve NPC-NPC dostluk bağları
 - Dost aracılığıyla görev çevresine giriş, eş adayı tanıştırması ve askerî dostun sefer yoldaşına dönüşmesi
@@ -125,7 +135,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 27’ye taşınır; sürüm değişiminde önce `yazgi_before_v27` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 28’e taşınır; sürüm değişiminde önce `yazgi_before_v28` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
