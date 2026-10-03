@@ -1372,7 +1372,7 @@ function familyBranchPartnerChance(n){
  return n.goal==='family'?.11:.055;
 }
 function familyBranchBirthChance(n){
- if(isAdultPlayerChild(n)){const p=ensureAdultChildProfile(n),boost=p.familyPlanUntil!=null&&p.familyPlanUntil>=s.year+s.age?.09:0;return Math.max(.07,Math.min(.3,.065+p.familyReadiness/700+p.householdSupport/1900+boost+(n.goal==='family'?.045:0)-p.autonomy/2200));}
+ if(isAdultPlayerChild(n)){const p=ensureAdultChildProfile(n),boost=(p.familyPlanUntil!=null&&p.familyPlanUntil>=s.year+s.age)?0.09:0;return Math.max(.07,Math.min(.3,.065+p.familyReadiness/700+p.householdSupport/1900+boost+(n.goal==='family'?.045:0)-p.autonomy/2200));}
  if(s.siblings.some(x=>x.id===n.id)&&n.age>=18)return Math.max(.045,Math.min(.16,.06+(n.goal==='family'?.065:0)));
  return n.goal==='family'?.075:.035;
 }
