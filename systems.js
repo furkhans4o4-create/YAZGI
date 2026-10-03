@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=9,ADULT_AGE=18;
+const SAVE_VERSION=10,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -333,7 +333,7 @@ function normalizeNPC(n,type='Yakın'){
  if(!n)return n;n.id=n.id||npcId();n.type=n.type||type;n.alive=n.alive!==false;n.rel=clamp(n.rel??60);n.health=clamp(n.health??80);
  n.age=n.age??(type==='Ana'||type==='Ata'?30:Math.max(5,s?.age||8));n.gender=n.gender||(type==='Ana'||type==='Nine'||type==='Hala'||type==='Teyze'||type==='Kız kardeş'?'female':type==='Ata'||type==='Dede'||type==='Amca'||type==='Dayı'||type==='Erkek kardeş'?'male':pick(['male','female']));
  n.traits=Array.isArray(n.traits)&&n.traits.length?n.traits.slice(0,2):chooseNPCTraits();n.goal=n.goal||chooseNPCGoal(n);normalizeBonds(n);
- n.memories=Array.isArray(n.memories)?n.memories.slice(0,14):[];n.parentIds=Array.isArray(n.parentIds)?n.parentIds:[];n.origin=n.origin||s?.place||'';n.tribe=n.tribe||s?.tribe||'';
+ n.memories=Array.isArray(n.memories)?n.memories.slice(0,14):[];n.parentIds=Array.isArray(n.parentIds)?n.parentIds:[];n.origin=n.origin||s?.place||'';n.place=n.place||n.origin||s?.place||'';n.realm=n.realm||s?.realm||'';n.tribe=n.tribe||s?.tribe||'';
  n.wealth=Math.max(0,Math.round(n.wealth??rng(0,25)));n.prestige=clamp(n.prestige??rng(5,35));n.skills=n.skills||{};
  n.role=n.role||npcCareerFor(n);n.roleHistory=Array.isArray(n.roleHistory)?n.roleHistory:[];n.partner=n.partner||null;n.children=n.children||0;n.descendants=Array.isArray(n.descendants)?n.descendants:[];
  n.lastInteractionYear=n.lastInteractionYear??null;n.statusFlags=n.statusFlags||{};return n;
@@ -611,6 +611,98 @@ const AMBITION_DEFS=[
  {id:'venture',title:'Malını ayakta tut',desc:'İşletme yönetimi veya varlık bakımıyla 3 ay ilgilen.',target:3,reward:{wealth:5,prestige:2},eligible:()=>s.age>=18&&s.assets.some(id=>['flock','smithy','caravan_share'].includes(id))},
  {id:'season',title:'Mevsimi yaşa',desc:'3 farklı mevsimlik faaliyete katıl.',target:3,reward:{happiness:5,skill:3,prestige:2},eligible:()=>s.age>=8}
 ];
+
+function ensureMobility(){
+ if(!s.mobility||typeof s.mobility!=='object'||Array.isArray(s.mobility))s.mobility={};
+ const m=s.mobility;m.moves=Math.max(0,Math.round(m.moves||0));m.localStanding=clamp(Number.isFinite(m.localStanding)?m.localStanding:50);m.monthsHere=Math.max(0,Math.round(m.monthsHere||0));m.history=Array.isArray(m.history)?m.history.slice(-30):[];m.arrivalYear=m.arrivalYear??(s.year+s.age);m.arrivalAge=m.arrivalAge??s.age;m.homePlace=m.homePlace||s.place;m.homeRealm=m.homeRealm||s.realm;
+ for(const n of allNPCs())if(n){n.place=n.place||n.origin||s.place;n.realm=n.realm||s.realm;}
+ return m;
+}
+function realmActiveAt(realm,year=s.year+s.age){
+ const cfg=D.realms[realm];return !!cfg&&year>=cfg.years[0]&&year<=cfg.years[1];
+}
+function migrationDestinations(){
+ const year=s.year+s.age,out=[];
+ for(const [realm,cfg] of Object.entries(D.realms)){
+  if(!realmActiveAt(realm,year))continue;
+  for(const place of cfg.places){
+   if(realm===s.realm&&place===s.place)continue;
+   const cross=realm!==s.realm;
+   out.push({realm,place,cross,distance:cross?3:cfg.places.indexOf(place)===cfg.places.indexOf(s.place)?1:2});
+  }
+ }
+ return out;
+}
+function householdMembers(mode='alone'){
+ const base=[];if(mode==='household'||mode==='kin'){if(s.partner?.alive)base.push(s.partner);base.push(...s.children.filter(n=>n.alive));}
+ if(mode==='kin')base.push(...s.parents.filter(n=>n.alive),...s.siblings.filter(n=>n.alive));
+ return base.filter((n,i,a)=>n&&a.findIndex(x=>x.id===n.id)===i);
+}
+function migrationCost(dest,mode='alone'){
+ const people=householdMembers(mode).length,assetLoad=s.assets.length,cross=dest.cross?4:0;
+ return Math.max(1,2+dest.distance+cross+Math.ceil(people/3)+Math.ceil(assetLoad/4)-(s.assets.includes('horse')?1:0));
+}
+function migrationRisk(dest,mode='alone'){
+ const people=householdMembers(mode).length,month=currentMonth(),winter=month>=10||month<=2?0.1:0,ride=(s.skills.riding||0)/600,horse=s.assets.includes('horse')?.06:0;
+ return Math.max(.04,Math.min(.42,.08+dest.distance*.045+(dest.cross?.07:0)+people*.008+winter-ride-horse));
+}
+function migrationIssue(realm,place,mode='alone'){
+ if(s.captive)return 'Tutsakken göç edemezsin.';if(s.exile)return 'Sürgün meselesini çözmeden planlı göç yapamazsın.';if(s.military.active)return 'Aktif seferde göç edemezsin.';if(s.age<16)return '16 yaşından önce göç kararını ailen verir.';
+ const dest=migrationDestinations().find(x=>x.realm===realm&&x.place===place);if(!dest)return 'Bu bölge şu anda ulaşılabilir değil.';
+ const cost=migrationCost(dest,mode);if(s.wealth<cost)return cost+' servet yol ve yerleşme payı gerekiyor.';return '';
+}
+function moveNPCTo(n,realm,place){if(!n)return;n.realm=realm;n.place=place;n.statusFlags=n.statusFlags||{};n.statusFlags.movedWithPlayer=true;rememberNPC(n,'move',place+' çevresine birlikte göçtünüz.',5);}
+function applyDistanceConsequences(movedIds,oldRealm,oldPlace){
+ const moved=new Set(movedIds);
+ for(const n of allNPCs()){
+  if(!n.alive||moved.has(n.id))continue;
+  n.place=n.place||oldPlace;n.realm=n.realm||oldRealm;
+  if(n.place===s.place&&n.realm===s.realm)continue;
+  normalizeBonds(n);const close=['Ana','Ata','Çocuk','Eş','Erkek kardeş','Kız kardeş'].includes(n.type);
+  n.rel=clamp(n.rel-(close?2:4));n.bonds.trust=clamp(n.bonds.trust-(close?1:3));rememberNPC(n,'distance','Göçten sonra aranıza uzaklık girdi.',3);
+ }
+}
+function migrateTo(realm,place,mode='alone'){
+ const issue=migrationIssue(realm,place,mode);if(issue){notice(issue);return false;}
+ const dest=migrationDestinations().find(x=>x.realm===realm&&x.place===place);if(!dest)return false;
+ return performAction({kind:'migration',realm,place,mode},()=>{
+  const m=ensureMobility(),oldRealm=s.realm,oldPlace=s.place,cost=migrationCost(dest,mode),risk=migrationRisk(dest,mode),members=householdMembers(mode);
+  s.wealth=Math.max(0,s.wealth-cost);economyLedger('migration',-cost,oldPlace+' → '+place+' göçü');
+  const trouble=Math.random()<risk;
+  if(trouble){const harm=rng(2,7);apply({health:-harm,happiness:-2});if(Math.random()<.28)acquireAilment('injury',{source:'göç yolu'});log('Göç yolunda zorlu hava, yol veya yük kaybı yaşadınız.','bad');}
+  s.realm=realm;s.place=place;if(dest.cross){s.tribe=D.realms[realm].tribes.includes(s.tribe)?s.tribe:pick(D.realms[realm].tribes);apply({prestige:-2});}
+  const movedIds=[];for(const n of members){moveNPCTo(n,realm,place);movedIds.push(n.id);}
+  if(mode==='alone'&&s.partner?.alive){adjustNPC(s.partner,{rel:-8,trust:-6,grudge:2},'Göç kararında yanında götürülmedi.');}
+  if(mode==='household')for(const n of [...s.parents,...s.siblings].filter(n=>n.alive))adjustNPC(n,{rel:-2,trust:-1},'Göçten sonra daha uzakta yaşamaya başladınız.');
+  applyDistanceConsequences(movedIds,oldRealm,oldPlace);
+  m.moves++;m.localStanding=dest.cross?18:28;m.monthsHere=0;m.arrivalYear=s.year+s.age;m.arrivalAge=s.age;m.history.unshift({year:s.year+s.age,age:s.age,fromRealm:oldRealm,from:oldPlace,toRealm:realm,to:place,mode,cost,trouble});m.history=m.history.slice(0,30);
+  if(s.role&&['Boy Beyi','Elçi','Bitigçi'].includes(s.role)&&dest.cross){s.retiredRole=s.role;s.role=null;log('Başka siyasi çevreye göçün eski devlet görevini sona erdirdi.','major');}
+  log(oldPlace+' çevresinden '+place+' çevresine göç ettin'+(members.length?' • yanında '+members.length+' yakın vardı':'')+'.','major');
+ },place+' çevresine göç yolculuğuyla bir ay geçti.');
+}
+function localIntegrationAction(id){
+ performAction({kind:'settlement',id},()=>{
+  const m=ensureMobility();
+  if(id==='neighbors'){m.localStanding=clamp(m.localStanding+8);apply({happiness:2});if(Math.random()<.45)addSocial('friend');}
+  else if(id==='work'){m.localStanding=clamp(m.localStanding+6);skillGain('craft',1);skillGain('trade',1);apply({wealth:rng(0,2),prestige:1});}
+  else if(id==='gathering'){m.localStanding=clamp(m.localStanding+10);skillGain('speech',2);apply({prestige:2,happiness:2});}
+ },id==='neighbors'?'Yeni komşularla tanışmaya bir ay ayırdın.':id==='work'?'Yeni obada ortak işe katıldın.':'Yeni çevrenin toplantı ve toylarına katıldın.');
+}
+function tickMobilityMonth(){
+ const m=ensureMobility();m.monthsHere++;
+ if(m.monthsHere<=6&&m.localStanding<35&&Math.random()<.12)apply({happiness:-1});
+ if(m.monthsHere%3===0&&m.localStanding<70)m.localStanding=clamp(m.localStanding+1);
+}
+function mobilitySummaryHtml(){
+ const m=ensureMobility(),dests=migrationDestinations(),recent=m.history[0];
+ const modes=[['alone','Yalnız'],['household','Ocakla'],['kin','Yakınlarla']];
+ let html='<div class="card"><h3>🧭 Göç ve Yerleşim</h3><p><b>'+safeText(s.place)+'</b> • '+safeText(s.realm)+'<br>Yerel bağ '+m.localStanding+' • burada '+m.monthsHere+' ay • toplam '+m.moves+' göç'+(recent?'<br>Son göç: '+safeText(recent.from)+' → '+safeText(recent.to):'')+'</p><div class="grid2">'+actionButton('Komşularla tanış',{kind:'settlement',id:'neighbors'},"localIntegrationAction('neighbors')",'Yeni yerde bağ ve mutluluk kazan.')+actionButton('Ortak işe katıl',{kind:'settlement',id:'work'},"localIntegrationAction('work')",'Yerel itibar ve küçük kazanç sağlar.')+actionButton('Toy ve toplantılara katıl',{kind:'settlement',id:'gathering'},"localIntegrationAction('gathering')",'Yeni obada sözünün duyulmasını sağlar.')+'</div></div>';
+ if(s.age>=16&&!s.captive&&!s.exile&&!s.military.active&&dests.length){
+  html+='<h3 class="sectionTitle">Göç Yolları</h3><div class="grid2">'+dests.slice(0,12).map(d=>{const cost=migrationCost(d,'household'),risk=Math.round(migrationRisk(d,'household')*100);return '<div class="card"><h3>'+safeText(d.place)+'</h3><p>'+safeText(d.realm)+(d.cross?' • başka siyasi çevre':' • aynı çevre')+'<br>Ocakla yol payı '+cost+' • yol riski yaklaşık %'+risk+'</p><div class="actions">'+modes.map(([mode,label])=>{const issue=migrationIssue(d.realm,d.place,mode);return '<button class="mini" '+(issue?'disabled title="'+safeText(issue)+'"':'')+' onclick="migrateTo('+JSON.stringify(d.realm)+','+JSON.stringify(d.place)+','+JSON.stringify(mode)+')">'+label+'</button>';}).join('')+'</div></div>';}).join('')+'</div>';
+ }
+ return html;
+}
+
 function ensureLifeVariety(){
  if(!s.variety||typeof s.variety!=='object'||Array.isArray(s.variety))s.variety={};
  const v=s.variety;v.activityStats=v.activityStats&&typeof v.activityStats==='object'&&!Array.isArray(v.activityStats)?v.activityStats:{};v.recent=Array.isArray(v.recent)?v.recent.slice(-12):[];v.completed=Array.isArray(v.completed)?v.completed.slice(-30):[];v.annualHistory=Array.isArray(v.annualHistory)?v.annualHistory.slice(-20):[];v.rerolls=Math.max(0,Math.round(v.rerolls||0));
@@ -952,6 +1044,8 @@ function accessIssue(a){
  else if(a.kind==='escape'){min=12;if(!s.captive)return 'Tutsak değilsin.';}
  else if(a.kind==='captivity'){if(!s.captive)return 'Tutsak değilsin.';}
  else if(a.kind==='exile'){if(!s.exile)return 'Sürgünde değilsin.';}
+ else if(a.kind==='migration'){const issue=migrationIssue(a.realm,a.place,a.mode);if(issue)return issue;min=16;}
+ else if(a.kind==='settlement'){min=8;if(s.captive)return 'Tutsakken yerleşim faaliyeti yapamazsın.';}
  else if(a.kind==='work'){min=10;if(!s.role)return 'Önce bir görev üstlen.';}
  else if(a.kind==='retire'){min=50;if(!s.role)return 'Bırakılacak görev yok.';}
  else if(a.kind==='will'){min=18;if(!s.children.some(x=>x.alive))return 'Yaşayan çocuğun yok.';}
@@ -972,7 +1066,7 @@ function monthlyTick(month,action,allowEvent=true){
  tickEventCooldowns();
  for(const n of allNPCs())if(n.alive&&n.birthYear!=null){const before=n.age;n.age=Math.max(0,s.year+s.age-n.birthYear-(month<n.birthMonth?1:0));if(before!==n.age&&[8,12,18].includes(n.age))n.role=npcRole(n.age);}
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
- tickHealthMonth(month);tickDisplacementMonth(month,action);
+ tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
  if(s.age>=18&&month%3===0)tickEconomyQuarter(month);
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
@@ -1032,7 +1126,7 @@ function manageVenture(id){performAction({kind:'venture',id},()=>{
  },'Malına ve üretime bir ay ayırdın.');}
 function interactNPC(group,index,id){
  performAction({kind:'npc',group,index,id},()=>{
-  const n=getFamilyGroup(group)[index];if(!n)return;normalizeNPC(n,n.type);n.lastInteractionYear=s.year+s.age;
+  const n=getFamilyGroup(group)[index];if(!n)return;normalizeNPC(n,n.type);n.lastInteractionYear=s.year+s.age;const remote=(n.place&&n.place!==s.place)||(n.realm&&n.realm!==s.realm);
   const has=t=>(n.traits||[]).includes(t);
   if(id==='spend'){adjustNPC(n,{rel:has('sakin')?7:6,trust:4,respect:1},'Birlikte sakin bir zaman geçirdiniz.');apply({happiness:2});}
   if(id==='confide'){
@@ -1048,6 +1142,7 @@ function interactNPC(group,index,id){
    const drop=has('bagislayici')?28:has('kinci')?10:20;adjustNPC(n,{rel:15,trust:5,grudge:-drop},'Aranızdaki eski meseleyi konuşup çözmeye çalıştınız.');
    if(n.rel>=50&&n.bonds.grudge<=20){s.rivals.splice(index,1);n.type='Dost';s.friends.push(n);rememberNPC(n,'peace','Aranızdaki düşmanlık sona erdi.',5);unlock('reconciled');}
   }
+  if(remote){adjustNPC(n,{rel:-1,trust:-1},'Uzakta olduğunuz için görüşmek daha zor oldu.');apply({wealth:-1});log('Uzakta yaşayan '+safeText(n.name)+' ile görüşmek için yol yaptın.');}
   log(safeText(n.name)+' ile ilişkiniz yeni bir iz bıraktı.');
  },'İlişkilerine bir eylem hakkı ayırdın.');
 }
@@ -1327,7 +1422,7 @@ function familyCard(n,group,index){
 }
 function renderSystems(){
  $('lifeCare').innerHTML=`<h3 class="sectionTitle">${lifeStage(s.age)}</h3>${healthSummaryHtml()}${displacementSummaryHtml()}<div class="grid2">${s.age<5?actionButton('Aile bakımında bir ay',{kind:'guardian'},'guardianCare()'):actionButton('Dinlen',{kind:'health',id:'rest'},"healthAction('rest')",'Aktif rahatsızlıkların iyileşmesini hızlandırır.')+actionButton(s.age<12?'Ailenle otacıya git':'Otacıya Git',{kind:'health',id:'healer'},"healthAction('healer')",'2 servet • rahatsızlık şiddetini ve iyileşme süresini azaltır.')}</div>${s.pregnancy?'<p class="note">Doğum bekleniyor • yaklaşık '+s.pregnancy.remaining+' ay.</p>':''}`;
- $('tab-yetisme').insertAdjacentHTML('beforeend','<h3 class="sectionTitle">Yetişme tecrübesi</h3><p class="note">'+Object.entries(s.experience).map(([k,v])=>pathName(k)+': '+v+' ay').join(' • ')+'</p>');
+ $('tab-yetisme').insertAdjacentHTML('beforeend',mobilitySummaryHtml()+'<h3 class="sectionTitle">Yetişme tecrübesi</h3><p class="note">'+Object.entries(s.experience).map(([k,v])=>pathName(k)+': '+v+' ay').join(' • ')+'</p>');
  $('tab-soy').insertAdjacentHTML('beforeend',successionSummaryHtml());
  $('tab-soy').insertAdjacentHTML('beforeend',`<h3 class="sectionTitle">Ün ve başarımlar</h3><div class="grid2">${D.achievements.map(a=>`<div class="card ${s.achievements.includes(a.id)?'':'locked'}"><h3>${s.achievements.includes(a.id)?'🏆':'🔒'} ${a.name}</h3><p>${a.desc}</p></div>`).join('')}</div>`);
  if(s.age>=18&&s.children.some(x=>x.alive))$('tab-soy').insertAdjacentHTML('beforeend',`<h3 class="sectionTitle">Mal paylaşımı</h3><p class="note">Şu an: ${s.will==='equal'?'Yaşayan çocuklara eşit':safeText(s.children.find(n=>n.id===s.will)?.name||'Eşit paylaşım')}. Bu paylaşım bir oyun kuralıdır.</p><div class="grid2">${actionButton('Eşit paylaş',{kind:'will'},"setWill('equal')")}${s.children.filter(x=>x.alive).map(n=>actionButton(safeText(n.name),{kind:'will'},`setWill('${n.id}')`)).join('')}</div>`);
@@ -1336,7 +1431,7 @@ function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');const sourceVersion=x.version||0;x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
  for(const k of ['parents','siblings','relatives','friends','rivals','children','careerContacts','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureEconomy();ensureDisplacement();ensureLifeVariety();
+ for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureEconomy();ensureDisplacement();ensureLifeVariety();ensureMobility();
  if(sourceVersion<5&&x.military?.wounds>0&&!x.healthProfile.scars.length){
   const count=Math.min(3,x.military.wounds);for(let i=0;i<count;i++)x.healthProfile.scars.push({id:'legacy_scar_'+i,kind:'battle',severity:i===0&&x.military.wounds>=3?2:1,source:'eski sefer kaydı',location:['omuzda','kolda','bacakta'][i%3],year:x.year+Math.max(18,x.age-5-i),age:Math.max(18,x.age-5-i),lastFlareYear:null});
  }
@@ -1354,7 +1449,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v9'))localStorage.setItem('yazgi_before_v9',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v10'))localStorage.setItem('yazgi_before_v10',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
