@@ -815,7 +815,13 @@ function ensureMilitary(){
 function generateComrades(){
  ensureMilitary();if(s.military.comrades.length)return;
  const cfg=D.realms[s.realm];
- for(let i=0;i<rng(3,5);i++){const g="male";s.military.comrades.push(normalizeNPC({name:pick(cfg[g]),rel:rng(45,75),type:"Sefer yoldaşı",gender:g,age:Math.max(18,s.age+rng(-5,7)),alive:true},"Sefer yoldaşı"))}
+ for(let i=0;i<rng(3,5);i++){
+  const g="male",age=Math.max(18,s.age+rng(-5,7));
+  const n=normalizeNPC({name:pick(cfg[g]),rel:rng(45,75),type:"Sefer yoldaşı",gender:g,age,birthYear:s.year+s.age-age,alive:true,goal:pick(["war","prestige"]),prestige:rng(12,32)},"Sefer yoldaşı");
+  n.skills.combat=rng(24,52);n.skills.riding=rng(20,48);n.skills.archery=rng(18,46);n.statusFlags=n.statusFlags||{};n.statusFlags.campaignCompanion=true;n.statusFlags.metCampaign=s.military.campaigns||1;
+  rememberNPC(n,"military","Aynı sefer birliğinde yollarınız kesişti.",3);s.military.comrades.push(n);
+ }
+ seedCoreSocialLinks();
 }
 function mortality(){
  let risk=0;if(s.health<25)risk+=.07;if(s.health<10)risk+=.18;if(s.age>50)risk+=(s.age-50)*.007;if(s.age>70)risk+=(s.age-70)*.018;
@@ -859,6 +865,7 @@ function renderMilitary(){
  }
  generateComrades();
  let h=`<div class="card"><h3>⚔ Sefer Kaydı</h3><p>${s.military.active?`Aktif sefer • yaklaşık ${s.military.dutyMonths} ay kaldı`:"Şu an obadasın"}<br>${s.military.campaigns} sefer • ${s.military.wounds} yara</p></div>
+ ${militaryComradeSummary()}
  <h3 class="sectionTitle">Talim ve Görev</h3><div class="grid2">
  <button class="card" onclick="militaryTrain('horse')"><h3>🐎 Atlı Talim</h3><p>Binicilik ve savaş tecrübesi.</p></button>
  <button class="card" onclick="militaryTrain('bow')"><h3>🏹 Ok Talimi</h3><p>Okçuluk ve savaş tecrübesi.</p></button>
