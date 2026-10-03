@@ -653,7 +653,7 @@ function newCharacter(base={}, inherit=false){
   const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
-    version:8,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
+    version:9,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,variety:base.variety||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
     name:base.name||$("customName").value.trim()||pick(cfg[g]), gender:g, realm, year,
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
@@ -986,8 +986,10 @@ function renderLegacy(){
 function renderSide(){
  const hp=typeof ensureHealthProfile==="function"?ensureHealthProfile():{scars:[],frailty:0};
  const disp=typeof ensureDisplacement==="function"?ensureDisplacement():null;
+ const variety=typeof ensureLifeVariety==="function"?ensureLifeVariety():null;
  const forced=s.captive&&disp?`<br>⛓ ${disp.captivity.months} ay tutsak • hazırlık ${disp.captivity.escapePrep} • erzak ${disp.captivity.rations}`:s.exile&&disp?`<br>↗ ${disp.exile.months} ay sürgün • barınak ${disp.exile.shelter} • erzak ${disp.exile.foodSecurity}`:"";
- $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}${forced}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} savaş yarası • 🩹 ${hp.scars.length} kalıcı iz<br>🌿 ${s.ailments.length} aktif rahatsızlık • kırılganlık ${hp.frailty}<br>📜 ${(s.eventArchive||[]).length} seçimli olay<br>🧭 ${Object.keys(s.flags||{}).length} yaşam izi</p></div>`;
+ const ambition=variety?.ambition?`<br>🎯 ${safeText(variety.ambition.title)} • ${variety.ambition.progress}/${variety.ambition.target}`:"";
+ $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}${forced}${ambition}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} savaş yarası • 🩹 ${hp.scars.length} kalıcı iz<br>🌿 ${s.ailments.length} aktif rahatsızlık • kırılganlık ${hp.frailty}<br>📜 ${(s.eventArchive||[]).length} seçimli olay<br>🧭 ${Object.keys(s.flags||{}).length} yaşam izi</p></div>`;
  const closest=[...s.parents,...s.siblings,...s.children,...s.friends,...(s.partner?[s.partner]:[]),...(s.relatives||[])].filter(x=>x?.alive).sort((a,b)=>(b.rel||0)-(a.rel||0)).slice(0,5);
  $("sideRel").innerHTML=closest.map(r=>`<div class="card relation"><span>${safeText(r.name)}<small style="display:block;color:#7b6d52">${safeText(r.type||"Yakın")}</small></span><span class="badge">${r.rel}</span></div>`).join("");
  let acts="";
