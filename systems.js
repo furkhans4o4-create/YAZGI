@@ -51,6 +51,21 @@ const STORY_ARCS={
   merchant_market_name:{stage:3,next:{0:'merchant_partner_offer',1:'merchant_partner_offer'}},
   merchant_partner_offer:{stage:4,end:{0:'completed',1:'completed'}}
  }},
+ councilrise:{name:'Boy Meclisinde Yükseliş',icon:'🏕',start:'bey_request',maxStage:6,nodes:{
+  bey_request:{stage:0,next:{0:'council_pasture_case',1:'council_pasture_case'}},
+  council_pasture_case:{stage:1,next:{0:'council_levy_choice',1:'council_levy_choice'}},
+  council_levy_choice:{stage:2,next:{0:'council_rival_challenge',1:'council_rival_challenge'}},
+  council_rival_challenge:{stage:3,next:{0:'council_support_test',1:'council_support_test'}},
+  council_support_test:{stage:4,next:{0:'council_bey_nomination',1:'council_bey_nomination'}},
+  council_bey_nomination:{stage:5,end:{0:'completed',1:'completed'}}
+ }},
+ beyrule:{name:'Beyliğin Yükü',icon:'⚖',start:'bey_first_petition',maxStage:5,nodes:{
+  bey_first_petition:{stage:0,next:{0:'bey_winter_reserve',1:'bey_winter_reserve'}},
+  bey_winter_reserve:{stage:1,next:{0:'bey_kin_request',1:'bey_kin_request'}},
+  bey_kin_request:{stage:2,next:{0:'bey_border_agreement',1:'bey_border_agreement'}},
+  bey_border_agreement:{stage:3,next:{0:'bey_old_judgment',1:'bey_old_judgment'}},
+  bey_old_judgment:{stage:4,end:{0:'completed',1:'completed'}}
+ }},
  military:{name:'Savaşçının Yükselişi',icon:'⚔',start:'military_comrade',maxStage:4,nodes:{
   military_comrade:{stage:0,next:{0:'military_night_watch'},end:{1:'abandoned'}},
   military_night_watch:{stage:1,next:{0:'military_small_command'},end:{1:'abandoned'}},
@@ -111,7 +126,11 @@ function ensureStoryArcs(){
   if(st.status!=='active'||!st.nextEventId)continue;
   const ev=EVENT_DECK?.find?.(e=>e.id===st.nextEventId);
   if(ev&&s.age>ev.max){st.status='abandoned';st.branch='Zamanı geçti';st.nextEventId=null;st.completedYear=s.year+s.age;continue;}
-  if(ev?.target&&st.participantIds?.length&&!st.participantIds.some(id=>npcById(id)?.alive)){st.status='abandoned';st.branch='Hikâyedeki kişi yaşamını yitirdi';st.nextEventId=null;st.completedYear=s.year+s.age;}
+  if(ev?.target&&st.participantIds?.length){
+   const alive=st.participantIds.filter(id=>npcById(id)?.alive);
+   const missing=ev.target==='statePair'?alive.length<Math.min(2,st.participantIds.length):alive.length===0;
+   if(missing){st.status='abandoned';st.branch='Hikâyedeki kişi yaşamını yitirdi';st.nextEventId=null;st.completedYear=s.year+s.age;}
+  }
  }
  return s.storyArcs;
 }
