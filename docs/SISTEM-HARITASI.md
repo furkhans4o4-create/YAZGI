@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 19’dur. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v19` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 20’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v20` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -282,3 +282,18 @@ v19 ile dostlar yalnızca tek ilişki çubuğuna sahip NPC'ler olmaktan çıkar�
 Dostların hayat yolları oyuncuya somut kapılar açabilir. Bir meslekte çalışan dost, kendi görev çevresinde iki yıl geçerli küçük bir kabul avantajı sağlayabilir; bu avantaj hiçbir temel yaş/beceri/tecrübe şartını atlamaz. Uygun yaşta ve mevcut eş adayı yokken dosttan güvenilir biriyle tanıştırmasını istemek mümkündür; yeni eş adayı kimin aracılığıyla tanışıldığını kalıcı olarak hatırlar. Alp/Akıncı/Tarkan olan yetişkin bir dost sefer yoldaşı havuzuna aynı NPC kimliğiyle eklenebilir.
 
 Arkadaşlıklar dünya akışıyla değişir. Dost NPC'ler zaman zaman başka yerleşimlere taşınabilir; coğrafi mesafe ve uzun süre iletişimsizlik bağın yavaşça soğumasına yol açar. Çocukluk dostlarının yıllar sonra geri dönmesi, meslek kapısı önermesi ve arkadaş çevresindeki gerilim gibi yeni seçimli olaylar eklenmiştir.
+
+
+### Görev çevresi, iş ilişkileri ve kıdem
+
+v20 ile aktif bir mesleğe girildiğinde o göreve özel kalıcı bir çalışma çevresi oluşur. Çevrede bir usta/kıdemli veya amir, birkaç akran görevli ve oyuncu yeterince kıdemlendiğinde çırak/yardımcı NPC'ler bulunur. Meslek ustası daha önce kariyer sisteminde zaten varsa yeni kopya üretilmez; aynı NPC görev çevresinin amiri olarak kullanılır.
+
+Görev çevresi için ayrı görev itibarı, çevre uyumu, gerilim, ortak proje ilerlemesi, tamamlanan proje sayısı, kıdem seviyesi ve varsa kefil kişi saklanır. Oyuncu çalışma arkadaşıyla ortak iş yapabilir, amirinden öğüt veya kefillik isteyebilir, akranıyla görev rekabetine girebilir, iş arkadaşlığını gerçek dostluğa çevirebilir, çırak/yardımcı yetiştirebilir veya yükselen işyeri gerilimini yatıştırabilir.
+
+Görevde başarılı çalışmalar görev itibarı ve ortak proje ilerlemesini yükseltir; başarısızlık görev itibarını düşürüp gerilimi artırabilir. Çevre uyumu, proje ilerlemesi ve amir kefilliği performansa küçük bonus verir; bunlar hiçbir temel yaş, beceri, tecrübe veya kariyer giriş şartını atlamaz. Kefillik iki yıl geçerlidir ve amir hayatta kaldığı sürece çalışır.
+
+İç kıdem Yeni → Yetkin → Kıdemli → Baş şeklinde ilerler. Terfi yalnız ay sayısı ile olmaz: meslekte geçirilen süre, görev itibarı, kariyer itibarı, ustalık, amir güveni/saygısı ve düşük iş gerilimi birlikte gerekir. Kıdemli seviyeden sonra oyuncunun yanında yetişen çırak/yardımcı oluşabilir ve onun gelişimi ayrı NPC becerileriyle takip edilir.
+
+Akran rekabeti kalıcı bir Görev Rakibi doğurabilir; aynı NPC hem eski iş arkadaşı hem oyuncu rakibi olarak yaşamaya devam eder. Tersine, güçlü iş ilişkisi aynı kişiyi Görev Dostu yapabilir ve normal dostluk sistemine aynı kimlikle bağlar. İş değiştirildiğinde veya görev bırakıldığında mevcut çalışma çevresi silinmez; Eski görev çevresi olarak arşivlenir ve NPC'ler sosyal dünyada yaşamaya devam eder.
+
+Ortak işte emeğin paylaşılması, amirin zor bir sorumluluk vermesi ve çırak/yardımcının hata yapması için seçimli görev olayları eklenmiştir. Bu olaylar görev çevresinin aynı kalıcı gerilim, uyum ve ilişki değerlerini değiştirir.
