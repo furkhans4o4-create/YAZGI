@@ -149,7 +149,21 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 29’a taşınır; sürüm değişiminde önce `yazgi_before_v29` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 30’a taşınır; sürüm değişiminde önce `yazgi_before_v30` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+
+
+### v30 — Aile İçi Taraflaşma, Hısım Gerilimi ve Kalıcı Aile Meseleleri
+
+- Geniş aile artık yalnızca akraba listesi değildir: iki gerçek NPC arasında **miras/paylaşım, bakım yükü, kayın aile sınırları, ocak sorumluluğu veya söz/itibar** kaynaklı kalıcı anlaşmazlık başlayabilir.
+- Her mesele taraf NPC kimliklerini, nedeni, **0–100 gerilim seviyesini**, başlangıç/çözülme yılını, oyuncunun tarafını ve müdahale geçmişini kayıtta tutar.
+- Gerilim NPC–NPC `socialLinks` bağına gerçek hasar verir: güven düşebilir, kin birikebilir ve uzun süren kavga zamanla daha da sertleşebilir. Affedici/kinci kişilikler yıllık seyri değiştirir.
+- Oyuncu **arabuluculuk**, iki taraftan birini destekleme, **3 servetlik barış sofrası** kurma veya tarafsız kalma seçeneklerine sahiptir. Açık taraf tutmak bir ilişkiyi güçlendirirken diğerini ve aile bütünlüğünü bozabilir.
+- Ağır ve oyuncunun açıkça taraf olduğu aile kavgaları v29’daki dedikodu/itibar ağına taşabilir; böylece aile dramı sosyal sonuç doğurur.
+- Büyük aile buluşmaları açık çatışmaları gerçekten etkiler: uygun koşulda gerilimi düşürür, kötü koşulda eski meseleyi yeniden alevlendirebilir.
+- Yıllık simülasyon açık meseleleri kendi kendine ilerletir; taraflardan biri ölürse mesele kapanır, düşük gerilimde zamanla barışabilir, uygun baskı oluşursa yeni bir mesele doğabilir.
+- Soy devamında iki taraf da yeni kuşağın aile ağında kaldığı sürece anlaşmazlık kaybolmaz. Tercihli miras sonrası yaşayan aile üyeleri arasında ayrıca gerçek bir miras gerilimi doğabilir.
+- Açık aile kavgası günlük hayat olaylarına hedefli iki-NPC kartı olarak da yansır; olay metni gerçek tarafları ve gerçek anlaşmazlık nedenini kullanır.
+- Kendiliğinden sönen bir aile meselesi oyuncuya bedava itibar yazmaz; toplumsal kazanç yalnızca oyuncunun gerçekten müdahale ettiği çözümde oluşur.
 
 ### Dosyalar ve çalıştırma
 
