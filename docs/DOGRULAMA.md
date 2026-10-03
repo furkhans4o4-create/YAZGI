@@ -4,9 +4,9 @@
 
 Komut: `node --test tests/systems.test.cjs`.
 
-65 test tanımlı. Temel kapsam: çocuk yaşlarının tamamında yetişkin eylemlerini reddetme; tam 12 ay ve aynı ay kararı; 0–100 yaşta özgür/tutsak/sefer/sürgün bağlamlarında erişilebilir kart; uzmanlık ve tecrübe kapıları; tam sınır yaşta talim; üçüncü seçenek; kalıcı sefer çağrısı; tutsaklık/sefer eylem kısıtları; gerçek aile ve takvimle miras; eski kayıt yedeği ve göçü; ay içinde ölüm; ödenemeyen seçenek; NPC doğum ayı ve çocuk koşulları; mevsim/eylem/bilinmeyen önkoşul; bozuk kayıt koruma; 720 aylık geçiş; eski çocuk evliliğini partneri silmeden erteleme; karar sürerken takvim ayını koruma.
+69 test tanımlı. Temel kapsam: çocuk yaşlarının tamamında yetişkin eylemlerini reddetme; tam 12 ay ve aynı ay kararı; 0–100 yaşta özgür/tutsak/sefer/sürgün bağlamlarında erişilebilir kart; uzmanlık ve tecrübe kapıları; tam sınır yaşta talim; üçüncü seçenek; kalıcı sefer çağrısı; tutsaklık/sefer eylem kısıtları; gerçek aile ve takvimle miras; eski kayıt yedeği ve göçü; ay içinde ölüm; ödenemeyen seçenek; NPC doğum ayı ve çocuk koşulları; mevsim/eylem/bilinmeyen önkoşul; bozuk kayıt koruma; 720 aylık geçiş; eski çocuk evliliğini partneri silmeden erteleme; karar sürerken takvim ayını koruma.
 
-Testler gerçek uygulama betiklerini Node VM içinde çalıştırır. v6 ile yaşlılıkta vasiyet hazırlığı, ölüm kaydı ve seçilmiş varis sonrası kardeş gerilimi için dört ek regresyon testi bulunur. Minimal DOM, LocalStorage ve sabit tohumlu rastgelelik kullanır; bunlar görsel testin yerine geçmez. 720 aylık test, ölüm olduğunda yeni yaşam açarak ilerler; tek bir karakterin 720 ay hayatta kalacağını iddia etmez.
+Testler gerçek uygulama betiklerini Node VM içinde çalıştırır. v6 ile yaşlılıkta vasiyet hazırlığı, ölüm kaydı ve seçilmiş varis sonrası kardeş gerilimi için dört ek regresyon testi bulunur. v7 ile değişken varlık fiyatı, hane geçim sıkıntısı, bakım/üretim kilidi ve kayıt göçü için dört ekonomi testi daha eklendi. Minimal DOM, LocalStorage ve sabit tohumlu rastgelelik kullanır; bunlar görsel testin yerine geçmez. 720 aylık test, ölüm olduğunda yeni yaşam açarak ilerler; tek bir karakterin 720 ay hayatta kalacağını iddia etmez.
 
 ## Gerçek tarayıcı
 
