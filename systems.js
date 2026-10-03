@@ -374,6 +374,7 @@ function npcLifeStatusDetail(n){
 }
 function npcWorldRelevant(n){
  if(!n?.alive)return false;
+ if(s.age<18&&s.guardianship?.active&&s.guardianship.guardianId===n.id)return false;
  const pools=[...s.parents,...s.siblings,...s.children,...(s.relatives||[]),...s.friends,...s.rivals,...(s.careerContacts||[]),...(s.military?.comrades||[]),...(s.workplace?.contacts||[]),...(s.partner?[s.partner]:[])];
  return pools.some(x=>x?.id===n.id)&&!n.statusFlags?.crimeVictim&&!n.statusFlags?.crimeWitness;
 }
