@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=11,ADULT_AGE=18;
+const SAVE_VERSION=12,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -613,6 +613,51 @@ const AMBITION_DEFS=[
 ];
 
 
+
+const APPEARANCE_OPTIONS={
+ face:[{id:'oval',name:'Oval'},{id:'round',name:'Yuvarlak'},{id:'long',name:'Uzun'},{id:'broad',name:'Geniş'}],
+ skin:[{id:'light',name:'Açık'},{id:'wheat',name:'Buğday'},{id:'tan',name:'Bronz'},{id:'deep',name:'Koyu'}],
+ hair:[{id:'short',name:'Kısa'},{id:'crop',name:'Kırpık'},{id:'shoulder',name:'Omuz Boyu'},{id:'long',name:'Uzun'},{id:'braid',name:'Örgülü'},{id:'tied',name:'Toplanmış'},{id:'shaved',name:'Kazınmış'},{id:'wild',name:'Dağınık'}],
+ hairColor:[{id:'black',name:'Kara'},{id:'darkbrown',name:'Koyu Kahve'},{id:'brown',name:'Kahve'},{id:'auburn',name:'Kızıl Kahve'},{id:'lightbrown',name:'Açık Kahve'}],
+ beard:[{id:'none',name:'Yok'},{id:'stubble',name:'Kirli Sakal'},{id:'short',name:'Kısa Sakal'},{id:'long',name:'Uzun Sakal'},{id:'moustache',name:'Bıyık'}],
+ headwear:[{id:'none',name:'Yok'},{id:'felt',name:'Keçe Başlık'},{id:'bork',name:'Börk'},{id:'wrap',name:'Baş Sargısı'},{id:'war',name:'Savaş Başlığı'}]
+};
+function appearanceOption(group,id){return APPEARANCE_OPTIONS[group]?.find(x=>x.id===id)||APPEARANCE_OPTIONS[group]?.[0]||null;}
+function ensureAppearance(){
+ if(!s.appearance||typeof s.appearance!=='object'||Array.isArray(s.appearance))s.appearance={};
+ const a=s.appearance;
+ a.face=appearanceOption('face',a.face)?.id||pick(APPEARANCE_OPTIONS.face).id;
+ a.skin=appearanceOption('skin',a.skin)?.id||pick(APPEARANCE_OPTIONS.skin).id;
+ a.hair=appearanceOption('hair',a.hair)?.id||(s.gender==='female'?pick(['shoulder','long','braid','tied']):pick(['short','crop','tied','wild']));
+ a.hairColor=appearanceOption('hairColor',a.hairColor)?.id||pick(APPEARANCE_OPTIONS.hairColor).id;
+ a.beard=appearanceOption('beard',a.beard)?.id||'none';a.headwear=appearanceOption('headwear',a.headwear)?.id||'none';
+ a.care=clamp(Number.isFinite(a.care)?a.care:65);a.lastGroomYear=a.lastGroomYear??null;a.lastGroomMonth=a.lastGroomMonth??null;a.history=Array.isArray(a.history)?a.history.slice(-30):[];
+ return a;
+}
+function appearanceAgeBand(){return s.age<5?'baby':s.age<13?'child':s.age<18?'youth':s.age<40?'adult':s.age<55?'mature':s.age<70?'elder':'old';}
+function appearanceGreyLevel(){const a=ensureAppearance(),h=ensureHealthProfile(),base=s.age<35?0:Math.floor((s.age-35)*2.1),stress=Math.floor(h.frailty/8)+Math.max(0,45-s.health)/5;return clamp(base+stress-(a.care>=80?4:0));}
+function appearanceConditionLabel(){const a=ensureAppearance(),h=ensureHealthProfile(),grey=appearanceGreyLevel();if(!s.alive)return 'Yaşamı sona erdi';if(s.captive)return 'Tutsaklık yorgunluğu';if(s.health<25||h.frailty>=75)return 'Belirgin yorgun ve kırılgan';if(a.care<25)return 'Bakımsız';if(grey>=70)return 'Saçları büyük ölçüde ağarmış';if(s.age>=55)return 'Yaşın izlerini taşıyor';if(a.care>=80)return 'Bakımlı';return 'Doğal görünüm';}
+function appearanceScarCount(){return Math.min(3,ensureHealthProfile().scars.length);}
+function appearanceHairTone(){const base={black:'#211b16',darkbrown:'#3a2b21',brown:'#5a3f2c',auburn:'#70402c',lightbrown:'#806044'}[ensureAppearance().hairColor]||'#30241c',grey=appearanceGreyLevel();if(grey<30)return base;if(grey<65)return 'linear-gradient(90deg,'+base+' 0 55%,#aaa69e 56% 72%,'+base+' 73%)';return '#aaa79f';}
+function appearanceAvatarHtml(){
+ const a=ensureAppearance(),band=appearanceAgeBand(),grey=appearanceGreyLevel(),scars=appearanceScarCount(),showBeard=s.gender==='male'&&s.age>=16&&a.beard!=='none',ageLines=s.age>=45?Math.min(3,1+Math.floor((s.age-45)/15)):0;
+ return '<div class="portrait age-'+band+' face-'+a.face+' skin-'+a.skin+' hair-'+a.hair+' '+(s.health<30?'portrait-sick ':'')+(s.captive?'portrait-captive ':'')+'">'+
+  '<div class="portrait-neck"></div><div class="portrait-head"><div class="portrait-hair" style="--hair:'+appearanceHairTone()+'"></div><div class="portrait-brow left"></div><div class="portrait-brow right"></div><div class="portrait-eye left"></div><div class="portrait-eye right"></div><div class="portrait-nose"></div><div class="portrait-mouth"></div>'+
+  (showBeard?'<div class="portrait-beard beard-'+a.beard+'" style="--hair:'+appearanceHairTone()+'"></div>':'')+
+  Array.from({length:ageLines},(_,i)=>'<i class="portrait-age-line line-'+(i+1)+'"></i>').join('')+
+  Array.from({length:scars},(_,i)=>'<i class="portrait-scar scar-'+(i+1)+'"></i>').join('')+
+  '</div>'+(a.headwear!=='none'?'<div class="portrait-headwear headwear-'+a.headwear+'"></div>':'')+(s.captive?'<div class="portrait-status">⛓</div>':'')+'<span class="portrait-grey-dot" title="Ağarma '+grey+'"></span></div>';
+}
+function appearanceChoiceAllowed(group,id){if(!appearanceOption(group,id))return false;if(group==='beard'&&(s.gender!=='male'||s.age<16)&&id!=='none')return false;if(group==='headwear'&&id==='war'&&!s.military.served&&!['Alp','Akıncı','Tarkan'].includes(s.role))return false;return true;}
+function setAppearancePart(group,id){if(!appearanceChoiceAllowed(group,id)){notice('Bu görünüş seçeneği şu an uygun değil.');return false;}const a=ensureAppearance();if(!['face','skin','hair','hairColor','beard','headwear'].includes(group))return false;a[group]=id;a.history.unshift({year:s.year+s.age,age:s.age,month:currentMonth(),group,id});a.history=a.history.slice(0,30);render();save();return true;}
+function groomAppearance(){return performAction({kind:'appearance',id:'groom'},()=>{const a=ensureAppearance();a.care=clamp(a.care+22);a.lastGroomYear=s.year+s.age;a.lastGroomMonth=currentMonth();apply({happiness:3,prestige:1});log('Saç, sakal ve günlük bakımına özen gösterdin.','good');},'Kişisel bakım ve görünüşüne bir ay ayırdın.');}
+function tickAppearanceMonth(action={}){const a=ensureAppearance();if(action.kind!=='appearance')a.care=clamp(a.care-(s.captive?3:s.military.active?2:1));if(s.ailments.length)a.care=clamp(a.care-1);}
+function appearanceSummaryHtml(){
+ const a=ensureAppearance(),scar=appearanceScarCount(),grey=appearanceGreyLevel();
+ const select=(group,label)=>'<div class="card"><h3>'+label+'</h3><div class="actions">'+APPEARANCE_OPTIONS[group].map(x=>{const active=a[group]===x.id,allowed=appearanceChoiceAllowed(group,x.id);return '<button class="mini '+(active?'active':'')+'" '+(!allowed?'disabled':'')+' onclick="setAppearancePart('+JSON.stringify(group)+','+JSON.stringify(x.id)+')">'+safeText(x.name)+(active?' ✓':'')+'</button>';}).join('')+'</div></div>';
+ return '<div class="card"><h3>🪞 Görünüş</h3><div class="appearancePreview">'+appearanceAvatarHtml()+'</div><p>'+appearanceConditionLabel()+' • bakım '+a.care+'/100 • ağarma '+grey+'/100 • görünen yara izi '+scar+'</p>'+actionButton('Bakım yap',{kind:'appearance',id:'groom'},"groomAppearance()",'Bir ay sürer • bakım, dirlik ve küçük itibar artışı')+'</div><div class="grid2">'+select('face','Yüz yapısı')+select('skin','Ten tonu')+select('hair','Saç')+select('hairColor','Saç rengi')+select('beard','Sakal / bıyık')+select('headwear','Başlık')+'</div>';
+}
+
 const EDUCATION_TRACKS={
  horse:{name:'Atlı Yetişme',icon:'🐎',age:5,skill:'riding',path:'civil',mentor:'At Ustası',peer:'Talimgâh Yoldaşı'},
  archery:{name:'Okçuluk Yolu',icon:'🏹',age:7,skill:'archery',path:'military',mentor:'Ok Ustası',peer:'Ok Talimi Yoldaşı'},
@@ -1125,6 +1170,7 @@ function accessIssue(a){
  if(['activity','training'].includes(a.kind)){if(!ACTION_RULES[a.id])return 'Eylem bulunamadı.';min=ACTION_RULES[a.id].age;}
  else if(a.kind==='education'){const d=EDUCATION_TRACKS[a.id];if(!d)return 'Yetişme yolu bulunamadı.';min=d.age;if(s.captive)return 'Tutsakken düzenli eğitim sürdüremezsin.';if(s.military.active)return 'Aktif seferde düzenli eğitim sürdüremezsin.';}
  else if(a.kind==='educationContact'){const n=ensureEducation().contacts[a.index];if(!n?.alive)return 'Bu kişiyle görüşemezsin.';min=5;}
+ else if(a.kind==='appearance'){min=5;if(a.id!=='groom')return 'Görünüş eylemi bulunamadı.';}
  else if(a.kind==='period'){const r=PERIOD_ACTIVITIES.find(x=>x.id===a.id)||SEASONAL_ACTIVITIES.find(x=>x.id===a.id);if(!r)return 'Faaliyet bulunamadı.';min=r.age;if(r.months&&!r.months.includes(currentMonth()))return 'Bu faaliyet bu mevsimde yapılır.';if(r.req&&!r.req())return 'Bu faaliyet için uygun şartlar oluşmadı.';if(a.id==='healer'&&s.wealth<2)return '2 servet gerekiyor.';}
  else if(a.kind==='role')return careerIssue(D.careers.find(x=>x.id===a.id));
  else if(a.kind==='asset'){
@@ -1176,7 +1222,7 @@ function monthlyTick(month,action,allowEvent=true){
  tickEventCooldowns();
  for(const n of allNPCs())if(n.alive&&n.birthYear!=null){const before=n.age;n.age=Math.max(0,s.year+s.age-n.birthYear-(month<n.birthMonth?1:0));if(before!==n.age&&[8,12,18].includes(n.age))n.role=npcRole(n.age);}
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
- tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();
+ tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
  if(s.age>=18&&month%3===0)tickEconomyQuarter(month);
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
@@ -1535,6 +1581,7 @@ function familyCard(n,group,index){
 function renderSystems(){
  $('lifeCare').innerHTML=`<h3 class="sectionTitle">${lifeStage(s.age)}</h3>${healthSummaryHtml()}${displacementSummaryHtml()}<div class="grid2">${s.age<5?actionButton('Aile bakımında bir ay',{kind:'guardian'},'guardianCare()'):actionButton('Dinlen',{kind:'health',id:'rest'},"healthAction('rest')",'Aktif rahatsızlıkların iyileşmesini hızlandırır.')+actionButton(s.age<12?'Ailenle otacıya git':'Otacıya Git',{kind:'health',id:'healer'},"healthAction('healer')",'2 servet • rahatsızlık şiddetini ve iyileşme süresini azaltır.')}</div>${s.pregnancy?'<p class="note">Doğum bekleniyor • yaklaşık '+s.pregnancy.remaining+' ay.</p>':''}`;
  $('tab-yetisme').insertAdjacentHTML('beforeend',educationSummaryHtml()+'<h3 class="sectionTitle">Yetişme tecrübesi</h3><p class="note">'+Object.entries(s.experience).map(([k,v])=>pathName(k)+': '+v+' ay').join(' • ')+'</p>');
+ $('tab-faaliyet').insertAdjacentHTML('afterbegin',appearanceSummaryHtml());
  $('tab-soy').insertAdjacentHTML('beforeend',successionSummaryHtml());
  $('tab-soy').insertAdjacentHTML('beforeend',`<h3 class="sectionTitle">Ün ve başarımlar</h3><div class="grid2">${D.achievements.map(a=>`<div class="card ${s.achievements.includes(a.id)?'':'locked'}"><h3>${s.achievements.includes(a.id)?'🏆':'🔒'} ${a.name}</h3><p>${a.desc}</p></div>`).join('')}</div>`);
  if(s.age>=18&&s.children.some(x=>x.alive))$('tab-soy').insertAdjacentHTML('beforeend',`<h3 class="sectionTitle">Mal paylaşımı</h3><p class="note">Şu an: ${s.will==='equal'?'Yaşayan çocuklara eşit':safeText(s.children.find(n=>n.id===s.will)?.name||'Eşit paylaşım')}. Bu paylaşım bir oyun kuralıdır.</p><div class="grid2">${actionButton('Eşit paylaş',{kind:'will'},"setWill('equal')")}${s.children.filter(x=>x.alive).map(n=>actionButton(safeText(n.name),{kind:'will'},`setWill('${n.id}')`)).join('')}</div>`);
@@ -1543,7 +1590,7 @@ function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');const sourceVersion=x.version||0;x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
  for(const k of ['parents','siblings','relatives','friends','rivals','children','careerContacts','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureEconomy();ensureDisplacement();ensureLifeVariety();ensureMobility();ensureEducation();
+ for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureEconomy();ensureDisplacement();ensureLifeVariety();ensureMobility();ensureEducation();ensureAppearance();
  if(sourceVersion<5&&x.military?.wounds>0&&!x.healthProfile.scars.length){
   const count=Math.min(3,x.military.wounds);for(let i=0;i<count;i++)x.healthProfile.scars.push({id:'legacy_scar_'+i,kind:'battle',severity:i===0&&x.military.wounds>=3?2:1,source:'eski sefer kaydı',location:['omuzda','kolda','bacakta'][i%3],year:x.year+Math.max(18,x.age-5-i),age:Math.max(18,x.age-5-i),lastFlareYear:null});
  }
@@ -1561,7 +1608,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v11'))localStorage.setItem('yazgi_before_v11',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v12'))localStorage.setItem('yazgi_before_v12',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
