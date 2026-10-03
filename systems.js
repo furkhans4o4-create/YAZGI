@@ -3099,6 +3099,9 @@ function choiceImpactItems(choice,more=false){
  if(x.elder?.purpose)items.push({cls:x.elder.purpose>0?'pos':'neg',label:`🧓 Yaşam amacı ${x.elder.purpose>0?'+':''}${x.elder.purpose}`});
  if(x.elder?.standing)items.push({cls:x.elder.standing>0?'pos':'neg',label:`🪶 Söz ağırlığı ${x.elder.standing>0?'+':''}${x.elder.standing}`});
  if(x.elder?.careSupport)items.push({cls:x.elder.careSupport>0?'pos':'neg',label:`🏕 Aile desteği ${x.elder.careSupport>0?'+':''}${x.elder.careSupport}`});
+ if(x.familyBranch?.autonomy)items.push({cls:x.familyBranch.autonomy>0?'neutral':'neg',label:`🧭 Bağımsızlık ${x.familyBranch.autonomy>0?'+':''}${x.familyBranch.autonomy}`});
+ if(x.familyBranch?.familyReadiness)items.push({cls:x.familyBranch.familyReadiness>0?'pos':'neg',label:`🌿 Aile isteği ${x.familyBranch.familyReadiness>0?'+':''}${x.familyBranch.familyReadiness}`});
+ if(x.familyBranch?.careerMomentum)items.push({cls:x.familyBranch.careerMomentum>0?'pos':'neg',label:`🛠 Kariyer ivmesi ${x.familyBranch.careerMomentum>0?'+':''}${x.familyBranch.careerMomentum}`});
  for(const spec of [...(Array.isArray(x.scheduleEvents)?x.scheduleEvents:[]),...(x.scheduleEvent?[x.scheduleEvent]:[])]){const y=spec.years,txt=Array.isArray(y)?(y[0]+"–"+y[1]+" yıl sonra"):(y+" yıl sonra");items.push({cls:"neutral",label:"⏳ "+txt+" sonuç doğurabilir"});}
  if(x.targetState)items.push({cls:"neutral",label:"🧭 Bu kişinin yolu değişir"});
  if(x.targetPrestige)items.push({cls:x.targetPrestige>0?"pos":"neg",label:`🐺 Onun itibarı ${x.targetPrestige>0?"+":""}${x.targetPrestige}`});
@@ -3397,6 +3400,25 @@ if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)&&!EVENT_DECK.some(
   {id:'elder_successor_question_v21',cat:'Görev',min:50,max:100,w:6,cool:22,req:'hasWorkplaceJunior',target:'workplaceJunior',text:'Çırak/yardımcın {name}, bir gün senin taşıdığın sorumluluğu üstlenmeye hazır olup olmadığını sordu.',choices:[
    ['Onu ciddi biçimde yetiştirmeye başla',{prestige:2,targetRel:4,targetTrust:5,targetRespect:7,elder:{purpose:6,standing:3,lessons:1,note:'Görev çevrende bir halef yetiştirmeye ağırlık verdin.'}}],
    ['Henüz erken olduğunu söyle',{targetRespect:3,targetTrust:-1,elder:{standing:1,note:'Haleflik için henüz erken olduğuna karar verdin.'}}]
+  ]}
+ );
+}
+
+
+/* v23 — adult children, family branches and grandchildren. */
+if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)&&!EVENT_DECK.some(e=>e.id==='adult_child_own_path_v23')){
+ EVENT_DECK.push(
+  {id:'adult_child_own_path_v23',cat:'Soy',min:36,max:100,w:7,cool:20,req:'hasAdultChild',target:'adultChild',text:'Yetişkin çocuğun {name}, aileden gördüğü yol ile kendi istediği hayat arasında kaldığını sana açtı.',choices:[
+   ['Kendi kararını destekle',{happiness:2,targetRel:4,targetTrust:5,targetRespect:3,familyBranch:{autonomy:8,careerMomentum:3,parentInfluence:-3,note:'Yetişkin çocuğunun kendi kararını vermesine açıkça alan tanıdın.'}}],
+   ['Ailenin açtığı yolu hatırlat',{prestige:1,targetRel:-1,targetTrust:-2,targetRespect:4,familyBranch:{autonomy:-5,careerMomentum:5,parentInfluence:8,note:'Ailenin imkân ve sorumluluklarını önüne koyup daha yönlendirici davrandın.'}}]
+  ]},
+  {id:'adult_child_family_future_v23',cat:'Ocak',min:36,max:100,w:6,cool:24,req:'hasAdultChildPartner',target:'adultChild',text:'{name}, kendi ocağının geleceğini ve çocuk sahibi olup olmamayı senin yanında konuşmaya başladı.',choices:[
+   ['Dinle, kararı onlara bırak',{happiness:2,targetRel:3,targetTrust:5,familyBranch:{autonomy:5,familyReadiness:3,parentInfluence:-2,note:'Aile planı konuşulurken kararı onların vermesine alan tanıdın.'}}],
+   ['Soyun devamını istediğini açıkça söyle',{prestige:1,targetRel:1,targetTrust:-1,targetRespect:2,familyBranch:{familyReadiness:9,parentInfluence:7,familyPlanYears:2,note:'Soyun devamı isteğini açıkça söyledin; karar yine onların hayatında kalacak.'}}]
+  ]},
+  {id:'grandchild_legacy_v23',cat:'Soy',min:45,max:100,w:7,cool:18,req:'hasGrandchild',target:'grandchild',text:'Torunun {name}, eski aile hikâyelerini ve senden önce yaşayanları merak edip yanına geldi.',choices:[
+   ['Aile geçmişini uzun uzun anlat',{happiness:4,prestige:1,targetRel:6,targetTrust:5,targetRespect:8,familyBranch:{householdSupport:2,note:'Torununa aile geçmişini anlatarak kuşaklar arasındaki bağı güçlendirdin.'}}],
+   ['Birlikte vakit geçirip sorularını dinle',{happiness:3,targetRel:5,targetTrust:6,targetRespect:3,familyBranch:{householdSupport:1,note:'Torununla sakin bir zaman geçirip onun sorularını dinledin.'}}]
   ]}
  );
 }
