@@ -20,7 +20,36 @@ button,input,select{font:inherit}
 .layout{display:grid;grid-template-columns:270px minmax(0,1fr) 300px;gap:12px}
 .panel{background:linear-gradient(#f3e8c7,#e7d6ab);color:var(--ink);border:1px solid #fff5;border-radius:18px;box-shadow:var(--shadow)}
 .profile,.side{padding:15px;height:max-content;position:sticky;top:16px}
-.avatar{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;margin:auto;font-size:42px;background:radial-gradient(circle,#dac28a,#a88145);border:5px solid #f8edd0}
+.avatar{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;margin:auto;background:radial-gradient(circle,#e4ce98,#9d7740);border:5px solid #f8edd0;overflow:hidden;position:relative}
+.portrait{width:86px;height:86px;position:relative;overflow:hidden;border-radius:50%;--skin:#c99565}
+.portrait.skin-light{--skin:#e7bd91}.portrait.skin-wheat{--skin:#c99565}.portrait.skin-tan{--skin:#a97349}.portrait.skin-deep{--skin:#754b34}
+.portrait-neck{position:absolute;width:24px;height:29px;left:31px;top:57px;background:var(--skin);border-radius:7px 7px 3px 3px;box-shadow:inset 0 -8px #0001}
+.portrait-head{position:absolute;width:52px;height:62px;left:17px;top:13px;background:var(--skin);border-radius:47% 47% 44% 44%;box-shadow:inset -4px -5px #0000000c,inset 3px 0 #fff1}
+.portrait.face-round .portrait-head{width:56px;height:58px;left:15px;border-radius:48%}
+.portrait.face-long .portrait-head{width:48px;height:66px;left:19px;border-radius:45%}
+.portrait.face-broad .portrait-head{width:58px;height:60px;left:14px;border-radius:42% 42% 46% 46%}
+.portrait-hair{position:absolute;z-index:5;background:var(--hair,#2c2119);left:-2px;right:-2px;top:-3px;height:20px;border-radius:50% 50% 28% 28%}
+.portrait.hair-crop .portrait-hair{height:12px;top:-1px}.portrait.hair-shaved .portrait-hair{height:6px;opacity:.55}
+.portrait.hair-shoulder .portrait-hair{height:33px;left:-5px;right:-5px;border-radius:50% 50% 35% 35%;clip-path:polygon(0 0,100% 0,100% 100%,83% 82%,76% 35%,24% 35%,17% 82%,0 100%)}
+.portrait.hair-long .portrait-hair{height:49px;left:-7px;right:-7px;border-radius:48% 48% 22% 22%;clip-path:polygon(0 0,100% 0,100% 100%,81% 100%,76% 34%,24% 34%,19% 100%,0 100%)}
+.portrait.hair-braid .portrait-hair{height:26px;left:-4px;right:-4px}.portrait.hair-braid .portrait-hair:after{content:"";position:absolute;width:8px;height:38px;right:2px;top:12px;background:repeating-linear-gradient(180deg,var(--hair) 0 6px,#0002 7px 8px);border-radius:5px}
+.portrait.hair-tied .portrait-hair{height:18px}.portrait.hair-tied .portrait-hair:after{content:"";position:absolute;width:18px;height:18px;right:-5px;top:-5px;background:var(--hair);border-radius:50%}
+.portrait.hair-wild .portrait-hair{height:25px;left:-5px;right:-5px;clip-path:polygon(0 18%,10% 0,20% 15%,32% 0,44% 15%,55% 0,67% 18%,78% 0,88% 16%,100% 4%,96% 100%,4% 100%)}
+.portrait-eye{position:absolute;z-index:6;width:5px;height:4px;background:#201c18;border-radius:50%;top:27px}.portrait-eye.left{left:13px}.portrait-eye.right{right:13px}
+.portrait-brow{position:absolute;z-index:6;width:11px;height:2px;background:#50392a;top:22px;border-radius:4px}.portrait-brow.left{left:9px;transform:rotate(-4deg)}.portrait-brow.right{right:9px;transform:rotate(4deg)}
+.portrait-nose{position:absolute;z-index:6;left:24px;top:31px;width:5px;height:11px;border-right:1px solid #6f493744;border-bottom:1px solid #6f493744;border-radius:0 0 4px 0}
+.portrait-mouth{position:absolute;z-index:6;left:19px;top:47px;width:15px;height:5px;border-bottom:2px solid #7f493f;border-radius:50%}
+.portrait-beard{position:absolute;z-index:7;background:var(--hair);left:9px;right:9px;top:43px;height:18px;border-radius:12% 12% 45% 45%;opacity:.92}
+.portrait-beard.beard-stubble{opacity:.3;height:12px;top:44px}.portrait-beard.beard-short{height:18px}.portrait-beard.beard-long{height:30px;top:42px;clip-path:polygon(0 0,100% 0,82% 75%,50% 100%,18% 75%)}.portrait-beard.beard-moustache{height:5px;top:44px;left:17px;right:17px;border-radius:60%}
+.portrait-age-line{position:absolute;z-index:8;width:13px;height:3px;border-top:1px solid #70534455;left:19px}.portrait-age-line.line-1{top:18px}.portrait-age-line.line-2{top:37px;left:4px;width:9px}.portrait-age-line.line-3{top:37px;left:auto;right:4px;width:9px}
+.portrait-scar{position:absolute;z-index:9;width:2px;height:15px;background:#8e4e43aa;border-radius:3px;transform:rotate(24deg)}.portrait-scar.scar-1{left:12px;top:33px}.portrait-scar.scar-2{right:11px;top:37px;transform:rotate(-20deg)}.portrait-scar.scar-3{left:29px;top:24px;height:10px;transform:rotate(8deg)}
+.portrait-headwear{position:absolute;z-index:12;left:19px;top:7px;width:48px;height:19px;background:#665235;border-radius:50% 50% 12% 12%;box-shadow:0 2px 2px #0003}
+.portrait-headwear.headwear-bork{height:26px;top:1px;background:#51442f;clip-path:polygon(15% 100%,0 32%,28% 22%,42% 0,58% 0,72% 22%,100% 32%,85% 100%)}
+.portrait-headwear.headwear-wrap{height:13px;top:13px;background:#d8c394;border-radius:3px}.portrait-headwear.headwear-war{height:28px;top:2px;background:linear-gradient(#6d716c,#3c403d);clip-path:polygon(50% 0,88% 22%,100% 78%,78% 100%,22% 100%,0 78%,12% 22%)}
+.portrait-status{position:absolute;z-index:20;right:3px;bottom:5px;font-size:16px}.portrait-grey-dot{position:absolute;right:7px;top:7px;width:6px;height:6px;border-radius:50%;background:#eee8dcaa}
+.portrait-sick{filter:saturate(.72) brightness(.93)}.portrait-captive{filter:saturate(.68) brightness(.88)}
+.appearancePreview{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;margin:6px auto 10px;background:#d5bd84;border:4px solid #efe2bd}.appearancePreview .portrait{transform:scale(1.28)}
+.actions .mini.active{outline:2px solid #71936a;background:#e4f0d6}
 .name{text-align:center;font-size:22px;font-weight:900;margin-top:8px}.meta{text-align:center;color:var(--muted);font-size:12px;line-height:1.45}
 .wealth{text-align:center;font-size:19px;font-weight:900;color:#6d4b1f;margin:10px 0}
 .stats{display:grid;gap:8px}.stat{display:grid;grid-template-columns:76px 1fr 29px;gap:6px;align-items:center;font-size:11px}
@@ -653,7 +682,7 @@ function newCharacter(base={}, inherit=false){
   const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
-    version:11,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,variety:base.variety||null,mobility:base.mobility||null,education:base.education||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
+    version:12,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,variety:base.variety||null,mobility:base.mobility||null,education:base.education||null,appearance:base.appearance||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
     name:base.name||$("customName").value.trim()||pick(cfg[g]), gender:g, realm, year,
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
@@ -731,7 +760,7 @@ function render(){
  $("quickActions").innerHTML=[
    ["at","🐎 At Sür"],["ok","🏹 Ok At"],["av","🦌 Avlan"],["toy","🔥 Toya Katıl"]
  ].map(([id,label])=>`<button class="qbtn" ${accessIssue({kind:"activity",id})?'disabled':""} onclick="activity('${id}')" title="${safeText(accessIssue({kind:"activity",id}))}">${label}${actionUnlocked(id)?"":`<div class="lockline">${actionLockText(id)}</div>`}</button>`).join("");
- $("avatar").textContent=!s.alive?"🪦":s.captive?"⛓️":s.age<5?"👶":s.age<14?"🧒":s.age<55?(s.gender==="male"?"🧔":"👩"):"🧓";
+ $("avatar").innerHTML=typeof appearanceAvatarHtml==="function"?appearanceAvatarHtml():(!s.alive?"🪦":s.captive?"⛓️":s.age<5?"👶":s.age<14?"🧒":s.age<55?(s.gender==="male"?"🧔":"👩"):"🧓");
  ["health","happiness","skill","prestige"].forEach(k=>{$(`${k}B`).style.width=s[k]+"%";$(`${k}V`).textContent=s[k]});
  $("skillGrid").innerHTML=[
  ["riding","Binicilik"],["archery","Okçuluk"],["combat","Savaş"],["craft","Zanaat"],["literacy","Bitig"],["trade","Ticaret"]
@@ -847,7 +876,7 @@ function renderTraining(){
 const PERIOD_ACTIVITIES=[
  {id:"rest",age:5,cat:"Bakım & Sağlık",icon:"🛏",name:"Dinlen",desc:"Bir ayı daha sakin geçir.",do:()=>apply({health:5,happiness:2})},
  {id:"healer",age:5,cat:"Bakım & Sağlık",icon:"🌿",name:"Otacıya Git",desc:"Çocuklukta ailenin eşliğinde bakım al.",do:()=>{if(s.wealth>=2)s.wealth-=2;apply({health:8})}},
- {id:"groom",age:12,cat:"Bakım & Sağlık",icon:"✂",name:"Saç Bakımı",desc:"Kendine bakım yaptır.",do:()=>{apply({happiness:4,prestige:1})}},
+ {id:"groom",age:12,cat:"Bakım & Sağlık",icon:"✂",name:"Saç ve Sakal Bakımı",desc:"Bakım durumunu toparla; portreye yansır.",do:()=>{}},
  {id:"bardlisten",age:6,cat:"Toy & Eğlence",icon:"🪕",name:"Ozan Dinle",desc:"Destan ve söz geleneğini dinle.",do:()=>{skillGain("speech",2);apply({happiness:3,skill:1})}},
  {id:"watchwrestling",age:6,cat:"Toy & Eğlence",icon:"🤼",name:"Güreş Seyret",desc:"Toydaki güreşçileri izle.",do:()=>{skillGain("combat",1);apply({happiness:2})}},
  {id:"horserace",age:12,cat:"Toy & Eğlence",icon:"🏇",name:"At Yarışına Katıl",desc:"Binicilik seviyesi sonucu etkiler.",do:()=>{ensureSkills();const win=Math.random()<.25+(s.skills.riding||0)/180;if(win){s.wealth+=5;apply({prestige:4,happiness:4});log("At yarışında iyi bir derece aldın.","good")}else log("At yarışında istediğin sonucu alamadın.")}},
