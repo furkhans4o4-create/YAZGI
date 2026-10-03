@@ -100,7 +100,7 @@ function normalizeSocialLink(l){
 function socialLinkBetween(a,b,create=false,seed={}){
  const key=socialKey(a,b);if(!key)return null;s.socialLinks=Array.isArray(s.socialLinks)?s.socialLinks:[];
  let l=s.socialLinks.find(x=>x.id===key||socialKey(x.a,x.b)===key);
- if(!l&&create){const ids=key.split('|');l={id:key,a:ids[0],b:ids[1],score:seed.score??0,trust:seed.trust??50,grudge:seed.grudge??0,tags:seed.tags||[],memories:[],sinceYear:s.year+s.age,lastYear:s.year+s.age};s.socialLinks.push(l);}
+ if(!l&&create){const ids=key.split('|');l={id:key,a:ids[0],b:ids[1],score:0,trust:50,grudge:0,tags:seed.tags||[],memories:[],sinceYear:s.year+s.age,lastYear:s.year+s.age};s.socialLinks.push(l);}
  return normalizeSocialLink(l);
 }
 function rememberSocialLink(l,text,weight=1){
@@ -123,7 +123,7 @@ function pruneSocialLinks(){
 }
 function seedCoreSocialLinks(){
  if(!s)return;s.socialLinks=Array.isArray(s.socialLinks)?s.socialLinks:[];const people=allNPCs();
- for(let i=0;i<people.length;i++)for(let j=i+1;j<people.length;j++){const a=people[i],b=people[j];if(a.partner?.id===b.id||b.partner?.id===a.id)adjustSocialLink(a,b,{score:78,trust:28,grudge:-20,tag:'spouse'});else if(closeKinPair(a,b)&&!socialLinkBetween(a,b))adjustSocialLink(a,b,{score:58,trust:18,grudge:-10,tag:'kin'});}
+ for(let i=0;i<people.length;i++)for(let j=i+1;j<people.length;j++){const a=people[i],b=people[j];if((a.partner?.id===b.id||b.partner?.id===a.id)&&!socialLinkBetween(a,b))adjustSocialLink(a,b,{score:78,trust:28,grudge:-20,tag:'spouse'});else if(closeKinPair(a,b)&&!socialLinkBetween(a,b))adjustSocialLink(a,b,{score:58,trust:18,grudge:-10,tag:'kin'});}
  const cs=s.military?.comrades||[];for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++)if(!socialLinkBetween(cs[i],cs[j]))adjustSocialLink(cs[i],cs[j],{score:rng(18,34),trust:rng(4,12),tag:'comrade'});
  pruneSocialLinks();
 }
@@ -512,8 +512,8 @@ function migrateState(x){
  if(x.pendingDecision?.id!=='campaign_call')x.pendingDecision=null;x.ailments=x.ailments.filter(a=>AILMENTS[a.id]&&x.age>=AILMENTS[a.id].min);
  if(x.age>=18&&x.military.called&&!x.military.served&&!x.flags.military_declined&&!x.pendingDecision)x.pendingDecision={id:'campaign_call',age:x.age,year:x.year+x.age,month:currentMonth()};
  if(x.pendingEventId){const e=EVENT_DECK.find(e=>e.id===x.pendingEventId),ctx=x.pendingEventContext;
- const targetOk=!e?.target||(ctx?.targetId&&allNPCs().some(n=>n.alive&&n.id===ctx.targetId));
- if(!e||x.age<e.min||x.age>e.max||!eventRequirementOK(e)||!targetOk||!e.choices.some(c=>!eventChoiceIssue(c))){x.pendingEventId=null;x.pendingEventContext=null;}else x.pendingEventContext=x.pendingEventContext||{age:x.age,year:x.year+x.age,month:Math.max(1,currentMonth()-1)};}
+ const targetOk=!e?.target||(ctx?.targetId&&allNPCs().some(n=>n.alive&&n.id===ctx.targetId)),otherOk=e?.target!=='rivalAllyPair'||(ctx?.otherTargetId&&allNPCs().some(n=>n.alive&&n.id===ctx.otherTargetId));
+ if(!e||x.age<e.min||x.age>e.max||!eventRequirementOK(e)||!targetOk||!otherOk||!e.choices.some(c=>!eventChoiceIssue(c))){x.pendingEventId=null;x.pendingEventContext=null;}else x.pendingEventContext=x.pendingEventContext||{age:x.age,year:x.year+x.age,month:Math.max(1,currentMonth()-1)};}
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
