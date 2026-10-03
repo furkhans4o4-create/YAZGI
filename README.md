@@ -84,6 +84,20 @@
 - Yakın desteği ilişkileri de etkiler; aile üyeleri günlük yükün bir bölümünü paylaşabilir ve bu destek kalıcı sağlık yönetimini artırır
 - Süregelen durumların düşük yönetiminde özel sağlık olayları ve alevlenmeler açılır; dinlenmek veya aynı tempoyu sürdürmek farklı sonuçlar verir
 - Sağlık ekranında kalıcı durumların derecesi, yönetimi, alevlenme sayısı ve hareket/kol-görme-işitme-dayanma kapasiteleri ayrı gösterilir
+- Prestij artık toplumsal itibar yerine geçmez: prestij ne kadar tanındığını, yeni Sözün ve Adın sistemi ise insanların davranışların hakkında ne düşündüğünü tutar
+- Toplumsal itibar dört eksende yaşar: onur, sözüne güven, cömertlik ve çekince/korku; bunlardan türeyen iyi ad değeri meslek, evlilik, meclis ve töre sonuçlarını etkiler
+- Söylentiler gerçek kalıcı kayıtlar olarak kaynak NPC, doğruluk durumu, ağırlık, çıkış yeri, duyduğu NPC kimlikleri ve yayılım geçmişiyle saklanır
+- Bir söylenti tüm dünyaya sihirli biçimde yayılmaz: ilk mağdur/tanık/kaynak kişiden başlar ve yer, sosyal bağ ve duymuş kişiler üzerinden yeni kalıcı NPC'lere yayılır
+- Her NPC aynı sözü aynı şekilde karşılamaz; sadık yakınlar olumsuz söze daha dirençli olabilirken kuşkucu veya kinci kişiler kötü sözü daha ağır değerlendirebilir
+- Tanıksız ve açığa çıkmamış töre dışı eylem otomatik kötü ün üretmez; gerçek mağdur veya tanık varsa o kişilerden başlayan dava bağlantılı kötü söz oluşur
+- Suç/töre söylentisi ilgili dava kimliğiyle bağlıdır; tazminat ve uzlaşma aynı söylentinin ağırlığını azaltır ve sorumluluk almak onur/güveni kısmen geri getirir
+- Hakkındaki doğrulanmamış veya olumsuz söze açıkça cevap verebilir, kaynağıyla yüzleşebilir veya gerçek bir zararsa telafi yapabilirsin; başarısız cevap söylentiyi büyütebilir
+- Yardım, armağan, görevde güvenilirlik, seferden dönüş ve mecliste başarılı karar gibi davranışlar iyi söz oluşturabilir; mirasta daha büyük pay istemek veya paydan feragat etmek ters yönlü toplumsal hafıza yaratır
+- Meclis üyeleri yalnız global sayıdan etkilenmez; o kalıcı NPC'nin senin hakkında bizzat duyduğu söz ve kişisel kanaati teklif tavrını değiştirebilir
+- İyi veya kötü ad meslek kabul şansına ve ocak kurma ihtimaline gerçek bonus/ceza verir; kötü söz baskısı töre meclisindeki sosyal basıncı da artırabilir
+- Göçte eski çevrenin sözü tamamen kaybolmaz ama uzaklıkla etkisi zayıflar; yeni yerleşimde başlangıç yerel bağında iyi adın küçük bir payı hissedilir
+- Karakter öldüğünde toplumsal ün özeti ölüm kaydına yazılır; varise kişisel söylentiler aktarılmaz, fakat aile adı onur/güven/cömertlik/çekince eksenlerinde zayıflatılmış bir miras bırakır
+- Soy ekranındaki Sözün ve Adın bölümü aktif iyi/kötü sözleri, kaç kişinin duyduğunu, kaynağı, söylenti baskısını ve müdahale seçeneklerini gösterir
 - Derin dostluk ve sosyal çevre: çocukluk dostu, yakın dost, sırdaş, uzaklaşmış dost ve kalıcı yeniden buluşma geçmişi
 - 3+ güçlü dostla arkadaş çevresi, grup uyumu/gerilimi, ortak buluşmalar ve NPC-NPC dostluk bağları
 - Dost aracılığıyla görev çevresine giriş, eş adayı tanıştırması ve askerî dostun sefer yoldaşına dönüşmesi
@@ -135,7 +149,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 28’e taşınır; sürüm değişiminde önce `yazgi_before_v28` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 29’a taşınır; sürüm değişiminde önce `yazgi_before_v29` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
