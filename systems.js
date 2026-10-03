@@ -1700,6 +1700,24 @@ if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)&&!EVENT_DECK.some(
  );
 }
 
+
+if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)&&!EVENT_DECK.some(e=>e.id==='friend_returns')){
+ EVENT_DECK.push(
+  {id:'friend_returns',cat:'Dostluk',min:10,max:100,w:8,cool:20,req:'hasDistantFriend',target:'distantFriend',text:'Uzun süredir seyrek görüştüğün {name} yeniden obana uğradı.',choices:[
+   ['Eski dostluğu yeniden canlandır',{happiness:4,targetRel:5,targetTrust:4,targetGrudge:-3}],
+   ['Geçmişi geçmişte bırak',{happiness:1,targetRel:-2}]
+  ]},
+  {id:'friend_work_opening',cat:'Dostluk',min:14,max:75,w:6,cool:22,req:'hasCareerFriend',target:'careerFriend',text:'{name}, kendi görev çevresinde sana uygun olabilecek bir kapı açıldığını söyledi.',choices:[
+   ['Beni tanıştırmasını iste',{prestige:1,targetRel:3,targetTrust:3,targetRespect:2}],
+   ['Kendi yolumdan ilerleyeyim',{happiness:1,targetRespect:1}]
+  ]},
+  {id:'friend_circle_conflict',cat:'Dostluk',min:10,max:90,w:7,cool:16,req:'hasFriendCircle',target:'circleFriend',text:'Dost çevrende bir süredir biriken gerginlik {name} üzerinden açıkça ortaya çıktı.',choices:[
+   ['Herkesi dinleyip arayı bul',{prestige:2,happiness:1,targetRel:3,targetTrust:3,targetGrudge:-3}],
+   ['Açıkça bir taraf tut',{prestige:1,targetRel:2,targetTrust:-2,targetGrudge:3}]
+  ]}
+ );
+}
+
 function ensureMobility(){
  if(!s.mobility||typeof s.mobility!=='object'||Array.isArray(s.mobility))s.mobility={};
  const m=s.mobility;m.moves=Math.max(0,Math.round(m.moves||0));m.localStanding=clamp(Number.isFinite(m.localStanding)?m.localStanding:50);m.monthsHere=Math.max(0,Math.round(m.monthsHere||0));m.history=Array.isArray(m.history)?m.history.slice(-30):[];m.arrivalYear=m.arrivalYear??(s.year+s.age);m.arrivalAge=m.arrivalAge??s.age;m.homePlace=m.homePlace||s.place;m.homeRealm=m.homeRealm||s.realm;
