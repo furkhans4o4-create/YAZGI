@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 15’tir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v15` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 16’dır. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v16` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -236,3 +236,14 @@ Her barınma düzeninin kapasitesi, rahatlığı ve durumu vardır. Aynı yurtta
 Yetişkin yaşta ana-baba ocağında kalmaya devam etmek otomatik olarak yasak değildir. Ancak yaş, evlilik, çocuk sayısı, işsizlik, kalabalık ve ebeveyn ilişkisi birlikte ayrı ocak baskısını yükseltir. Baskı çok yükselir ve aile ilişkisi kötüyse karakter geçici barınmaya düşebilir. Geçici barınma özellikle kışın doğrudan sağlık ve mutluluk kaybına, soğuk rahatsızlığı riskine yol açar.
 
 Göç sistemi de hane sistemine bağlandı. Yurt sahibi olarak göç edildiğinde bağımsız yurt düzeni korunabilir; yurt olmadan yeni bölgeye yalnız veya kendi ocağınla gidildiğinde önce geçici barınma gerekir. Yaşanmakta olan Büyük Yurt başka barınma düzenine geçilmeden satılamaz. Hane biçimi ayrıca çeyreklik geçim maliyetini etkiler: aile ocağında veya bir yakının yanında kalmak kendi yurdunu tamamen geçindirmekten daha düşük doğrudan maliyet getirir.
+
+
+### Yaşayan geniş aile ve kayın akrabalık
+
+v16 ile geniş aile soy ağacında görünen statik yan dallar olmaktan çıkarıldı. Mevcut dede/nine, amca-dayı/hala-teyze ve kuzen kollarına oyuncunun kardeşlerinden doğan yeğenler, çocuklarından gelen torunlar ve daha sonraki kuşaklar oyuncuya göre dinamik akrabalık rolüyle bağlanır. Aile kartı artık NPC'nin eski veri etiketini değil, mevcut oyuncuya göre gerçek akrabalık rolünü gösterir.
+
+Yeni eş adayı oluştuğunda onun ailesi de yaratılır: kayın ana, kayın ata ve varsa eşin kardeşleri kalıcı NPC'lerdir. Bu kişiler kendi kariyer, eş, çocuk, sağlık, ölüm, sosyal bağ ve hafıza sistemlerine katılır. İlişki biterse eski kayın aile geçmişten silinmez. Oyuncu çocuğuyla devam ettiğinde önceki karakterin eşinin anne-babası yeni karakter açısından dede/nine; eşin kardeşleri ise ebeveynin cinsiyetine göre amca-hala veya dayı-teyze olarak kan akrabalığına dönüştürülür.
+
+Aynı bölgede yaşayan aile üyeleriyle büyük aile buluşması yapılabilir. Buluşma oyuncu-NPC bağlarının yanında bazı NPC-NPC akrabalık bağlarını da güçlendirir ve eski kinleri azaltabilir. Geniş aile üyelerine maddi destek verilebilir; güveni ve ilişkisi yüksek, serveti olan yakınlardan yardım istenebilir. İlişkisi yüksek ve varlıklı bazı yaşlı akrabalardan ölüm sonrası küçük aile payları kalabilir.
+
+Uzun legacy kayıtlarının kontrolsüz biçimde binlerce NPC üretmemesi için yaşayan aile dallarının otomatik evlilik/çocuk üretiminde üst sınır vardır. Bu sınır mevcut akrabaları silmez; yalnızca aile ağının yeni dallar üretmesini durdurarak performansı korur. Kayın aile ve kuzenler ayrıca seçimli aile olaylarının doğrudan hedefi olabilir.
