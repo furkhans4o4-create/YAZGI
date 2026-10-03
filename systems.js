@@ -1280,7 +1280,7 @@ function ensureFamilyBranches(){
  f.children=f.children&&typeof f.children==='object'&&!Array.isArray(f.children)?f.children:{};
  f.assetHeirs=f.assetHeirs&&typeof f.assetHeirs==='object'&&!Array.isArray(f.assetHeirs)?f.assetHeirs:{};
  f.stewards=f.stewards&&typeof f.stewards==='object'&&!Array.isArray(f.stewards)?f.stewards:{};
- f.childInLaws=Array.isArray(f.childInLaws)?f.childInLaws.filter(Boolean).map(n=>normalizeNPC(n,n.type||'Çocuk Eşi')):[];
+ f.childInLaws=Array.isArray(f.childInLaws)?f.childInLaws.filter(Boolean).map(n=>{const x=normalizeNPC(n,n.type||'Çocuk Eşi'),src=x.statusFlags?.sourceNPCId?adultChildMatchSource(x.statusFlags.sourceNPCId):null;if(!src)return x;src.statusFlags=src.statusFlags||{};src.statusFlags.childInLaw=true;src.statusFlags.childInLawFor=x.statusFlags?.childInLawFor||src.statusFlags.childInLawFor;src.statusFlags.sourceNPCId=src.id;src.statusFlags.familyMatchedTo=src.statusFlags.childInLawFor||src.statusFlags.familyMatchedTo;return src;}):[];
  f.history=Array.isArray(f.history)?f.history.slice(0,80):[];
  for(const k of ['introductions','careerOpenings','householdSupport','familyTalks','enterpriseAssignments','inheritanceAssignments','grandparentActions','grandchildrenBorn'])f[k]=Math.max(0,Math.round(f[k]||0));
  for(const asset of Object.keys(f.assetHeirs))if(!s.assets.includes(asset))delete f.assetHeirs[asset];
@@ -1360,8 +1360,9 @@ function registerAdultChildPartner(child,partner,sourceNpc=null,mode='autonomous
  if(!child||!partner)return null;const f=ensureFamilyBranches(),p=ensureAdultChildProfile(child);
  const spouse=normalizeNPC({...partner,type:'Çocuk Eşi',statusFlags:{...(partner.statusFlags||{}),childInLawFor:child.id,sourceNPCId:sourceNpc?.id||partner.statusFlags?.sourceNPCId||null}},'Çocuk Eşi');
  spouse.parentIds=Array.isArray(spouse.parentIds)?spouse.parentIds:[];child.partner={...spouse,statusFlags:{...(spouse.statusFlags||{})}};
- const existing=f.childInLaws.findIndex(n=>n.statusFlags?.childInLawFor===child.id||n.id===spouse.id);if(existing>=0)f.childInLaws[existing]=spouse;else f.childInLaws.push(spouse);
- if(sourceNpc){sourceNpc.statusFlags=sourceNpc.statusFlags||{};sourceNpc.statusFlags.familyMatchedTo=child.id;sourceNpc.statusFlags.childInLaw=true;adjustSocialLink(child,sourceNpc,{score:55,trust:15,tag:'kin'},'Aile aracılığıyla tanışıp aynı ocağın yoluna girdiler.');rememberNPC(sourceNpc,'family',child.name+' ile aile aracılığıyla tanıştı.',5);}
+ if(sourceNpc){sourceNpc.statusFlags=sourceNpc.statusFlags||{};sourceNpc.statusFlags.familyMatchedTo=child.id;sourceNpc.statusFlags.childInLaw=true;sourceNpc.statusFlags.childInLawFor=child.id;sourceNpc.statusFlags.sourceNPCId=sourceNpc.id;}
+ const branchRecord=sourceNpc||spouse,existing=f.childInLaws.findIndex(n=>n.statusFlags?.childInLawFor===child.id||n.id===spouse.id);if(existing>=0)f.childInLaws[existing]=branchRecord;else f.childInLaws.push(branchRecord);
+ if(sourceNpc){adjustSocialLink(child,sourceNpc,{score:55,trust:15,tag:'kin'},'Aile aracılığıyla tanışıp aynı ocağın yoluna girdiler.');rememberNPC(sourceNpc,'family',child.name+' ile aile aracılığıyla tanıştı.',5);}
  if(mode==='introduced'){f.introductions++;p.matches++;p.lastMatchYear=s.year+s.age;if(sourceNpc&&!p.introducedIds.includes(sourceNpc.id))p.introducedIds.push(sourceNpc.id);}
  p.familyReadiness=clamp(p.familyReadiness+4);rememberNPC(child,'family',spouse.name+' ile bir ilişki kurdu.',6);familyBranchRecord(child,spouse.name+' ile '+(mode==='introduced'?'senin tanıştırmanla ':'')+'birlikte bir yol kurmaya başladı.','partner',{partnerId:spouse.id,mode});
  return spouse;
@@ -1511,7 +1512,7 @@ function kinRole(n){
  if(s.parents.some(x=>x.id===n.id))return n.gender==='male'?'Ata':'Ana';
  if(s.siblings.some(x=>x.id===n.id))return n.gender==='male'?'Erkek kardeş':'Kız kardeş';
  if(s.children.some(x=>x.id===n.id))return 'Çocuk';
- const childInLaw=ensureFamilyBranches().childInLaws.find(x=>x.id===n.id);if(childInLaw)return childInLaw.type||'Çocuk Eşi';
+ const childInLaw=ensureFamilyBranches().childInLaws.find(x=>x.id===n.id);if(childInLaw)return 'Çocuk Eşi';
  if(ensureExtendedFamily().inLaws.some(x=>x.id===n.id))return n.type||'Kayın Akraba';
  if(n.parentIds?.includes(s.id))return 'Çocuk';
  if(s.children.some(c=>n.parentIds?.includes(c.id)))return 'Torun';
