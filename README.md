@@ -15,6 +15,8 @@
 - Yaşlılıkta aile meclisi, vasiyet hazırlığı ve son dilek
 - Ölüm nedeni ve malvarlığı kaydı; eşit paylaşım veya ana varis
 - Ölüm sonrası çocukla devam ve kardeşlerin mirasa uzun vadeli tepkileri
+- Kalıcı yetişme yolları: atlı yetişme, okçuluk, güreş, demircilik, bitig, söz/destan ve takas-kervan öğretimi
+- Her yetişme yolunda gerçek usta ve akran NPC'leri, 6/18/36/60 aylık basamaklar, sınanmalar ve ileride görev kabulüne küçük eğitim avantajı
 - Planlı göç ve yerleşim: aynı siyasi çevrede bölge değiştirme, uygun tarihte başka siyasi çevreye geçme, yalnız/ocakla/yakınlarla taşınma
 - Yol masrafı ve riski, yeni yerde yerel bağ kurma, geride kalan yakınlarla uzaklık sonuçları ve göç geçmişi
 - Yıllık amaçlar ve mevsimlik faaliyetler: her yıl farklı odak, ay/mevsime göre değişen uğraşlar
@@ -46,7 +48,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 10’ye taşınır; sürüm değişiminde önce `yazgi_before_v10` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 11’ye taşınır; sürüm değişiminde önce `yazgi_before_v11` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
