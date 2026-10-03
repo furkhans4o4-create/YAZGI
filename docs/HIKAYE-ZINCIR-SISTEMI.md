@@ -152,3 +152,84 @@ Hikâye tek bir çocuğa kilitlenir. Çocuğa verilen eski yönlendirme NPC'nin 
 Gecikmiş final geldiğinde seçilen yola göre NPC'nin becerileri, amacı, mesleği, itibar / ilişki hafızası güncellenir. Örneğin zanaat yolu yıllar sonra gerçekten Demirci gibi bir role dönüşebilir.
 
 Bu sistemin amacı çocukların oyuncunun ekranındaki pasif isimler olarak kalmaması; çocuklukta verilen kararların yetişkin hayatlarında gözle görülür sonuç üretmesidir.
+
+
+## Sefer yoldaşlarının uzun hafızası
+
+Sefer yoldaşları artık yalnızca aktif sefer ekranında görünen geçici NPC'ler değildir.
+
+Bir yoldaşla savaş sırasında verilen karar şu sistemlere kalıcı veri bırakabilir:
+
+- ilişki,
+- güven,
+- saygı,
+- kin,
+- yoldaşın kişisel itibarı,
+- savaşta kurtarılıp bırakıldığına dair NPC hafızası,
+- yıllar sonra geri dönecek gecikmeli eventler.
+
+### Aynı kişiyle devam eden askerî zincir
+
+Eski **military_comrade → night watch → small command → Tarkan** hattı artık ilk eventte seçilen gerçek sefer yoldaşına kilitlenir.
+
+Örneğin Börü'yü savaşta kurtardıysan sonraki askerî kartlarda rastgele başka biri yerine Börü hikâyede kalabilir.
+
+### Yoldaşlığın İzi
+
+Askerî kariyer zincirinden ayrı olarak uzun vadeli bir sosyal hikâye eklendi:
+
+1. Eski savaş kararı yıllar sonra yeniden gündeme gelir.
+2. Bağı onarırsan eski yoldaş senden yardım isteyebilir.
+3. Destek verirsen birkaç yıl sonra kendi statüsünde yükselir.
+4. Yaşına ve itibarına bağlı olarak Alp, Tarkan veya Boy Beyi konumuna çıkabilir.
+5. Eski hesabı yeniden açarsan ileride ihanet / husumet yolu oluşabilir.
+
+Yoldaş oyuncunun desteğiyle yükselse bile oyuncunun eklentisi gibi davranmaz; kendi rolü, prestiji ve hafızası NPC üzerinde saklanır.
+
+### Savaşta borcun geri dönmesi
+
+Bir yoldaşı çatışmada kurtarmak, 2–7 yıl sonra yeni bir seferde tersine dönebilen bir sonuç bırakabilir.
+
+Oyuncu gelecekte başka bir savaşta sıkıştığında aynı NPC geri dönüp onu kurtarabilir. Event yalnızca:
+
+- gecikme süresi dolduysa,
+- aynı NPC hâlâ hayattaysa,
+- oyuncu tekrar aktif sefere çıktıysa
+
+havuzda görünür.
+
+### İhanet
+
+Eski yoldaşlık kötü biçimde kapanırsa ileride NPC oyuncunun aleyhine konuşabilir. Oyuncu:
+
+- bağı tamamen koparmadan yüzleşebilir,
+- veya eski yoldaşı doğrudan hasım olarak işaretleyebilir.
+
+İkinci durumda NPC gerçekten rakipler sistemine girer.
+
+### Sefer sonuçlarının NPC'lere etkisi
+
+Sefer bittiğinde yoldaşlar da sonuç yaşar:
+
+- birlikte geçirilen sefer sayısı kaydedilir,
+- itibar kazanabilirler,
+- yaralanabilirler,
+- nadiren çatışmada ölebilirler,
+- başarılı seferler oyuncuyla güven / ilişkiyi güçlendirebilir.
+
+Böylece sefer sonucu yalnızca oyuncunun servet ve sağlık değerini değiştirmez.
+
+### Nesiller arası yoldaşlık
+
+Oyuncu öldükten sonra güçlü bağı bulunan yaşayan eski yoldaşlar yeni nesilde **Aile dostu** olarak korunabilir.
+
+En güçlü eski yoldaşlardan biri 1–4 yıl sonra yeni karakterin hayatına tekrar girebilir. Eski karakterle çıktığı seferleri anlatır ve yeni neslin:
+
+- savaş becerisine,
+- söz becerisine,
+- genel tecrübesine,
+- aile dostuyla ilişkisine
+
+etki edebilir.
+
+Bu sistemle tek bir savaş kararı potansiyel olarak oyuncunun kendi yetişkinlik döneminden çocuğunun hayatına kadar uzanabilir.
