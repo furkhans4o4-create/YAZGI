@@ -46,6 +46,14 @@ button,input,select{font:inherit}
 .log{background:#faf0d3;border-left:3px solid #a59060;border-radius:0 12px 12px 0;padding:10px 11px;font-size:13px;line-height:1.45}
 .log.good{border-color:#66865c}.log.bad{border-color:#a54b3c}.log.major{border-color:#b78a38;background:#fff3c9}
 .eventBoard{display:grid;gap:10px;margin-bottom:12px}
+.storyArcWrap{display:grid;gap:7px;margin:0 0 12px}
+.storyArcTitle{font-size:11px;font-weight:1000;color:#715e3d;margin:2px 0}
+.storyArc{border:1px solid #d2c092;border-radius:12px;background:#f8edcf;padding:8px 10px}
+.storyArc.active{border-color:#a99155;background:#fbf0cd}.storyArc.done{opacity:.78}.storyArc.closed{opacity:.6;filter:grayscale(.25)}
+.storyArcHead{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px}.storyArcHead strong{font-size:11px}.storyArcHead span{font-size:9px;font-weight:900;color:#776648}
+.storyArcBar{height:5px;border-radius:999px;background:#dfd2ad;overflow:hidden;margin-top:6px}.storyArcBar i{display:block;height:100%;background:#6e8a58;border-radius:999px}
+.storyArcMeta{font-size:9px;color:#74664d;margin-top:5px;line-height:1.35}
+
 .decisionOverlay{position:fixed;inset:0;z-index:140;background:rgba(7,9,6,.82);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:grid;place-items:center;padding:22px;overflow:hidden}
 .decisionOverlay:before,.decisionOverlay:after{content:"";position:absolute;top:0;bottom:0;width:46%;opacity:0;pointer-events:none;transition:opacity .12s ease}
 .decisionOverlay:before{left:0;background:radial-gradient(circle at 0 50%,rgba(177,68,54,.35),transparent 68%)}
@@ -237,7 +245,7 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
      <button class="tab" onclick="showTab('soy',this)">Soy</button>
     </div>
     <div class="content">
-     <p id="gameNotice" class="note" role="status" aria-live="polite"></p><div id="tab-hayat"><div id="lifeCare"></div><div id="eventBoard"></div><div class="timeline" id="timeline"></div></div>
+     <p id="gameNotice" class="note" role="status" aria-live="polite"></p><div id="tab-hayat"><div id="lifeCare"></div><div id="eventBoard"></div><div id="storyArcBoard"></div><div class="timeline" id="timeline"></div></div>
      <div id="tab-yetisme" class="hidden"></div><div id="tab-faaliyet" class="hidden"></div><div id="tab-gorev" class="hidden"></div><div id="tab-sefer" class="hidden"></div><div id="tab-aile" class="hidden"></div>
      <div id="tab-varlik" class="hidden"></div><div id="tab-tore" class="hidden"></div><div id="tab-soy" class="hidden"></div>
     </div>
@@ -604,9 +612,10 @@ EVENT_DECK.push(...[
   ]}
 ]);
 function weightedPickEvents(arr){
- const total=arr.reduce((a,e)=>a+(e.w||1),0);
+ const weight=e=>typeof eventEffectiveWeight==="function"?eventEffectiveWeight(e):(e.w||1);
+ const total=arr.reduce((a,e)=>a+weight(e),0);
  let roll=Math.random()*total;
- for(const e of arr){roll-=e.w||1;if(roll<=0)return e}
+ for(const e of arr){roll-=weight(e);if(roll<=0)return e}
  return arr[arr.length-1];
 }
 function tickEventCooldowns(){
@@ -654,7 +663,7 @@ function newCharacter(base={}, inherit=false){
     wealth:base.wealth??rng(2,10), role:null, path:null, military:base.military||{called:false,served:false,campaigns:0,wounds:0,active:false,dutyMonths:0,comrades:[]},
     captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{}, eventArchive:base.eventArchive||[], pendingEventId:base.pendingEventId||null,
     parents:base.parents||[], siblings:base.siblings||[], relatives:base.relatives||[], friends:base.friends||[], rivals:base.rivals||[],
-    partner:base.partner||null, married:!!base.married, children:base.children||[], socialLinks:base.socialLinks||[], timeline:base.timeline||[],
+    partner:base.partner||null, married:!!base.married, children:base.children||[], socialLinks:base.socialLinks||[], storyArcs:base.storyArcs||{}, storyArcVersion:base.storyArcVersion||1, timeline:base.timeline||[],
     legacy:base.legacy||{generation:1,familyName:base.tribe||"Boy",past:[]},
     flags:{}
   };
@@ -733,7 +742,7 @@ function render(){
  setTabLock("tabBtnSefer","sefer","Sefer");
  setTabLock("tabBtnVarlik","varlik","Varlıklar");
  setTabLock("tabBtnTore","tore","Töre");
- renderEventBoard();renderTimeline();renderTraining();renderActivities();renderRole();renderMilitary();renderFamily();renderAssets();renderTore();renderLegacy();renderSide();renderSystems();
+ renderEventBoard();renderStoryArcs();renderTimeline();renderTraining();renderActivities();renderRole();renderMilitary();renderFamily();renderAssets();renderTore();renderLegacy();renderSide();renderSystems();
 }
 function statusText(){
  if(!s.alive)return "Hayatı sona erdi";
