@@ -282,7 +282,7 @@ function normalizeNPC(n,type='Yakın'){
 }
 function allNPCs(){
  const out=[],seen=new Set();const visit=n=>{if(!n||seen.has(n.id))return;seen.add(n.id);normalizeNPC(n,n.type);out.push(n);(n.descendants||[]).forEach(visit);};
- [...s.parents,...s.siblings,...(s.relatives||[]),...s.friends,...s.rivals,...s.children,s.partner,...s.military.comrades].forEach(visit);return out;
+ [...s.parents,...s.siblings,...(s.relatives||[]),...s.friends,...s.rivals,...s.children,...(s.careerContacts||[]),s.partner,...s.military.comrades].forEach(visit);return out;
 }
 function socialKey(a,b){
  const ai=typeof a==='string'?a:a?.id,bi=typeof b==='string'?b:b?.id;if(!ai||!bi||ai===bi)return '';
@@ -353,6 +353,56 @@ function tickNPCSocialNetwork(year){
  for(let k=0;k<encounters&&living.length>1;k++){const a=pick(living),others=living.filter(x=>x.id!==a.id),b=pick(others);if(!b)continue;const old=socialLinkBetween(a,b);if(!old&&!closeKinPair(a,b)&&Math.abs(a.age-b.age)>18&&Math.random()>.18)continue;const before=old?.score??0,delta=rng(-4,4)+socialCompatibility(a,b),r=adjustSocialLink(a,b,{score:delta,trust:delta>1?1:delta<-1?-1:0,grudge:delta<-2?2:delta>2?-1:0},delta>=3?'Birlikte geçirdikleri zaman aralarını ısıttı.':delta<=-3?'Aralarında yeni bir sürtüşme çıktı.':'Aralarındaki bağ değişti.'),l=r.link;const friend=before<45&&l.score>=45,rival=before>-35&&l.score<=-35;if((friend||rival)&&(isClosePlayerKin(a)||isClosePlayerKin(b)))log(safeText(a.name)+' ile '+safeText(b.name)+' arasında '+(friend?'güçlü bir dostluk':'ciddi bir husumet')+' oluştu.',friend?'good':'bad');}
  pruneSocialLinks();
 }
+function ensureCareerSystems(){
+ s.careerProfiles=s.careerProfiles&&typeof s.careerProfiles==='object'&&!Array.isArray(s.careerProfiles)?s.careerProfiles:{};
+ s.careerContacts=Array.isArray(s.careerContacts)?s.careerContacts:[];
+ return s.careerProfiles;
+}
+function careerProfile(id){
+ ensureCareerSystems();if(!id)return null;
+ if(!s.careerProfiles[id])s.careerProfiles[id]={id,months:0,reputation:0,mastery:0,earnings:0,orders:0,failures:0,bestStreak:0,streak:0,lastYear:s.year+s.age,history:[]};
+ const p=s.careerProfiles[id];p.months=Math.max(0,p.months||0);p.reputation=clamp(p.reputation||0);p.mastery=clamp(p.mastery||0);p.earnings=Math.max(0,p.earnings||0);p.orders=Math.max(0,p.orders||0);p.failures=Math.max(0,p.failures||0);p.streak=Math.max(0,p.streak||0);p.bestStreak=Math.max(p.bestStreak||0,p.streak);p.history=Array.isArray(p.history)?p.history.slice(-20):[];return p;
+}
+function currentCareer(){const r=D.careers.find(x=>x.name===s.role);return r?{role:r,profile:careerProfile(r.id)}:null;}
+function careerContactSpec(kind){
+ const specs={
+  smith:{type:'Demirci Ustası',goal:'mastery',role:'Demirci',minAge:32,traits:['caliskan','gururlu']},
+  scribe:{type:'Bitig Ustası',goal:'wisdom',role:'Bitigçi',minAge:34,traits:['temkinli','caliskan']},
+  caravan:{type:'Kervanbaşı',goal:'wealth',role:'Kervan Rehberi',minAge:32,traits:['tutumlu','konuskan']},
+  bard:{type:'Ozan Ustası',goal:'wisdom',role:'Ozan',minAge:30,traits:['konuskan','gururlu']},
+  merchant:{type:'Pazar Ortağı',goal:'wealth',role:'Tüccar',minAge:26,traits:['tutumlu','caliskan']}
+ };return specs[kind]||null;
+}
+function careerContact(kind,create=true){
+ ensureCareerSystems();let n=s.careerContacts.find(x=>x.statusFlags?.careerKind===kind&&x.alive);
+ if(n||!create)return n||null;const spec=careerContactSpec(kind);if(!spec)return null;
+ const cfg=D.realms[s.realm],gender=pick(['male','female']),age=Math.max(spec.minAge,s.age+rng(7,20));
+ n=normalizeNPC({name:pick(cfg[gender]),gender,age,birthYear:s.year+s.age-age,alive:true,rel:rng(48,68),type:spec.type,goal:spec.goal,role:spec.role,prestige:rng(32,58),traits:[...spec.traits]} ,spec.type);
+ n.statusFlags=n.statusFlags||{};n.statusFlags.careerKind=kind;n.statusFlags.mentor=true;normalizeBonds(n);n.bonds.respect=clamp(Math.max(n.bonds.respect,65));rememberNPC(n,'career','Meslek yolunda tanıştığınız günleri hatırlıyor.',4);s.careerContacts.push(n);return n;
+}
+function careerContactsSummary(){
+ ensureCareerSystems();const live=s.careerContacts.filter(n=>n.alive);if(!live.length)return '';
+ return '<h3 class="sectionTitle">Meslek Çevresi</h3><div class="grid2">'+live.map((n,i)=>familyCard(n,'careerContacts',i)).join('')+'</div>';
+}
+function careerRoleSummary(){
+ const cur=currentCareer();if(!cur)return '';const r=cur.role,p=cur.profile;
+ const rep=p.reputation>=70?'Çok saygın':p.reputation>=45?'Tanınan':p.reputation>=20?'Gelişiyor':'Yeni';
+ return '<div class="card"><h3>'+safeText(r.name)+'</h3><p>'+rep+' • '+p.months+' ay çalıştı<br>Meslek itibarı '+p.reputation+' • Ustalık '+p.mastery+'<br>Toplam kazanç '+p.earnings+' • Başarılı iş '+p.orders+' • Aksama '+p.failures+'</p></div>';
+}
+function careerPrimarySkill(r){const a=CAREER_RULES[r.id];return Object.keys(a?.skills||{})[0]||'speech';}
+function careerWorkOutcome(r){
+ const p=careerProfile(r.id),key=careerPrimarySkill(r),need=CAREER_RULES[r.id]?.skills?.[key]||20,level=s.skills[key]||0;
+ const difficulty=Math.max(8,need-8+Math.floor(p.mastery/9)),chance=Math.max(.28,Math.min(.94,.56+(level-difficulty)/110+p.reputation/350+s.health/500));
+ p.months++;p.lastYear=s.year+s.age;s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;addExperience(r.path);
+ const success=Math.random()<chance;
+ if(success){
+  const base=Array.isArray(r.wealth)?rng(r.wealth[0],r.wealth[1]):rng(1,3),bonus=Math.floor(p.reputation/28),gain=Math.max(1,base+bonus);
+  p.orders++;p.streak++;p.bestStreak=Math.max(p.bestStreak,p.streak);p.earnings+=gain;p.reputation=clamp(p.reputation+(p.streak>=4?2:1));p.mastery=clamp(p.mastery+rng(1,3));skillGain(key,2);apply({wealth:gain,prestige:p.reputation>=45?2:1,skill:1});
+  if(p.streak===4)log(safeText(r.name)+' işlerinde adın daha sık anılmaya başladı.','good');
+  p.history.push({year:s.year+s.age,ok:true,gain});return {success:true,gain};
+ }
+ p.failures++;p.streak=0;p.reputation=clamp(p.reputation-rng(1,3));p.mastery=clamp(p.mastery+1);skillGain(key,1);apply({happiness:-1});p.history.push({year:s.year+s.age,ok:false,gain:0});return {success:false,gain:0};
+}
 function careerIssue(r){
  if(!r)return 'Görev bulunamadı.';const a=CAREER_RULES[r.id];
  if(s.age<a.age)return `${a.age} yaşında açılır`;
@@ -365,7 +415,7 @@ function careerIssue(r){
  if(s.exile&&['state','military'].includes(r.path))return 'Önce sürgün meselesini çözmelisin';return '';
 }
 function careerRequirements(r){const a=CAREER_RULES[r.id];return `${a.age} yaş • genel beceri ${Math.max(0,r.skill-10)} • ${Object.entries(a.skills).map(([k,v])=>skillName(k)+' '+v).join(' • ')}${a.months?' • '+a.months+' ay '+pathName(a.track):''}${a.prestige?' • itibar '+a.prestige:''}${a.campaigns?' • '+a.campaigns+' sefer':''}`;}
-function getFamilyGroup(group){if(group==='partner')return s.partner?[s.partner]:[];if(group==='comrades')return s.military?.comrades||[];return ['parents','siblings','relatives','friends','rivals','children'].includes(group)?(s[group]||[]):[];}
+function getFamilyGroup(group){if(group==='partner')return s.partner?[s.partner]:[];if(group==='comrades')return s.military?.comrades||[];if(group==='careerContacts')return s.careerContacts||[];return ['parents','siblings','relatives','friends','rivals','children'].includes(group)?(s[group]||[]):[];}
 function accessIssue(a){
  if(!s?.alive)return 'Bu yaşam sona erdi.';
  if(s.pendingEventId||s.pendingDecision)return 'Önce karar kartını çöz.';
@@ -722,8 +772,8 @@ function renderSystems(){
 function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
- for(const k of ['parents','siblings','relatives','friends','rivals','children','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureStoryArcs();ensureDelayedEvents();
+ for(const k of ['parents','siblings','relatives','friends','rivals','children','careerContacts','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments'])if(!Array.isArray(x[k]))x[k]=[];
+ for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStoryArcs();ensureDelayedEvents();
  if(x.partner){x.partner.age=x.partner.age??Math.max(16,x.age);x.partner.gender=x.partner.gender||(x.gender==='male'?'female':'male');}
  allNPCs().forEach(n=>normalizeNPC(n,n.type));seedCoreSocialLinks();pruneSocialLinks();if(x.partner&&!x.partner.alive)x.married=false;
  if(x.role){const r=D.careers.find(r=>r.name===x.role);if(r&&x.age<r.age){x.deferredRole=x.role;x.role=null;}}
