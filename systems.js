@@ -71,7 +71,12 @@ function ensureStoryArcs(){
   for(const rec of archive)recordStoryArcChoice(rec.id,rec.choice,'',rec,true);
   s.storyArcVersion=1;
  }
- for(const st of Object.values(s.storyArcs)){if(st.status!=='active'||!st.nextEventId)continue;const ev=EVENT_DECK?.find?.(e=>e.id===st.nextEventId);if(ev&&s.age>ev.max){st.status='abandoned';st.nextEventId=null;st.completedYear=s.year+s.age;}}
+ for(const st of Object.values(s.storyArcs)){
+  if(st.status!=='active'||!st.nextEventId)continue;
+  const ev=EVENT_DECK?.find?.(e=>e.id===st.nextEventId);
+  if(ev&&s.age>ev.max){st.status='abandoned';st.branch='Zamanı geçti';st.nextEventId=null;st.completedYear=s.year+s.age;continue;}
+  if(ev?.target&&st.participantIds?.length&&!st.participantIds.some(id=>npcById(id)?.alive)){st.status='abandoned';st.branch='Hikâyedeki kişi yaşamını yitirdi';st.nextEventId=null;st.completedYear=s.year+s.age;}
+ }
  return s.storyArcs;
 }
 function recordStoryArcChoice(eventId,choiceIndex,choiceText,context={},replay=false){
@@ -102,7 +107,7 @@ function storyArcEventAllowed(e){
  return st.nextEventId===e.id;
 }
 function storyArcProgress(st){
- const arc=STORY_ARCS[st.id];return arc?Math.max(0,Math.min(100,Math.round((st.stage/arc.maxStage)*100))):0;
+ const arc=STORY_ARCS[st.id];if(!arc)return 0;const raw=Math.max(0,Math.min(100,Math.round((st.stage/arc.maxStage)*100)));return st.status==='active'?Math.min(94,raw):100;
 }
 function renderStoryArcs(){
  const root=$('storyArcBoard');if(!root)return;ensureStoryArcs();
@@ -479,7 +484,7 @@ function eventTargetCandidates(target){
 function eventTargetSelections(target,eventId=''){
  if(target==='rivalAllyPair')return rivalKinPairs().map(x=>({target:x.target,other:x.other}));
  const meta=arcEventMeta(eventId);ensureStoryArcs();const st=meta?s.storyArcs[meta.id]:null;
- if(st?.status==='active'&&st.participantIds?.length){const locked=st.participantIds.map(npcById).find(n=>n?.alive);if(locked)return [{target:locked,other:null}];}
+ if(st?.status==='active'&&st.participantIds?.length){const locked=st.participantIds.map(npcById).find(n=>n?.alive);return locked?[{target:locked,other:null}]:[];}
  return eventTargetCandidates(target).map(n=>({target:n,other:null}));
 }
 function eventHasTarget(e){return !e.target||eventTargetSelections(e.target,e.id).length>0;}
