@@ -646,7 +646,7 @@ function appearanceAvatarHtml(){
   (showBeard?'<div class="portrait-beard beard-'+a.beard+'" style="--hair:'+appearanceHairTone()+'"></div>':'')+
   Array.from({length:ageLines},(_,i)=>'<i class="portrait-age-line line-'+(i+1)+'"></i>').join('')+
   Array.from({length:scars},(_,i)=>'<i class="portrait-scar scar-'+(i+1)+'"></i>').join('')+
-  '</div>'+(a.headwear!=='none'?'<div class="portrait-headwear headwear-'+a.headwear+'"></div>':'')+(s.captive?'<div class="portrait-status">⛓</div>':'')+'<span class="portrait-grey-dot" title="Ağarma '+grey+'"></span></div>';
+  '</div>'+(a.headwear!=='none'?'<div class="portrait-headwear headwear-'+a.headwear+'"></div>':'')+(!s.alive?'<div class="portrait-status">†</div>':s.captive?'<div class="portrait-status">⛓</div>':'')+'<span class="portrait-grey-dot" title="Ağarma '+grey+'"></span></div>';
 }
 function appearanceChoiceAllowed(group,id){if(!appearanceOption(group,id))return false;if(group==='beard'&&(s.gender!=='male'||s.age<16)&&id!=='none')return false;if(group==='headwear'&&id==='war'&&!s.military.served&&!['Alp','Akıncı','Tarkan'].includes(s.role))return false;return true;}
 function setAppearancePart(group,id){if(!appearanceChoiceAllowed(group,id)){notice('Bu görünüş seçeneği şu an uygun değil.');return false;}const a=ensureAppearance();if(!['face','skin','hair','hairColor','beard','headwear'].includes(group))return false;a[group]=id;a.history.unshift({year:s.year+s.age,age:s.age,month:currentMonth(),group,id});a.history=a.history.slice(0,30);render();save();return true;}
@@ -1249,6 +1249,7 @@ function healthAction(id){performAction({kind:'health',id},()=>treatHealth(id===
 function activity(t){performAction({kind:'activity',id:t},()=>{if(t==='at'){skillGain('riding',3);apply({skill:2,happiness:2});}if(t==='ok'){skillGain('archery',3);skillGain('combat',1);apply({skill:2});}if(t==='av'){skillGain('archery',2);apply(Math.random()<.65?{wealth:rng(1,3),skill:2}:{health:-2});}if(t==='toy'){skillGain('speech',1);apply({happiness:4,prestige:2});}},s.age<18?'Büyüklerin gözetiminde faaliyetine zaman ayırdın.':'Faaliyetinle bir ay geçirdin.');}
 function train(t){return EDUCATION_TRACKS[t]?studyEducation(t):false;}
 function doPeriodActivity(id){
+ if(id==='groom')return groomAppearance();
  if(id==='healer'||id==='rest')return healthAction(id);
  const a=PERIOD_ACTIVITIES.find(x=>x.id===id)||SEASONAL_ACTIVITIES.find(x=>x.id===id);if(!a)return;
  performAction({kind:'period',id},()=>{a.do();if(['market','caravanmarket','herdcare','summer_caravan','autumn_store'].includes(id))addExperience('trade');const note=periodNoveltyBonus(id);if(note)log(note);},a.name+' ile bir ay geçti.');
