@@ -15,6 +15,8 @@
 - Yaşlılıkta aile meclisi, vasiyet hazırlığı ve son dilek
 - Ölüm nedeni ve malvarlığı kaydı; eşit paylaşım veya ana varis
 - Ölüm sonrası çocukla devam ve kardeşlerin mirasa uzun vadeli tepkileri
+- Derin ebeveynlik ve çocuk yetiştirme: her çocuk için sıcaklık, disiplin, özgürlük, beklenti, ilgi, iyi oluş ve ihmal geçmişi
+- 5/8/12/16/18 yaş dönümlerinde ebeveynlik tarzının kişilik, güven, beceri, hedef ve yetişkin mesleğine yansıması; kardeş rekabeti ve arabuluculuk
 - Yaşayan geniş aile sistemi: dede/nine, amca-dayı/hala-teyze, kuzen, yeğen, torun ve kayın aile kolları
 - Eş adayının ebeveyn/kardeşleri gerçek NPC olur; ayrılıkta silinmez, nesil değişince oyuncuya göre dede/nine ve amca-dayı/hala-teyze rollerine dönüşür
 - Büyük aile buluşmaları, akraba desteği, küçük geniş-aile mirasları ve uzun legacy kayıtlarında kontrollü aile dalı büyümesi
@@ -59,7 +61,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 16’ye taşınır; sürüm değişiminde önce `yazgi_before_v16` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 17’ye taşınır; sürüm değişiminde önce `yazgi_before_v17` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
