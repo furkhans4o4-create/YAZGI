@@ -653,7 +653,7 @@ function newCharacter(base={}, inherit=false){
   const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
-    version:10,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,variety:base.variety||null,mobility:base.mobility||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
+    version:11,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,variety:base.variety||null,mobility:base.mobility||null,education:base.education||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
     name:base.name||$("customName").value.trim()||pick(cfg[g]), gender:g, realm, year,
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
@@ -835,13 +835,14 @@ function showHeirModal(){
 }
 function renderTraining(){
  $("tab-yetisme").innerHTML=`<div class="grid2">
- ${trainingCard("horse","🐎","At Biniciliği","Binicilik seviyesini yükselt.")}
- ${trainingCard("archery","🏹","Okçuluk","Okçuluk ve savaş becerisi.")}
- ${trainingCard("wrestling","🤼","Güreş","Güç ve savaş tecrübesi.")}
- ${trainingCard("smith","🔥","Demircilik","Zanaat seviyesini yükselt.")}
- ${trainingCard("bitig","𐱅","Bitig / Yazı","Yazı ve devlet hizmeti için.")}
- ${trainingCard("story","🪕","Söz ve Destan","Söz, itibar ve ozanlık yolu.")}
- </div><p class="note">Her alan yaşla açılır. Bazı görevler yalnız yaş değil, ilgili beceri seviyesini de ister.</p>`
+ ${trainingCard("horse","🐎","At Biniciliği","Atlı yetişme yolunda ustayla çalış.")}
+ ${trainingCard("archery","🏹","Okçuluk","Ok ustası ve talim yoldaşlarıyla ilerle.")}
+ ${trainingCard("wrestling","🤼","Güreş","Güç, savaş ve güreş yetişimini ilerlet.")}
+ ${trainingCard("smith","🔥","Demircilik","Usta-çırak yolunda zanaat öğren.")}
+ ${trainingCard("bitig","𐱅","Bitig / Yazı","Yazı ve devlet hizmeti öğretiminde ilerle.")}
+ ${trainingCard("story","🪕","Söz ve Destan","Ozan ustası yanında söz ve destan öğren.")}
+ ${typeof actionButton==="function"?actionButton("🧺 Takas ve Kervan",{kind:"education",id:"trade"},"studyEducation('trade')","Pazar ustası ve kervan çevresiyle ticaret öğren."):""}
+ </div><p class="note">Her yetişme yolu kalıcıdır: usta, akranlar, ay sayısı, basamak ve sınanmalar yaşam boyunca hatırlanır.</p>`
 }
 const PERIOD_ACTIVITIES=[
  {id:"rest",age:5,cat:"Bakım & Sağlık",icon:"🛏",name:"Dinlen",desc:"Bir ayı daha sakin geçir.",do:()=>apply({health:5,happiness:2})},
