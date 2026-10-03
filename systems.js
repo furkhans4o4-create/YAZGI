@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=4,ADULT_AGE=18;
+const SAVE_VERSION=5,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -7,7 +7,15 @@ const CAREER_RULES={
  tarkan:{age:24,skills:{combat:66,speech:40},months:24,track:'military',campaigns:3,prestige:35},bey:{age:28,skills:{speech:60,literacy:40},months:36,track:'state',prestige:45}
 };
 const ASSET_AGES={horse:12,bow:12,flock:18,sword:18,armor:18,yurt:18,caravan_share:18,smithy:18};
-const AILMENTS={fever:{name:'Ateşli rahatsızlık',min:0,loss:2,duration:3},chill:{name:'Soğukta güçten düşme',min:0,loss:1,duration:2},injury:{name:'İyileşen yara',min:12,loss:2,duration:4},joints:{name:'Eklem ağrısı',min:50,loss:1,duration:8}};
+const AILMENTS={
+ fever:{name:'Ateşli rahatsızlık',min:0,loss:2,duration:3,severity:2,kind:'illness'},
+ chill:{name:'Soğukta güçten düşme',min:0,loss:1,duration:2,severity:1,kind:'illness'},
+ injury:{name:'İyileşen yara',min:12,loss:2,duration:4,severity:2,kind:'injury'},
+ deep_wound:{name:'Ağır yara',min:16,loss:3,duration:7,severity:3,kind:'injury'},
+ joints:{name:'Eklem ağrısı',min:50,loss:1,duration:8,severity:2,kind:'chronic'},
+ old_wound:{name:'Eski yaranın sızısı',min:40,loss:1,duration:4,severity:2,kind:'chronic'},
+ exhaustion:{name:'Aşırı yorgunluk',min:10,loss:1,duration:3,severity:1,kind:'strain'}
+};
 const STORY_ARCS={
  smith:{name:'Demir Ocağının Yolu',icon:'🔥',start:'smith_offer',maxStage:7,nodes:{
   smith_offer:{stage:0,next:{0:'smith_first_mistake'},end:{1:'abandoned'}},
@@ -50,6 +58,12 @@ const STORY_ARCS={
   merchant_bad_debt:{stage:2,next:{0:'merchant_market_name',1:'merchant_market_name'}},
   merchant_market_name:{stage:3,next:{0:'merchant_partner_offer',1:'merchant_partner_offer'}},
   merchant_partner_offer:{stage:4,end:{0:'completed',1:'completed'}}
+ }},
+ healingroad:{name:'İyileşme Yolu',icon:'🌿',start:'health_crisis',maxStage:4,nodes:{
+  health_crisis:{stage:0,next:{0:'health_followup',1:'health_followup'}},
+  health_followup:{stage:1,next:{0:'health_recovery_test',1:'health_recovery_test'}},
+  health_recovery_test:{stage:2,next:{0:'health_aftercare',1:'health_aftercare'}},
+  health_aftercare:{stage:3,end:{0:'completed',1:'completed'}}
  }},
  councilrise:{name:'Boy Meclisinde Yükseliş',icon:'🏕',start:'bey_request',maxStage:6,nodes:{
   bey_request:{stage:0,next:{0:'council_pasture_case',1:'council_pasture_case'}},
