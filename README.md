@@ -18,6 +18,12 @@
 - Kalıcı görev çevresi: usta/amir, akran iş arkadaşları ve kıdem arttıkça çırak/yardımcı NPC’ler
 - Görev itibarı, çevre uyumu, iş gerilimi, ortak proje, kefillik ve performansa bağlı iç kıdem/terfi sistemi
 - İş arkadaşını dosta veya rakibe dönüştürme; iş değişince eski çalışma çevresinin kaybolmaması
+- 50+ tecrübe çağı: yaşlılık artık yalnızca vasiyet ve ölümü beklemek değil; aile meclisi, yaşam amacı, söz ağırlığı ve aile desteği ayrı kalıcı değerlerdir
+- Genç kuşağa doğrudan beceri aktarımı; yetiştirilen çocuk/akraba/çırak aynı kalıcı NPC olarak gelişir
+- İleri yaşta eski hasımlarla barışma, yetişmiş çırak/yardımcıya aktif görevi devredip gerçek bir halef bırakma
+- 60+ yaşta güvenilen yetişkin çocuğun yurduna taşınma; aile desteği yüksekse kırılganlık döneminde sağlık ve dirlik desteği, düşükse yalnızlık baskısı
+- Yaşlılık kararları için yeni bağlamsal olaylar: yetişkin çocuğun öğüt istemesi, eski hasımla barış fırsatı, aileden bakım teklifi ve haleflik konuşması
+- Ölüm kaydı artık aile büyüğü dönemindeki meclis, tecrübe aktarımı, barışma ve görev devri mirasını da saklar
 - Derin dostluk ve sosyal çevre: çocukluk dostu, yakın dost, sırdaş, uzaklaşmış dost ve kalıcı yeniden buluşma geçmişi
 - 3+ güçlü dostla arkadaş çevresi, grup uyumu/gerilimi, ortak buluşmalar ve NPC-NPC dostluk bağları
 - Dost aracılığıyla görev çevresine giriş, eş adayı tanıştırması ve askerî dostun sefer yoldaşına dönüşmesi
@@ -69,7 +75,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 20’ye taşınır; sürüm değişiminde önce `yazgi_before_v20` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 21’e taşınır; sürüm değişiminde önce `yazgi_before_v21` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
