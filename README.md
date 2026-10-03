@@ -56,6 +56,15 @@
 - Uzun süre bakım vermek bakım yükü oluşturur; belirli seviyede oyuncunun sağlığı/dirliği ve aile içinde bakım paylaşımı hakkında özel olaylar açılır
 - Hastalık sırasında bakım ve vedalaşma birikimi, kişi daha sonra ölürse ilk yas şiddetini azaltan gerçek bir kapanış etkisi sağlar
 - Aile ekranında Yas, Cenaze ve Bakım bölümü açık cenazeleri, süren yasları, hatıraları ve bakım yükünü gösterir
+- Boy meclisi artık yalnız dört sayaçtan ibaret değildir: oyuncu gerçek teklif açar, üç kalıcı meclis NPC'sinin tavrını görür, tek tek görüşür ve oylamaya götürür
+- Mecliste Boy İleri Geleni, Rakip İleri Gelen ve Boy Büyüğü ayrı tutum taşır; güven, ilişki, kişilik, amaç ve teklif türü başlangıç tavrını değiştirir
+- Özel görüşmeyle bir meclis üyesini ikna etmek mümkündür; aynı teklif için aynı kişiyle yalnız bir kez özel görüşme yapılabilir ve başarısız baskı ters tepebilir
+- Oylama sonucu gizli rastgele zar değildir: üç NPC oyu ile meclis havası ve oba havasından gelen iki ortak oy sayılır; en az üç destek gerekir
+- Kabul ve retler teklif geçmişinde oy dağılımı, tarafların tavrı ve görüşülen kişilerle birlikte kalıcı tutulur; reddedilen başlık hemen tekrar spamlenemez
+- Beş meclis düzeni vardır: Kışlık Erzak Paylaşımı, Kervan Yolu Koruması, Usta ve Ocak Desteği, Boylar Arası Barış Sözü ve Sefer Hazırlık Düzeni
+- Kabul edilen kararlar yıllarca yürürlükte kalır ve oyun sistemini değiştirir: erzak baskısı/kaç kıtlık dönemi, ticaret ve zanaat talebi, aktif husumetlerin ısısı, rakip baskısı ve sefer risk eşikleri etkilenir
+- Kervan ve zanaat kararları yalnız özet sayısını değil ilgili varlıkların gerçek dönem getiri/risk hesabını da etkiler; sefer hazırlığı yaralanma/tutsaklık eşiklerini düşürür
+- Yürürlük süresi biten meclis düzenleri otomatik kalkar ve siyasi karar geçmişine kaydedilir; devlet görevindeki eski kayıtlar v26'da meclis çevresini otomatik tamamlar
 - Derin dostluk ve sosyal çevre: çocukluk dostu, yakın dost, sırdaş, uzaklaşmış dost ve kalıcı yeniden buluşma geçmişi
 - 3+ güçlü dostla arkadaş çevresi, grup uyumu/gerilimi, ortak buluşmalar ve NPC-NPC dostluk bağları
 - Dost aracılığıyla görev çevresine giriş, eş adayı tanıştırması ve askerî dostun sefer yoldaşına dönüşmesi
@@ -107,7 +116,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 25’e taşınır; sürüm değişiminde önce `yazgi_before_v25` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 26’ya taşınır; sürüm değişiminde önce `yazgi_before_v26` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
