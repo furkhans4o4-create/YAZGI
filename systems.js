@@ -119,6 +119,34 @@ function renderStoryArcs(){
  root.innerHTML=html+'</div>';
 }
 
+function ensureDelayedEvents(){
+ s.delayedEvents=Array.isArray(s.delayedEvents)?s.delayedEvents:[];
+ s.delayedEvents=s.delayedEvents.filter(x=>x&&x.eventId&&x.status!=='discarded').map(x=>({id:x.id||('d_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2)),eventId:x.eventId,dueYear:Math.max(s.year,Math.floor(x.dueYear??(s.year+s.age))),createdYear:Math.floor(x.createdYear??(s.year+s.age)),targetId:x.targetId||null,otherTargetId:x.otherTargetId||null,sourceEventId:x.sourceEventId||'',status:x.status||'pending',payload:x.payload&&typeof x.payload==='object'?x.payload:{}}));
+ return s.delayedEvents;
+}
+function scheduleDelayedEvent(spec,context={}){
+ if(!spec?.id)return null;ensureDelayedEvents();
+ const years=Array.isArray(spec.years)?spec.years:[spec.years??1,spec.years??1],lo=Math.max(1,Math.floor(years[0]??1)),hi=Math.max(lo,Math.floor(years[1]??lo));
+ const rec={id:'d_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2),eventId:spec.id,dueYear:(s.year+s.age)+rng(lo,hi),createdYear:s.year+s.age,targetId:spec.target==='other'?context.otherTargetId:spec.target==='none'?null:context.targetId||null,otherTargetId:spec.target==='other'?context.targetId:context.otherTargetId||null,sourceEventId:context.sourceEventId||'',status:'pending',payload:{...(spec.payload||{})}};
+ s.delayedEvents.push(rec);return rec;
+}
+function dueDelayedRecord(eventId){
+ ensureDelayedEvents();const now=s.year+s.age;
+ return s.delayedEvents.filter(x=>x.status==='pending'&&x.eventId===eventId&&x.dueYear<=now).sort((a,b)=>a.dueYear-b.dueYear)[0]||null;
+}
+function delayedEventReady(e){
+ if(!e?.delayed)return true;const rec=dueDelayedRecord(e.id);if(!rec)return false;
+ if(rec.targetId&&!npcById(rec.targetId)?.alive){rec.status='discarded';return false;}
+ if(rec.otherTargetId&&!npcById(rec.otherTargetId)?.alive){rec.status='discarded';return false;}
+ return true;
+}
+function resolveDelayedRecord(id){
+ if(!id)return;const rec=ensureDelayedEvents().find(x=>x.id===id);if(rec)rec.status='resolved';
+}
+function delayedDetail(ctx){
+ const p=ctx?.delayedPayload||{};return p.detail||p.pathLabel||p.note||'';
+}
+
 function safeText(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function npcId(){return 'n_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);}
 function pathName(p){return ({civil:'oba',craft:'zanaat',culture:'söz',trade:'ticaret',state:'bitig/devlet',military:'sefer'})[p]||p;}
@@ -482,6 +510,7 @@ function eventTargetCandidates(target){
  return target&&pools[target]?pools[target]():[];
 }
 function eventTargetSelections(target,eventId=''){
+ const due=dueDelayedRecord(eventId);if(due){const dt=due.targetId?npcById(due.targetId):null,ot=due.otherTargetId?npcById(due.otherTargetId):null;if(due.targetId&&!dt?.alive)return [];if(due.otherTargetId&&!ot?.alive)return [];return [{target:dt,other:ot,delayed:due}];}
  if(target==='rivalAllyPair')return rivalKinPairs().map(x=>({target:x.target,other:x.other}));
  const meta=arcEventMeta(eventId);ensureStoryArcs();const st=meta?s.storyArcs[meta.id]:null;
  if(st?.status==='active'&&st.participantIds?.length){const locked=st.participantIds.map(npcById).find(n=>n?.alive);return locked?[{target:locked,other:null}]:[];}
@@ -494,12 +523,12 @@ function eligibleContextEvents(context=s.lastAction||{}){return EVENT_DECK.filte
  if(s.captive&&e.cat!=='Tutsaklık'||!s.captive&&e.cat==='Tutsaklık')return false;
  if(s.military.active&&!['Sefer','Sağlık'].includes(e.cat)||!s.military.active&&e.cat==='Sefer'&&e.id!=='spoils_choice')return false;
  if(s.exile&&['Boy','Devlet','Ocak'].includes(e.cat)||!s.exile&&e.cat==='Sürgün')return false;
- return storyArcEventAllowed(e)&&eventRequirementOK(e)&&eventHasTarget(e)&&e.choices.some(ch=>!eventChoiceIssue(ch));
+ return delayedEventReady(e)&&storyArcEventAllowed(e)&&eventRequirementOK(e)&&eventHasTarget(e)&&e.choices.some(ch=>!eventChoiceIssue(ch));
  });}
 function triggerContextEvent(force=false,context=s.lastAction||{}){
  if(!s?.alive||s.pendingEventId||s.pendingDecision)return false;const eligible=eligibleContextEvents(context);let pool=eligible.filter(e=>!e.fallback);if(!pool.length){pool=eligible.filter(e=>e.fallback);if(s.exile&&!s.captive&&!s.military.active)pool=pool.filter(e=>e.cat==='Sürgün');}if(!pool.length)return false;
- const ev=weightedPickEvents(pool),sels=eventTargetSelections(ev.target,ev.id),sel=sels.length?pick(sels):{target:null,other:null},target=sel.target,other=sel.other;
- s.pendingEventId=ev.id;s.pendingEventContext={age:s.age,year:s.year+s.age,month:context.month||currentMonth(),kind:context.kind||'wait',targetId:target?.id||null,otherTargetId:other?.id||null};s.decisionOffset=0;activateLifeTab();return true;
+ const ev=weightedPickEvents(pool),sels=eventTargetSelections(ev.target,ev.id),sel=sels.length?pick(sels):{target:null,other:null,delayed:null},target=sel.target,other=sel.other,delayed=sel.delayed||null;
+ s.pendingEventId=ev.id;s.pendingEventContext={age:s.age,year:s.year+s.age,month:context.month||currentMonth(),kind:context.kind||'wait',targetId:target?.id||null,otherTargetId:other?.id||null,delayedId:delayed?.id||null,delayedPayload:delayed?.payload||null};s.decisionOffset=0;activateLifeTab();return true;
 }
 function hasDirectAgency(e){return s.age>=5&&e.agency!=='guardian';}
 function applyEventChoice(x={}){
@@ -517,11 +546,13 @@ function chooseContextEvent(i){
  if(target?.alive&&other?.alive&&(fx.linkScore||fx.linkTrust||fx.linkGrudge))adjustSocialLink(target,other,{score:fx.linkScore||0,trust:fx.linkTrust||0,grudge:fx.linkGrudge||0},eventDisplayText(ev,context)+' — '+ch[0]);
  if(target?.alive){if(ev.id==='child_ill')target.health=clamp(target.health+(i===0?4:7));if(ev.id==='friend_quarrel')target.rel=clamp(target.rel+(i===0?6:-6));if(ev.id==='child_training_choice'){target.skills=target.skills||{};const k=i===0?'archery':i===1?'craft':'speech';target.skills[k]=clamp((target.skills[k]||0)+3);}}
  if(target?.alive&&fx.resolveRival){const ri=s.rivals.findIndex(n=>n.id===target.id);if(ri>=0){s.rivals.splice(ri,1);target.type='Dost';if(!s.friends.some(n=>n.id===target.id))s.friends.push(target);rememberNPC(target,'peace','Uzun süren husumet sona erdi.',7);unlock('reconciled');}}
+ if(fx.scheduleEvent)scheduleDelayedEvent(fx.scheduleEvent,{...context,sourceEventId:ev.id});
+ resolveDelayedRecord(context.delayedId);
  if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);if(!ev.fallback)s.eventCooldowns[ev.id]=ev.cool||12;
  s.eventArchive.push({id:ev.id,cat:ev.cat,...context,choice:i,actor:hasDirectAgency(ev)?'self':'guardian'});s.eventArchive=s.eventArchive.slice(-300);recordStoryArcChoice(ev.id,i,ch[0],context,false);log(`<b>${ev.cat}:</b> ${safeText(eventDisplayText(ev,context))} <i>${hasDirectAgency(ev)?'':'Ailen/bakıcıların: '}${safeText(ch[0])}</i>`);
  s.pendingEventId=null;s.pendingEventContext=null;s.decisionOffset=0;window._contextEvent=null;checkAchievements();if(s.health<=0)die();render();save();
 }
-function eventDisplayText(e,ctx){const target=allNPCs().find(n=>n.id===ctx?.targetId),other=allNPCs().find(n=>n.id===ctx?.otherTargetId);return String(e?.text||'').replaceAll('{name}',target?.name||'Yakının').replaceAll('{other}',other?.name||'yakının');}
+function eventDisplayText(e,ctx){const target=allNPCs().find(n=>n.id===ctx?.targetId),other=allNPCs().find(n=>n.id===ctx?.otherTargetId);return String(e?.text||'').replaceAll('{name}',target?.name||'Yakının').replaceAll('{other}',other?.name||'yakının').replaceAll('{detail}',delayedDetail(ctx));}
 function currentDecisionPayload(){if(!s?.alive)return null;const e=activeContextEvent();if(e)return {kind:'event',cat:e.cat,title:hasDirectAgency(e)?'Hayat Olayı':'Ailenin / Bakıcının Kararı',text:eventDisplayText(e,s.pendingEventContext),choices:e.choices,context:s.pendingEventContext};if(s.pendingDecision?.id==='campaign_call')return {kind:'system',cat:'Sefer',title:'Boydan Haber',text:'Yaklaşan sefer için savaşçılar toplanıyor. Birliğe katılmak birkaç ay sürecek.',choices:[['Birliğe katıl',{prestige:4,combat:2,path:'military'}],['Obada kal',{happiness:1}]],context:s.pendingDecision};return null;}
 const CHOICE_STAT_META={
  health:["❤️","Sağlık"],happiness:["☀","Dirlik"],skill:["✦","Beceri"],prestige:["🐺","İtibar"],wealth:["🐎","Servet"],
@@ -542,6 +573,7 @@ function choiceImpactItems(choice,more=false){
  if(x.otherTrust)items.push({cls:x.otherTrust>0?"pos":"neg",label:`🔒 Yakının güveni ${x.otherTrust>0?"+":""}${x.otherTrust}`});
  if(x.linkScore)items.push({cls:x.linkScore>0?"pos":"neg",label:`🔗 Aralarındaki bağ ${x.linkScore>0?"+":""}${x.linkScore}`});
  if(x.resolveRival)items.push({cls:"pos",label:"🤝 Husumet sona erebilir"});
+ if(x.scheduleEvent){const y=x.scheduleEvent.years,txt=Array.isArray(y)?(y[0]+"–"+y[1]+" yıl sonra"):(y+" yıl sonra");items.push({cls:"neutral",label:"⏳ "+txt+" sonuç doğurabilir"});}
  if(x.wound)items.push({cls:"neg",label:`🩸 Yara +${x.wound}`});
  if(x.clearExile)items.push({cls:"pos",label:"↩ Sürgün sona erer"});
  if(x.setRole)items.push({cls:"neutral",label:`🏕 Görev: ${x.setRole}`});
@@ -617,8 +649,8 @@ function renderSystems(){
 function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
- for(const k of ['parents','siblings','relatives','friends','rivals','children','socialLinks','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureStoryArcs();
+ for(const k of ['parents','siblings','relatives','friends','rivals','children','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments'])if(!Array.isArray(x[k]))x[k]=[];
+ for(const k of ['experience','careerMonths','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureStoryArcs();ensureDelayedEvents();
  if(x.partner){x.partner.age=x.partner.age??Math.max(16,x.age);x.partner.gender=x.partner.gender||(x.gender==='male'?'female':'male');}
  allNPCs().forEach(n=>normalizeNPC(n,n.type));seedCoreSocialLinks();pruneSocialLinks();if(x.partner&&!x.partner.alive)x.married=false;
  if(x.role){const r=D.careers.find(r=>r.name===x.role);if(r&&x.age<r.age){x.deferredRole=x.role;x.role=null;}}
