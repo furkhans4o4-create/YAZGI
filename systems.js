@@ -51,6 +51,11 @@ const STORY_ARCS={
   herd_disease:{stage:1,next:{0:'herd_reputation'},end:{1:'completed'}},
   herd_reputation:{stage:2,end:{0:'completed',1:'completed'}}
  }},
+ rivalry:{name:'Kişisel Husumet',icon:'⚔',start:'rival_arc_challenge',maxStage:3,nodes:{
+  rival_arc_challenge:{stage:0,next:{0:'rival_arc_escalation'},end:{1:'completed'}},
+  rival_arc_escalation:{stage:1,next:{0:'rival_arc_resolution',1:'rival_arc_resolution'}},
+  rival_arc_resolution:{stage:2,end:{0:'completed',1:'completed'}}
+ }},
  exile:{name:'Sürgün ve Dönüş',icon:'↗',start:'exile_new_oath',maxStage:2,nodes:{
   exile_new_oath:{stage:0,next:{1:'exile_return'},end:{0:'completed'}},
   exile_return:{stage:1,next:{1:'exile_return'},end:{0:'completed'}}
@@ -89,6 +94,12 @@ function eventEffectiveWeight(e){
  if(!st)return e.id===meta.arc.start?base*1.25:base;
  if(st.status==='active')return st.nextEventId===e.id?base*7:base*.2;
  return base*.08;
+}
+function storyArcEventAllowed(e){
+ const meta=arcEventMeta(e?.id);if(!meta)return true;ensureStoryArcs();const st=s.storyArcs[meta.id];
+ if(!st)return e.id===meta.arc.start;
+ if(st.status!=='active')return false;
+ return st.nextEventId===e.id;
 }
 function storyArcProgress(st){
  const arc=STORY_ARCS[st.id];return arc?Math.max(0,Math.min(100,Math.round((st.stage/arc.maxStage)*100))):0;
@@ -465,22 +476,24 @@ function eventTargetCandidates(target){
  };
  return target&&pools[target]?pools[target]():[];
 }
-function eventTargetSelections(target){
+function eventTargetSelections(target,eventId=''){
  if(target==='rivalAllyPair')return rivalKinPairs().map(x=>({target:x.target,other:x.other}));
+ const meta=arcEventMeta(eventId);ensureStoryArcs();const st=meta?s.storyArcs[meta.id]:null;
+ if(st?.status==='active'&&st.participantIds?.length){const locked=st.participantIds.map(npcById).find(n=>n?.alive);if(locked)return [{target:locked,other:null}];}
  return eventTargetCandidates(target).map(n=>({target:n,other:null}));
 }
-function eventHasTarget(e){return !e.target||eventTargetSelections(e.target).length>0;}
+function eventHasTarget(e){return !e.target||eventTargetSelections(e.target,e.id).length>0;}
 function eligibleContextEvents(context=s.lastAction||{}){return EVENT_DECK.filter(e=>{
  if(s.age<e.min||s.age>e.max||e.once&&s.eventHistory.includes(e.id)||!e.fallback&&(s.eventCooldowns[e.id]||0)>0)return false;
  if(e.months&&!e.months.includes(context.month||currentMonth())||e.actions&&!e.actions.includes(context.kind))return false;
  if(s.captive&&e.cat!=='Tutsaklık'||!s.captive&&e.cat==='Tutsaklık')return false;
  if(s.military.active&&!['Sefer','Sağlık'].includes(e.cat)||!s.military.active&&e.cat==='Sefer'&&e.id!=='spoils_choice')return false;
  if(s.exile&&['Boy','Devlet','Ocak'].includes(e.cat)||!s.exile&&e.cat==='Sürgün')return false;
- return eventRequirementOK(e)&&eventHasTarget(e)&&e.choices.some(ch=>!eventChoiceIssue(ch));
+ return storyArcEventAllowed(e)&&eventRequirementOK(e)&&eventHasTarget(e)&&e.choices.some(ch=>!eventChoiceIssue(ch));
  });}
 function triggerContextEvent(force=false,context=s.lastAction||{}){
  if(!s?.alive||s.pendingEventId||s.pendingDecision)return false;const eligible=eligibleContextEvents(context);let pool=eligible.filter(e=>!e.fallback);if(!pool.length){pool=eligible.filter(e=>e.fallback);if(s.exile&&!s.captive&&!s.military.active)pool=pool.filter(e=>e.cat==='Sürgün');}if(!pool.length)return false;
- const ev=weightedPickEvents(pool),sels=eventTargetSelections(ev.target),sel=sels.length?pick(sels):{target:null,other:null},target=sel.target,other=sel.other;
+ const ev=weightedPickEvents(pool),sels=eventTargetSelections(ev.target,ev.id),sel=sels.length?pick(sels):{target:null,other:null},target=sel.target,other=sel.other;
  s.pendingEventId=ev.id;s.pendingEventContext={age:s.age,year:s.year+s.age,month:context.month||currentMonth(),kind:context.kind||'wait',targetId:target?.id||null,otherTargetId:other?.id||null};s.decisionOffset=0;activateLifeTab();return true;
 }
 function hasDirectAgency(e){return s.age>=5&&e.agency!=='guardian';}
@@ -498,6 +511,7 @@ function chooseContextEvent(i){
  if(other?.alive&&(fx.otherRel||fx.otherTrust||fx.otherRespect||fx.otherFear||fx.otherGrudge))adjustNPC(other,{rel:fx.otherRel||0,trust:fx.otherTrust||0,respect:fx.otherRespect||0,fear:fx.otherFear||0,grudge:fx.otherGrudge||0},eventDisplayText(ev,context)+' — '+ch[0]);
  if(target?.alive&&other?.alive&&(fx.linkScore||fx.linkTrust||fx.linkGrudge))adjustSocialLink(target,other,{score:fx.linkScore||0,trust:fx.linkTrust||0,grudge:fx.linkGrudge||0},eventDisplayText(ev,context)+' — '+ch[0]);
  if(target?.alive){if(ev.id==='child_ill')target.health=clamp(target.health+(i===0?4:7));if(ev.id==='friend_quarrel')target.rel=clamp(target.rel+(i===0?6:-6));if(ev.id==='child_training_choice'){target.skills=target.skills||{};const k=i===0?'archery':i===1?'craft':'speech';target.skills[k]=clamp((target.skills[k]||0)+3);}}
+ if(target?.alive&&fx.resolveRival){const ri=s.rivals.findIndex(n=>n.id===target.id);if(ri>=0){s.rivals.splice(ri,1);target.type='Dost';if(!s.friends.some(n=>n.id===target.id))s.friends.push(target);rememberNPC(target,'peace','Uzun süren husumet sona erdi.',7);unlock('reconciled');}}
  if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);if(!ev.fallback)s.eventCooldowns[ev.id]=ev.cool||12;
  s.eventArchive.push({id:ev.id,cat:ev.cat,...context,choice:i,actor:hasDirectAgency(ev)?'self':'guardian'});s.eventArchive=s.eventArchive.slice(-300);recordStoryArcChoice(ev.id,i,ch[0],context,false);log(`<b>${ev.cat}:</b> ${safeText(eventDisplayText(ev,context))} <i>${hasDirectAgency(ev)?'':'Ailen/bakıcıların: '}${safeText(ch[0])}</i>`);
  s.pendingEventId=null;s.pendingEventContext=null;s.decisionOffset=0;window._contextEvent=null;checkAchievements();if(s.health<=0)die();render();save();
@@ -522,6 +536,7 @@ function choiceImpactItems(choice,more=false){
  if(x.otherRel)items.push({cls:x.otherRel>0?"pos":"neg",label:`👥 Yakının ilişki ${x.otherRel>0?"+":""}${x.otherRel}`});
  if(x.otherTrust)items.push({cls:x.otherTrust>0?"pos":"neg",label:`🔒 Yakının güveni ${x.otherTrust>0?"+":""}${x.otherTrust}`});
  if(x.linkScore)items.push({cls:x.linkScore>0?"pos":"neg",label:`🔗 Aralarındaki bağ ${x.linkScore>0?"+":""}${x.linkScore}`});
+ if(x.resolveRival)items.push({cls:"pos",label:"🤝 Husumet sona erebilir"});
  if(x.wound)items.push({cls:"neg",label:`🩸 Yara +${x.wound}`});
  if(x.clearExile)items.push({cls:"pos",label:"↩ Sürgün sona erer"});
  if(x.setRole)items.push({cls:"neutral",label:`🏕 Görev: ${x.setRole}`});
@@ -629,6 +644,9 @@ function configureRules(){
  }
  const exileReturn=EVENT_DECK.find(e=>e.id==='exile_return');if(exileReturn){exileReturn.once=false;exileReturn.cool=12;}
  EVENT_DECK.push(
+ {id:'rival_arc_challenge',cat:'İlişkiler',min:12,max:80,w:5,cool:24,once:true,req:'hasRival',target:'rival',text:'Rakibin {name}, toy meydanında seni herkesin önünde küçümsedi.',choices:[['Sözle karşılık ver',{prestige:2,targetRel:-4,targetGrudge:8,setFlag:'rival_story_active'}],['Konuyu büyütme',{happiness:2,targetGrudge:-5,targetRespect:1}]]},
+ {id:'rival_arc_escalation',cat:'Husumet',min:13,max:85,w:8,cool:12,once:true,req:'flag:rival_story_active',target:'rival',text:'{name} ile arandaki mesele bu kez oba işlerine yansıdı; ikinizden bir çözüm bekleniyor.',choices:[['Beylerin önünde konuş',{prestige:3,targetRespect:4,targetGrudge:-3,setFlag:'rival_hearing'}],['Güç göster',{health:-2,prestige:4,targetFear:8,targetGrudge:7}]]},
+ {id:'rival_arc_resolution',cat:'Husumet',min:14,max:90,w:9,cool:14,once:true,req:'flag:rival_story_active',target:'rival',text:'{name} ile süren husumet artık iki tarafı da yoruyor. Son bir karar vermen gerekiyor.',choices:[['Barış sözü ver',{happiness:3,prestige:4,targetRel:18,targetTrust:8,targetGrudge:-25,clearFlag:'rival_story_active',clearFlag2:'rival_hearing',resolveRival:true}],['Husumeti kapatmadan ayrıl',{prestige:3,targetGrudge:15,clearFlag:'rival_story_active',setFlag:'rival_bitter'}]]},
  {id:'feud_mediation_result',cat:'Husumet',min:16,max:60,w:8,cool:14,once:true,req:'flag:feud_mediation',text:'Araya giren büyükler iki taraf için bir uzlaşma sözü hazırladı.',choices:[['Uzlaşmayı kabul et',{happiness:4,prestige:4,clearFlag:'feud_mediation',clearFlag2:'feud_started',setFlag:'feud_settled'}],['Şartları yetersiz bul',{prestige:2,happiness:-2,clearFlag:'feud_mediation',setFlag:'feud_bitter'}]]},
  {id:'guardian_month',cat:'Bakım',min:0,max:4,w:1,fallback:true,agency:'guardian',text:'Yakınların bu ay bakım düzenini planlıyor.',choices:[['Dinlenmene ve beslenmene zaman ayırsınlar',{health:2}],['Yanında kalıp oyun ve seslerle ilgilensinler',{happiness:3}]]},
  {id:'child_month',cat:'Çocukluk',min:5,max:9,w:1,fallback:true,text:'Yakınlarının gözetiminde obada sakin bir gün geçiriyorsun.',choices:[['Yaşıtlarınla oyun kur',{happiness:2}],['Bir büyüğün anlattıklarını dinle',{speech:1}]]},
