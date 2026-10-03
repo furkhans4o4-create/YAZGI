@@ -30,6 +30,14 @@
 - Yardım sonuçları aynı NPC üzerinde birikir; fidye veya arabuluculuk gerçekten serbest kalma/dönüş sağlayabilir ve kişinin geçmişinde saklanır
 - NPC olayları görev, evlilik, çocuk ve bağlamsal olay akışını geçici olarak etkiler; kişi düzelince aynı kimlik ve ilişkilerle hayatına devam eder
 - Aile sekmesinde Yaşayan Dünya özeti aktif durumları ve son bağımsız NPC hayat olaylarını gösterir
+- Yetişkin çocuklar artık 18 yaş sonrası ayrı bir soy kolu profiline sahiptir: bağımsızlık, aile kurma isteği, kariyer ivmesi, hane desteği ve ebeveyn etkisi kalıcı tutulur
+- Yetişkin çocuğu mevcut dost/meslek/sefer çevrenden yaşayan bir NPC ile tanıştırabilirsin; tanışma otomatik evlilik değildir, çocuk kendi isteğine ve bağlarına göre kabul veya ret verebilir
+- Aile ve meslek bağlantılarıyla çocuğa gerçek görev kapısı açılabilir; çocuk bunu kabul etmeyebilir ve kendi yolunda kalabilir
+- Sürü, Demir Ocağı ve Kervan Payı gibi üretken aile işlerinin günlük sorumluluğu yetişkin çocuğa verilebilir; görev aynı NPC üzerinde kalıcı rol ve ekonomik katkıya dönüşür
+- Büyük Yurt, sürü, Demir Ocağı ve Kervan Payı gibi belirli varlıklar ölümden önce adı seçilen çocuğa bırakılabilir; kalan miras mevcut eşit/ana-varis düzenine göre paylaştırılır
+- Yetişkin çocuğun aile planı konuşulabilir ama çocuk sahibi olması zorlanmaz; kabul edilen plan yalnızca sonraki yıllardaki aile kurma ihtimalini etkiler
+- Yetişkin çocukların eşleri kalıcı çocuk-eşi NPC’leridir; hastalık, tutsaklık, sürgün ve göç gibi Yaşayan Dünya durumları kendi aile kollarını gerçekten etkiler
+- Torunlarla doğrudan vakit geçirme, beceri öğretme ve armağan verme eylemleri; ayrıca aile geçmişini merak eden torunlara özel bağlamsal olaylar eklendi
 - Derin dostluk ve sosyal çevre: çocukluk dostu, yakın dost, sırdaş, uzaklaşmış dost ve kalıcı yeniden buluşma geçmişi
 - 3+ güçlü dostla arkadaş çevresi, grup uyumu/gerilimi, ortak buluşmalar ve NPC-NPC dostluk bağları
 - Dost aracılığıyla görev çevresine giriş, eş adayı tanıştırması ve askerî dostun sefer yoldaşına dönüşmesi
@@ -81,7 +89,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 22’ye taşınır; sürüm değişiminde önce `yazgi_before_v22` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 23’e taşınır; sürüm değişiminde önce `yazgi_before_v23` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
