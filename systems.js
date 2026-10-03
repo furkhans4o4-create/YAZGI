@@ -1021,7 +1021,7 @@ function careerRoleSummary(){
 function careerPrimarySkill(r){const a=CAREER_RULES[r.id];return Object.keys(a?.skills||{})[0]||'speech';}
 function careerWorkOutcome(r){
  const p=careerProfile(r.id),key=careerPrimarySkill(r),need=CAREER_RULES[r.id]?.skills?.[key]||20,level=s.skills[key]||0;
- const difficulty=Math.max(8,need-8+Math.floor(p.mastery/9)),chance=Math.max(.28,Math.min(.96,.56+(level-difficulty)/110+p.reputation/350+s.health/500+workplaceWorkBonus()));
+ const difficulty=Math.max(8,need-8+Math.floor(p.mastery/9)),healthPenalty=longTermWorkPenalty(r),chance=Math.max(.22,Math.min(.96,.56+(level-difficulty)/110+p.reputation/350+s.health/500+workplaceWorkBonus()-healthPenalty));
  p.months++;p.lastYear=s.year+s.age;s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;addExperience(r.path);
  const success=Math.random()<chance;
  if(success){
@@ -1336,8 +1336,8 @@ function addScar(kind='injury',severity=1,source=''){
  return scar;
 }
 function healthBurden(){
- const h=ensureHealthProfile(),active=s.ailments.reduce((sum,x)=>sum+(x.severity||1),0),scar=h.scars.reduce((sum,x)=>sum+(x.severity||1),0);
- return active*5+scar*2+h.frailty;
+ const h=ensureHealthProfile(),active=s.ailments.reduce((sum,x)=>sum+(x.severity||1),0),scar=h.scars.reduce((sum,x)=>sum+(x.severity||1),0),long=h.longTermConditions.reduce((sum,x)=>sum+(x.severity||1)*(6-Math.min(3,Math.floor((x.management||0)/30))),0);
+ return active*5+scar*2+h.frailty+long;
 }
 function acquireAilment(id,opts={}){
  const d=AILMENTS[id];if(!d||s.age<d.min)return null;ensureHealthProfile();let x=s.ailments.find(a=>a.id===id);
@@ -1347,8 +1347,12 @@ function acquireAilment(id,opts={}){
 }
 function finishAilment(x){
  const d=AILMENTS[x.id],h=ensureHealthProfile();if(!d)return;
- h.history.unshift({year:s.year+s.age,type:'recovery',text:d.name+' hafifledi'});h.history=h.history.slice(0,40);
+ h.history.unshift({year:s.year+s.age,type:'recovery',text:d.name+' hafifledi'});h.history=h.history.slice(0,60);
  if(d.kind==='injury'&&x.severity>=3&&!h.scars.some(sc=>sc.source===x.source&&sc.year===x.startedYear))addScar(x.source==='battle'?'battle':'fall',x.severity>=4?2:1,x.source||d.name);
+ if(x.severity>=3){
+  const id=longTermConditionFromAilment(x),chance=x.severity>=4?.78:d.kind==='injury'?.38:.22;
+  if(id&&Math.random()<chance)acquireLongTermCondition(id,{severity:x.severity>=4?2:1,source:x.source||d.name,management:x.treated?34:18});
+ }
 }
 function tickHealthMonth(month){
  const h=ensureHealthProfile(),keep=[];
@@ -1359,14 +1363,18 @@ function tickHealthMonth(month){
  s.ailments=keep;
  if(month>=10&&Math.random()<(.018+h.frailty/5000))acquireAilment('chill',{source:'kış soğuğu'});
  if(month===12&&s.age>=50&&Math.random()<Math.min(.5,.14+(s.age-50)*.008))acquireAilment('joints',{severity:s.age>=70?3:2,source:'yaşlılık'});
+ longTermHealthMonthTick(month,s.lastAction||{});
 }
 function healthAgeTick(){
  const h=ensureHealthProfile(),scarWeight=h.scars.reduce((a,x)=>a+(x.severity||1),0);
- h.frailty=clamp(Math.floor(Math.max(0,s.age-45)*1.15)+scarWeight*2+Math.max(0,45-s.health)/3);
- h.resilience=clamp(58-Math.floor(Math.max(0,s.age-35)/3)-scarWeight+(s.health>=80?5:0));
+ h.frailty=clamp(Math.floor(Math.max(0,s.age-45)*1.15)+scarWeight*2+Math.max(0,45-s.health)/3+h.longTermConditions.reduce((a,x)=>a+x.severity,0));
+ h.resilience=clamp(58-Math.floor(Math.max(0,s.age-35)/3)-scarWeight+(s.health>=80?5:0)-Math.floor(h.longTermConditions.length/2));
  if(s.age>=55&&h.scars.length&&Math.random()<Math.min(.35,.04+h.frailty/400)){
   const old=pick(h.scars);if(old&&(old.lastFlareYear==null||s.year+s.age-old.lastFlareYear>=4)){old.lastFlareYear=s.year+s.age;scheduleDelayedEvent({id:'old_wound_flare',years:[1,2],payload:{scarId:old.id,detail:'Eski '+scarName(old)+' yaş ilerledikçe yeniden kendini hatırlattı.'}},{target:'none',sourceEventId:'ageing'});}
  }
+ if(s.age>=60&&h.frailty>=68&&!longTermCondition('chronic_pain')&&Math.random()<.07)acquireLongTermCondition('chronic_pain',{severity:1,source:'yaş ve eski yükler',management:28});
+ if(s.age>=68&&!longTermCondition('hearing')&&Math.random()<.035)acquireLongTermCondition('hearing',{severity:1,source:'ileri yaş',management:30});
+ if(s.age>=72&&!longTermCondition('sight')&&Math.random()<.03)acquireLongTermCondition('sight',{severity:1,source:'ileri yaş',management:30});
 }
 function healthRisk(){
  const h=ensureHealthProfile();let risk=0;if(s.health<25)risk+=.07;if(s.health<10)risk+=.18;if(s.age>50)risk+=(s.age-50)*.006;if(s.age>70)risk+=(s.age-70)*.016;
@@ -1380,12 +1388,13 @@ function treatHealth(useHealer=false){
  for(const x of s.ailments){x.remaining=Math.max(0,x.remaining-(useHealer?2:1));if(useHealer){x.severity=Math.max(1,x.severity-1);x.treated=true;}}
  const resolved=s.ailments.filter(x=>x.remaining<=0);resolved.forEach(finishAilment);s.ailments=s.ailments.filter(x=>x.remaining>0);
  if(useHealer&&h.scars.length&&Math.random()<.35){const sc=pick(h.scars);sc.severity=Math.max(1,sc.severity-1);}
+ if(h.longTermConditions.length){for(const x of h.longTermConditions)x.management=clamp(x.management+(useHealer?5:2));}
 }
 function healthSummaryHtml(){
  const h=ensureHealthProfile(),healer=healthHealer(false),burden=healthBurden(),state=burden>=45?'Ağır':burden>=25?'Zorlanıyor':burden>=10?'Dikkat':'Dengeli';
  const active=s.ailments.length?s.ailments.map(x=>AILMENTS[x.id].name+' • '+x.remaining+' ay • '+x.severity+'. derece').join('<br>'):'Aktif rahatsızlık yok';
  const scars=h.scars.length?h.scars.slice(-4).map(x=>scarName(x)+' • iz '+x.severity).join('<br>'):'Kalıcı yara izi yok';
- return '<div class="card"><h3>🌿 Sağlık Geçmişi</h3><p>'+state+' • Yük '+burden+' • Dayanıklılık '+h.resilience+' • Kırılganlık '+h.frailty+'<br>'+active+'</p><div class="memoryline">'+scars+(healer?'<br>Bakım için tanıdığın kişi: '+safeText(healer.name)+' ('+healer.rel+')':'')+'</div></div>';
+ return '<div class="card"><h3>🌿 Sağlık Geçmişi</h3><p>'+state+' • Yük '+burden+' • Dayanıklılık '+h.resilience+' • Kırılganlık '+h.frailty+'<br>'+active+'</p><div class="memoryline">'+scars+(healer?'<br>Bakım için tanıdığın kişi: '+safeText(healer.name)+' ('+healer.rel+')':'')+'</div></div>'+longTermHealthSummaryHtml();
 }
 
 
@@ -3325,7 +3334,12 @@ function successionSummaryHtml(){
 function physicalHealthIssue(a){
  const serious=s.ailments.find(x=>AILMENTS[x.id]?.kind==='injury'&&(x.severity||1)>=3);
  if(serious&&(['activity','training','military','desert'].includes(a.kind)))return AILMENTS[serious.id].name+' iyileşmeden ağır eylem yapamazsın.';
+ const caps=healthCapabilities();
  if(ensureHealthProfile().frailty>=75&&a.kind==='training'&&['wrestling','archery'].includes(a.id))return 'Yaş ve eski yaraların bu ağır talimi artık çok zorluyor.';
+ if(a.kind==='training'&&a.id==='wrestling'&&(caps.mobility<38||caps.upper<38))return 'Bu talim mevcut hareket ve kol işlevine fazla yük bindiriyor; daha uygun bir çalışma seç.';
+ if((a.kind==='activity'&&a.id==='av'||a.kind==='period'&&a.id==='summer_hunt')&&(caps.mobility<34||caps.vision<34))return 'Bu av mevcut hareket veya görme kapasitesi için güvenli değil.';
+ if((a.kind==='activity'&&a.id==='ok'||a.kind==='training'&&a.id==='archery')&&(caps.upper<32||caps.vision<30))return 'Okçuluk için kol/el ve görme kapasitesi şu anda çok sınırlı.';
+ if(a.kind==='military'){const issue=longTermMilitaryIssue();if(issue)return issue;}
  return '';
 }
 function careerIssue(r){
@@ -3338,6 +3352,7 @@ function careerIssue(r){
  if(a.campaigns&&s.military.campaigns<a.campaigns)return `${a.campaigns} sefer gerekiyor`;
  if(r.id==='bey'){const q=ensureStateCourt();if(q.influence<20)return 'Boy meclisi nüfuzu 20 gerekiyor';if(q.councilTrust<30)return 'Meclis güveni 30 gerekiyor';}
  if(r.path==='military'&&s.health<40)return 'En az 40 sağlık gerekiyor';
+ if(r.path==='military'){const issue=longTermMilitaryIssue();if(issue)return issue;}
  if(s.exile&&['state','military'].includes(r.path))return 'Önce sürgün meselesini çözmelisin';return '';
 }
 function careerRequirements(r){const a=CAREER_RULES[r.id];return `${a.age} yaş • genel beceri ${Math.max(0,r.skill-10)} • ${Object.entries(a.skills).map(([k,v])=>skillName(k)+' '+v).join(' • ')}${a.months?' • '+a.months+' ay '+pathName(a.track):''}${a.prestige?' • itibar '+a.prestige:''}${a.campaigns?' • '+a.campaigns+' sefer':''}${r.id==='bey'?' • meclis nüfuzu 20 • meclis güveni 30':''}`;}
@@ -3389,6 +3404,7 @@ function accessIssue(a){
  }else if(a.kind==='adultChild'){const issue=adultChildActionIssue(a.childId,a.id,a.extra??null);if(issue)return issue;min=18;
  }else if(a.kind==='grandchild'){const issue=grandchildActionIssue(a.grandId,a.id);if(issue)return issue;min=18;
  }else if(a.kind==='health'){min=5;if(!['rest','healer'].includes(a.id))return 'Bakım bulunamadı.';if(a.id==='healer'&&s.wealth<2)return '2 servet gerekiyor; dinlenebilirsin.';}
+ else if(a.kind==='healthAdapt'){min=5;const issue=healthAdaptationIssue(a.id);if(issue)return issue;}
  else if(a.kind==='guardian'){if(s.age>=5)return 'Bu bakım dönemi sona erdi.';}
  else if(a.kind==='friend')min=6;
  else if(a.kind==='rival')min=10;
