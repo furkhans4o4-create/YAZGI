@@ -683,7 +683,7 @@ function migrateTo(realm,place,mode='alone'){
 function localIntegrationAction(id){
  performAction({kind:'settlement',id},()=>{
   const m=ensureMobility();
-  if(id==='neighbors'){m.localStanding=clamp(m.localStanding+8);apply({happiness:2});if(Math.random()<.45)addSocial('friend');}
+  if(id==='neighbors'){m.localStanding=clamp(m.localStanding+8);apply({happiness:2});if(Math.random()<.45){const g=pick(['male','female']),age=Math.max(8,s.age+rng(-5,6)),n=normalizeNPC({name:pick(D.realms[s.realm][g]),gender:g,age,birthYear:s.year+s.age-age,alive:true,type:'Yerel Dost',rel:rng(56,70),realm:s.realm,place:s.place,tribe:pick(D.realms[s.realm].tribes)},'Yerel Dost');adjustNPC(n,{trust:8,respect:3},'Yeni yerleşimde tanıştınız.');s.friends.push(n);}}
   else if(id==='work'){m.localStanding=clamp(m.localStanding+6);skillGain('craft',1);skillGain('trade',1);apply({wealth:rng(0,2),prestige:1});}
   else if(id==='gathering'){m.localStanding=clamp(m.localStanding+10);skillGain('speech',2);apply({prestige:2,happiness:2});}
  },id==='neighbors'?'Yeni komşularla tanışmaya bir ay ayırdın.':id==='work'?'Yeni obada ortak işe katıldın.':'Yeni çevrenin toplantı ve toylarına katıldın.');
