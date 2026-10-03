@@ -682,7 +682,7 @@ function newCharacter(base={}, inherit=false){
   const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
-    version:13,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,variety:base.variety||null,mobility:base.mobility||null,education:base.education||null,appearance:base.appearance||null,romance:base.romance||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
+    version:14,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,variety:base.variety||null,mobility:base.mobility||null,education:base.education||null,appearance:base.appearance||null,romance:base.romance||null,justice:base.justice||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
     name:base.name||$("customName").value.trim()||pick(cfg[g]), gender:g, realm, year,
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
@@ -929,9 +929,11 @@ function renderTore(){
    $("tab-tore").innerHTML=`<div class="card locked"><h3>🔒 Töre dışı eylemler kilitli</h3><p>Bu bölüm 18 yaşında açılır.</p></div>`;
    return;
  }
- $("tab-tore").innerHTML=`${(s.captive||s.exile)&&typeof displacementSummaryHtml==="function"?displacementSummaryHtml():""}<div class="grid2">${D.crimes.map(c=>`<button class="card" onclick="commitCrime('${c.id}')"><h3>${safeText(c.name)}</h3><p>Yakalanma riski ${(c.risk*100)|0}%</p></button>`).join("")}</div>
- <p class="note">Yakalanırsan tazminat, itibar kaybı, sürgün veya tutsaklık gibi sonuçlar doğabilir.</p>
- ${s.crimeRecord.length?`<h3>Kayıt</h3><div class="grid2">${s.crimeRecord.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.result}</p></div>`).join("")}</div>`:""}`
+ const justice=typeof justiceSummaryHtml==="function"?justiceSummaryHtml():"";
+ const open=typeof openJusticeCase==="function"?openJusticeCase():null;
+ $("tab-tore").innerHTML=`${(s.captive||s.exile)&&typeof displacementSummaryHtml==="function"?displacementSummaryHtml():""}${justice}<h3 class="sectionTitle">Töre Dışı Eylemler</h3><div class="grid2">${D.crimes.map(c=>{const p=typeof CRIME_PROFILES!=="undefined"?CRIME_PROFILES[c.id]:null;const issue=accessIssue({kind:"crime",id:c.id});return `<button class="card ${issue?"locked":""}" ${issue?"disabled":""} onclick="commitCrime('${c.id}')"><h3>${safeText(c.name)}</h3><p>${p?"Ağırlık "+p.severity+" • ":""}temel açığa çıkma riski ${(c.risk*100)|0}%</p>${issue?`<div class="lockline">${safeText(issue)}</div>`:""}</button>`}).join("")}</div>
+ <p class="note">Her olay artık mağdur, tanık, iz/dayanak, şüphe ve olası aile husumetiyle kayda girer. Açık bir töre çağrısı varken önce o mesele çözülür.</p>
+ ${s.crimeRecord.length?`<h3>Kayıt</h3><div class="grid2">${s.crimeRecord.slice(0,12).map(x=>{const rec=typeof crimeCaseById==="function"?crimeCaseById(x.id):null;const victim=rec&&typeof justiceContact==="function"?justiceContact(rec.victimId):null;return `<div class="card"><h3>${safeText(x.name)}</h3><p>${safeText(x.result)}${victim?`<br>Mağdur: ${safeText(victim.name)}`:""}${Number.isFinite(x.evidence)?`<br>İz/dayanak ${x.evidence} • tanık ${x.witnesses||0}`:""}${rec?`<br>Durum: ${safeText(rec.status)}`:""}</p></div>`}).join("")}</div>`:""}`
 }
 function renderLegacy(){
  const rel=s.relatives||[],grands=rel.filter(x=>["Dede","Nine"].includes(x.type)),sideKin=rel.filter(x=>!["Dede","Nine"].includes(x.type));
