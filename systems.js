@@ -677,6 +677,54 @@ function guardianWardPeers(guardian){
  }
  return peers;
 }
+function assignGuardian(reason='ebeveyn kaybı',preferredId=null){
+ const g=ensureGuardianship();if(s.age>=18)return null;
+ const aliveParents=s.parents.filter(n=>n.alive);if(aliveParents.length)return aliveParents[0];
+ let guardian=preferredId?guardianContact(preferredId):null;
+ if(!guardian?.alive||guardian.age<18)guardian=guardianCandidates()[0]||createObaGuardian();
+ const old=currentGuardian();if(old?.id&&old.id!==guardian.id)g.transitions++;
+ g.active=true;g.guardianId=guardian.id;g.source=['Dede','Nine','Amca','Dayı','Hala','Teyze','Amca / Dayı','Hala / Teyze','Erkek kardeş','Kız kardeş'].includes(kinRole(guardian))?'akraba':'oba';
+ g.careQuality=guardianCareQuality(guardian);g.stability=clamp(45+Math.round(g.careQuality*.4));g.startedAge=g.startedAge??s.age;g.endedAge=null;g.months=0;
+ const minorSibs=s.siblings.filter(n=>n.alive&&n.age<18),capacity=Math.max(0,guardianCapacity(guardian)-1);
+ g.togetherSiblingIds=[];g.separatedSiblingIds=[];
+ for(let k=0;k<minorSibs.length;k++){
+  const sib=minorSibs[k];sib.statusFlags=sib.statusFlags||{};
+  if(k<capacity){g.togetherSiblingIds.push(sib.id);sib.statusFlags.guardianId=guardian.id;sib.place=guardian.place||s.place;sib.realm=guardian.realm||s.realm;}
+  else{g.separatedSiblingIds.push(sib.id);const alt=guardianCandidates().find(n=>n.id!==guardian.id&&guardianCapacity(n)>1);sib.statusFlags.guardianId=alt?.id||null;if(alt){sib.place=alt.place||sib.place;sib.realm=alt.realm||sib.realm;}}
+ }
+ s.place=guardian.place||s.place;s.realm=guardian.realm||s.realm;
+ const h=ensureHousing();h.mode='hosted_yurt';h.hostId=guardian.id;h.comfort=clamp(40+Math.round(g.careQuality*.35));h.monthsUnsheltered=0;
+ guardian.statusFlags=guardian.statusFlags||{};guardian.statusFlags.playerGuardian=true;
+ adjustNPC(guardian,{rel:4,trust:6,respect:3},'Ebeveynlerini kaybettiğinde bakımını üstlendi.');rememberNPC(guardian,'guardian','Seni '+reason+' sonrasında himayesine aldı.',8);guardianWardPeers(guardian);
+ g.history.unshift({year:s.year+s.age,age:s.age,type:'assigned',guardianId:guardian.id,reason,together:[...g.togetherSiblingIds],separated:[...g.separatedSiblingIds]});g.history=g.history.slice(0,50);
+ log(safeText(guardian.name)+' '+reason+' sonrasında bakımını ve himayeni üstlendi.','major');
+ if(g.separatedSiblingIds.length)log(g.separatedSiblingIds.length+' küçük kardeşin aynı yurtta kalamadı; farklı yakınların himayesine geçti.','bad');
+ return guardian;
+}
+function endGuardianship(reason='himaye sona erdi'){
+ const g=ensureGuardianship();if(!g.active)return;
+ const n=currentGuardian();g.active=false;g.endedAge=s.age;g.history.unshift({year:s.year+s.age,age:s.age,type:'ended',guardianId:g.guardianId,reason});g.history=g.history.slice(0,50);
+ if(n)rememberNPC(n,'guardian','Himaye dönemi sona erdi: '+reason+'.',5);
+ log('Himaye dönemin sona erdi: '+reason+'.','major');
+}
+function ensureMinorGuardianship(reason='ebeveyn kaybı'){
+ const g=ensureGuardianship();
+ if(s.age>=18){if(g.active)endGuardianship('yetişkinliğe ulaştın');return;}
+ const aliveParents=s.parents.filter(n=>n.alive);if(aliveParents.length){if(g.active)endGuardianship('yaşayan ebeveyn bakımını sürdürüyor');return;}
+ const cur=currentGuardian();if(!g.active||!cur?.alive)assignGuardian(cur?.alive?'bakım düzeni değişikliği':reason);
+}
+function guardianshipAction(id,index=-1){
+ const g=ensureGuardianship(),guardian=currentGuardian();if(!g.active||!guardian?.alive)return false;
+ return performAction({kind:'guardianship',id,index},()=>{
+  if(id==='time'){g.careQuality=clamp(g.careQuality+4);g.stability=clamp(g.stability+5);adjustNPC(guardian,{rel:6,trust:6},'Aynı yurtta birlikte sakin bir zaman geçirdiniz.');apply({happiness:3});}
+  else if(id==='help'){g.stability=clamp(g.stability+4);adjustNPC(guardian,{rel:4,trust:3,respect:7},'Yurt işlerinde ona yardımcı oldun.');apply({skill:2});}
+  else if(id==='learn'){const key=guardian.goal==='wisdom'?'literacy':guardian.goal==='war'?'combat':guardian.goal==='wealth'?'trade':guardian.goal==='mastery'?'craft':'speech';skillGain(key,3);adjustNPC(guardian,{rel:3,trust:4,respect:5},'Sana bildiği bir işi öğretmek için zaman ayırdı.');}
+  else if(id==='remember'){adjustNPC(guardian,{rel:4,trust:6},'Anne ve atan hakkında seninle konuştu.');apply({happiness:2});g.history.unshift({year:s.year+s.age,age:s.age,type:'family_memory',guardianId:guardian.id});}
+  else if(id==='visitSibling'){const sib=s.siblings.filter(n=>n.alive&&g.separatedSiblingIds.includes(n.id))[index];if(!sib)return;adjustNPC(sib,{rel:8,trust:6,grudge:-3},'Ayrı himaye ocaklarında yaşarken onu görmeye gittin.');apply({happiness:4});}
+  else if(id==='change'){const alt=guardianCandidates().find(n=>n.id!==guardian.id&&guardianCandidateScore(n)>=guardianCandidateScore(guardian)+4);if(!alt){notice('Şu anda belirgin biçimde daha uygun başka bir koruyucu görünmüyor.');return;}assignGuardian('himaye değişikliği',alt.id);apply({happiness:1});}
+ },id==='visitSibling'?'Ayrı yaşayan kardeşini görmekle bir ay geçti.':'Himaye ocağındaki yaşamına bir ay ayırdın.');
+}
+
 
 const PARENTING_PATHS={
  war:{name:'At ve savaş yolu',goal:'war',skills:['riding','archery','combat'],traits:['cesur','caliskan']},
