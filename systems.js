@@ -1052,11 +1052,21 @@ function adjustStateCourt(delta={},memory=''){
 }
 function stateCourtSummary(){
  const q=ensureStateCourt();if(!q.initialized&&!['Bitigçi','Elçi','Boy Beyi'].includes(s.role))return '';
- const last=q.decisions[0]?.text||'Henüz büyük bir meclis kararı vermedin.';
- return '<div class="card"><h3>🏕 Boy Meclisi ve Nüfuz</h3><p>Nüfuz '+q.influence+' • Meclis güveni '+q.councilTrust+'<br>Oba desteği '+q.tribeSupport+' • Rakip baskısı '+q.rivalPressure+(q.obligations?' • Yükümlülük '+q.obligations:'')+'</p><div class="memoryline">Son iz: '+safeText(last)+'</div></div>';
+ const last=q.decisions[0]?.text||'Henüz büyük bir meclis kararı vermedin.',p=currentStateProposal();
+ let html='<div class="card"><h3>🏕 Boy Meclisi ve Nüfuz</h3><p>Nüfuz '+q.influence+' • Meclis güveni '+q.councilTrust+'<br>Oba desteği '+q.tribeSupport+' • Rakip baskısı '+q.rivalPressure+(q.obligations?' • Yükümlülük '+q.obligations:'')+'<br>Oturum '+q.sessions+' • kabul '+q.passed+' • ret '+q.failed+'</p>'+statePolicySummaryHtml()+'<div class="memoryline">Son iz: '+safeText(last)+'</div></div>';
+ if(p){
+  const d=stateProposalDef(p.id),t=stateVoteTally(p);
+  html+='<div class="card"><h3>📜 Açık Teklif: '+safeText(d.name)+'</h3><p>'+safeText(d.desc)+'<br><b>Şu anki sayım:</b> '+t.yes+' destek • '+t.no+' karşı • '+t.abstain+' çekimser<br>Meclis havası '+t.councilScore+' • oba havası '+t.tribeScore+'</p></div>';
+  html+='<div class="grid2">'+t.rows.map(row=>{const n=npcById(row.id),done=p.lobbiedIds.includes(row.id),label=row.kind==='patron'?'İleri gelen':row.kind==='rival'?'Rakip ileri gelen':'Boy büyüğü';return '<div class="card"><h3>'+safeText(row.name)+'</h3><p>'+safeText(label)+' • '+safeText(stateStanceLabel(row.stance))+'</p><div class="actions">'+(done?'<span class="note">Bu teklif için özel görüşme yapıldı.</span>':actionButton('İkna etmeye çalış',{kind:'stateCouncil',id:'lobby',npcId:row.id},"lobbyStateMember('"+row.id+"')",'Konuşma, itibar, nüfuz ve aranızdaki güven sonucu etkiler.'))+'</div></div>';}).join('')+'</div>';
+  html+='<div class="grid2">'+actionButton('Meclis oylamasına götür',{kind:'stateCouncil',id:'vote'},'callStateVote()','En az 3 destek oyu gerekir. Sonuç mevcut tarafların tutumuna göre belirlenir.')+'<button class="card" onclick="withdrawStateProposal()"><h3>Teklifi geri çek</h3><p>Oylamadan önce gündemden çıkar; küçük nüfuz kaybı olur.</p></button></div>';
+ }else if(stateCouncilEligible()){
+  html+='<h3 class="sectionTitle">Meclise Teklif Taşı</h3><div class="grid2">'+Object.entries(STATE_PROPOSALS).map(([id,d])=>actionButton(d.name,{kind:'stateCouncil',id:'open',proposalId:id},"stateOpenProposal('"+id+"')",d.desc+' • '+d.duration+' yıl yürürlük')).join('')+'</div>';
+ }
+ return html;
 }
 function stateYearTick(){
  const q=ensureStateCourt();if(!q.initialized)return;
+ statePolicyYearTick();
  const rival=stateContact('rival',false),patron=stateContact('patron',false);
  if(rival?.alive)q.rivalPressure=clamp(q.rivalPressure+rng(0,2));else q.rivalPressure=clamp(q.rivalPressure-2);
  if(patron?.alive&&(patron.bonds?.trust||0)>=65)q.councilTrust=clamp(q.councilTrust+1);
@@ -2878,11 +2888,11 @@ function passiveAssetQuarter(id,month){
  let gain=0;
  if(id==='flock'){
   const seasonal=month<=2?-1:month<=8?1:0,gross=rng(0,3)+seasonal+(s.skills.trade>=45?1:0);
-  if(Math.random()<.12+e.foodPressure/700){gain=-rng(1,3);st.losses++;}else gain=Math.max(0,gross);
+  const relief=statePolicyActive('winter_share')?.04:0;if(Math.random()<Math.max(.04,.12+e.foodPressure/700-relief)){gain=-rng(1,3);st.losses++;}else gain=Math.max(0,gross);
  }else if(id==='smithy'&&s.skills.craft>=40){
-  if(Math.random()<.1){gain=-1;st.losses++;}else gain=Math.max(0,Math.round(rng(1,4)*(.65+e.craftDemand/100)));
+  if(Math.random()<.1){gain=-1;st.losses++;}else gain=Math.max(0,Math.round(rng(1,4)*(.65+e.craftDemand/100))+(statePolicyActive('craft_patronage')?1:0));
  }else if(id==='caravan_share'){
-  if(Math.random()<.22){gain=-rng(1,5);st.losses++;}else gain=Math.max(0,Math.round(rng(1,5)*(.6+e.tradeDemand/100)));
+  const guard=statePolicyActive('caravan_guard')?.08:0;if(Math.random()<Math.max(.06,.22-guard)){gain=-rng(1,5);st.losses++;}else gain=Math.max(0,Math.round(rng(1,5)*(.6+e.tradeDemand/100)));
  }
  if(gain){s.wealth=Math.max(0,s.wealth+gain);if(gain>0)st.profits+=gain;economyLedger('asset',gain,id+' dönem getirisi');}
  return gain;
@@ -2891,7 +2901,7 @@ function tickEconomyQuarter(month){
  if(s.age<18)return;const e=ensureEconomy(),bias=economySeasonBias(month);
  e.marketIndex=ecoClamp(e.marketIndex+bias+rng(-5,5),75,145);
  e.foodPressure=clamp(e.foodPressure+(month<=2?rng(4,10):month<=8?rng(-7,2):rng(-1,5))-(s.assets.includes('flock')?2:0));
- e.tradeDemand=clamp(e.tradeDemand+rng(-8,8)+(month>=4&&month<=9?3:-1));e.craftDemand=clamp(e.craftDemand+rng(-7,7)+(s.assets.includes('smithy')?1:0));
+ e.tradeDemand=clamp(e.tradeDemand+rng(-8,8)+(month>=4&&month<=9?3:-1));e.craftDemand=clamp(e.craftDemand+rng(-7,7)+(s.assets.includes('smithy')?1:0));statePolicyQuarterTick(month);
  const cost=householdQuarterCost(),upkeep=s.assets.reduce((a,id)=>a+(ASSET_ECONOMY[id]?.upkeep||0),0),due=cost+upkeep,pay=Math.min(s.wealth,due);
  s.wealth-=pay;e.upkeepPaid+=pay;
  if(pay<due){const missing=due-pay;e.upkeepMissed+=missing;e.shortageMonths++;apply({happiness:-Math.min(4,missing),health:e.shortageMonths>=2?-1:0});for(const id of s.assets)assetState(id).condition=clamp(assetState(id).condition-3);economyLedger('expense',-pay,'Geçim ve bakım gideri tam karşılanamadı.');}
@@ -3112,6 +3122,13 @@ function accessIssue(a){
  else if(a.kind==='reconcileEx'){min=16;if(s.partner?.alive)return 'Önce mevcut ilişkinin durumunu çöz.';if(!s.exPartners?.[a.index]?.alive)return 'Bu eski ilişkiyle görüşemezsin.';}
  else if(a.kind==='period'){const r=PERIOD_ACTIVITIES.find(x=>x.id===a.id)||SEASONAL_ACTIVITIES.find(x=>x.id===a.id);if(!r)return 'Faaliyet bulunamadı.';min=r.age;if(r.months&&!r.months.includes(currentMonth()))return 'Bu faaliyet bu mevsimde yapılır.';if(r.req&&!r.req())return 'Bu faaliyet için uygun şartlar oluşmadı.';if(a.id==='healer'&&s.wealth<2)return '2 servet gerekiyor.';}
  else if(a.kind==='role')return careerIssue(D.careers.find(x=>x.id===a.id));
+ else if(a.kind==='stateCouncil'){
+  min=18;
+  if(a.id==='open'){const issue=stateOpenProposalIssue(a.proposalId);if(issue)return issue;}
+  else if(a.id==='lobby'){const issue=stateLobbyIssue(a.npcId);if(issue)return issue;}
+  else if(a.id==='vote'){const issue=stateVoteIssue();if(issue)return issue;}
+  else return 'Meclis eylemi bulunamadı.';
+ }
  else if(a.kind==='asset'){
   const r=D.assets.find(x=>x.id===a.id);if(!r)return 'Varlık bulunamadı.';min=ASSET_AGES[a.id]||18;
   if(a.sell&&!s.assets.includes(a.id))return 'Bu varlık sende yok.';
@@ -3277,7 +3294,7 @@ function militaryCall(){if(s.age<18||s.captive||s.exile||s.military.called||s.mi
 function chooseDecision(i){if(!s?.alive||s.pendingDecision?.id!=='campaign_call'||![0,1].includes(i)||s.age<18)return;if(i===0&&(s.health<40||s.captive||s.exile)){notice('Özgürlük ve en az 40 sağlık gerekiyor.');return;}if(i===0){s.military.served=true;s.military.active=true;s.military.dutyMonths=rng(4,8);s.military.campaigns++;generateComrades();s.path='military';apply({prestige:4});unlock('military');log('Sefer birliğine katıldın.','major');}else{s.flags.military_declined=true;log('Bu çağrıda obada kaldın.');}s.pendingDecision=null;render();save();}
 function militaryTrain(id){performAction({kind:'military',id},()=>{skillGain({horse:'riding',bow:'archery',drill:'combat',watch:'combat'}[id],3);apply({skill:1,prestige:1});},'Birlik talimine bir ay ayırdın.');}
 function desertCampaign(){performAction({kind:'desert'},()=>{s.military.active=false;s.military.dutyMonths=0;apply({prestige:-18,happiness:-4});if(Math.random()<.35)enterExile('birliği izinsiz terk etme');log('Birliği izinsiz terk ettin.','bad');},'Ayrılmanın sonuçlarıyla bir ay geçti.');}
-function campaignResult(){s.military.active=false;s.military.dutyMonths=0;const roll=Math.random();if(roll<.12){enterCaptivity('seferde esir düşme');resolveComradeCampaignOutcome('captured');log('Seferde tutsak düştün.','bad');}else if(roll<.32){s.military.wounds++;resolveComradeCampaignOutcome('wounded');apply({health:-rng(8,18),prestige:4});acquireAilment('deep_wound',{severity:2,duration:6,source:'battle'});if(Math.random()<.55)addScar('battle',1,'battle');}else{resolveComradeCampaignOutcome('success');apply({wealth:rng(4,12),prestige:rng(4,8)});s.flags.recent_campaign=true;log('Seferden ganimet ve tecrübeyle döndün.','good');}}
+function campaignResult(){s.military.active=false;s.military.dutyMonths=0;const roll=Math.random(),safe=stateCampaignSafetyBonus(),capture=Math.max(.04,.12-safe*.5),wound=Math.max(.18,.32-safe);if(roll<capture){enterCaptivity('seferde esir düşme');resolveComradeCampaignOutcome('captured');log('Seferde tutsak düştün.','bad');}else if(roll<wound){s.military.wounds++;resolveComradeCampaignOutcome('wounded');apply({health:-rng(8,18),prestige:4});acquireAilment('deep_wound',{severity:2,duration:6,source:'battle'});if(Math.random()<.55)addScar('battle',1,'battle');}else{resolveComradeCampaignOutcome('success');apply({wealth:rng(4,12)+(safe?2:0),prestige:rng(4,8)});s.flags.recent_campaign=true;log('Seferden ganimet ve tecrübeyle döndün.'+(safe?' Meclisin hazırlık düzeni kayıpları azalttı.':''),'good');}}
 function captivityMonth(){captivityAction('endure');}
 function attemptEscape(){performAction({kind:'escape'},()=>{const c=ensureDisplacement().captivity,chance=Math.max(.08,Math.min(.82,.08+s.skill/650+c.escapePrep/145+s.health/1200-c.guardPressure/430));if(Math.random()<chance){leaveCaptivity('hazırlanmış kaçış');}else{c.guardPressure=clamp(c.guardPressure+10);c.escapePrep=clamp(Math.floor(c.escapePrep*.45));apply({health:-rng(4,8),happiness:-5});if(Math.random()<.28)acquireAilment('injury',{source:'başarısız kaçış'});log('Kaçış girişimi başarısız oldu; gözetim sıkılaştı.','bad');}},'Kaçış girişimiyle bir ay geçti.');}
 function commitCrime(id){
