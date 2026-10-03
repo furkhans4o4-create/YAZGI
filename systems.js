@@ -870,7 +870,7 @@ function workplaceRoleLabels(r){
  return map[path]||map.civil;
 }
 function workplaceContactById(id){return ensureWorkplace().contacts.find(n=>n.id===id)||allNPCs().find(n=>n.id===id)||null;}
-function currentWorkplaceContacts(){const w=ensureWorkplace();return w.contacts.filter(n=>n.alive&&n.statusFlags?.workplaceRoleId===w.roleId&&!n.statusFlags?.formerWorkplace);}
+function currentWorkplaceContacts(){const w=ensureWorkplace(),seen=new Set();return w.contacts.filter(n=>n?.alive&&n.statusFlags?.workplaceRoleId===w.roleId&&!n.statusFlags?.formerWorkplace&&!seen.has(n.id)&&seen.add(n.id));}
 function workplaceSupervisor(){return currentWorkplaceContacts().find(n=>n.statusFlags?.workplacePosition==='supervisor')||null;}
 function workplacePeers(){return currentWorkplaceContacts().filter(n=>n.statusFlags?.workplacePosition==='peer');}
 function workplaceJuniors(){return currentWorkplaceContacts().filter(n=>n.statusFlags?.workplacePosition==='junior');}
@@ -958,7 +958,7 @@ function tickWorkplaceMonth(action={}){
  const contacts=currentWorkplaceContacts();for(const n of contacts){if(!n?.alive)continue;normalizeBonds(n);if(n.place!==s.place&&Math.random()<.08)n.place=s.place;if(n.realm!==s.realm&&Math.random()<.06)n.realm=s.realm;}
  if(action.kind==='work'){w.projectProgress=clamp(w.projectProgress+6);w.standing=clamp(w.standing+1);}
  if(action.kind!=='workplace'&&action.kind!=='work'&&w.months%4===0){w.cohesion=clamp(w.cohesion-1);if(w.conflict>0)w.conflict=clamp(w.conflict-1);}
- const peers=workplacePeers();for(let i=0;i<peers.length;i++)for(let j=i+1;j<peers.length;j++){const l=socialLinkBetween(peers[i],peers[j],true,{tags:['work']});if(l.score<0||l.grudge>30)w.conflict=clamp(w.conflict+1);}
+ const peers=workplacePeers();for(let i=0;i<peers.length;i++)for(let j=i+1;j<peers.length;j++){const l=socialLinkBetween(peers[i],peers[j],true,{tags:['work']});if(l&&(l.score<0||l.grudge>30))w.conflict=clamp(w.conflict+1);}
  if(w.projectProgress>=100){w.projectProgress=0;w.projects++;w.standing=clamp(w.standing+6);w.cohesion=clamp(w.cohesion+4);apply({prestige:2,wealth:1});for(const n of contacts)adjustNPC(n,{rel:2,respect:2},'Bir ortak işi başarıyla tamamladınız.');log('Görev çevreniz ortak bir işi tamamladı.','good');}
  if(w.conflict>=75&&w.months%3===0){apply({happiness:-1});w.standing=clamp(w.standing-1);}
 }
