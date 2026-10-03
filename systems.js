@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=17,ADULT_AGE=18;
+const SAVE_VERSION=18,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -622,6 +622,61 @@ const AMBITION_DEFS=[
 
 
 
+
+
+function ensureGuardianship(){
+ if(!s.guardianship||typeof s.guardianship!=='object'||Array.isArray(s.guardianship))s.guardianship={};
+ const g=s.guardianship;
+ g.active=!!g.active;g.guardianId=g.guardianId||null;g.source=g.source||null;
+ g.careQuality=clamp(Number.isFinite(g.careQuality)?g.careQuality:50);g.stability=clamp(Number.isFinite(g.stability)?g.stability:55);
+ g.months=Math.max(0,Math.round(g.months||0));g.transitions=Math.max(0,Math.round(g.transitions||0));
+ g.startedAge=g.startedAge??null;g.endedAge=g.endedAge??null;
+ g.togetherSiblingIds=Array.isArray(g.togetherSiblingIds)?g.togetherSiblingIds:[];
+ g.separatedSiblingIds=Array.isArray(g.separatedSiblingIds)?g.separatedSiblingIds:[];
+ g.contacts=Array.isArray(g.contacts)?g.contacts:[];g.history=Array.isArray(g.history)?g.history.slice(-50):[];
+ g.contacts=g.contacts.filter(Boolean).map(n=>normalizeNPC(n,n.type||'Himaye Çevresi'));
+ return g;
+}
+function guardianContact(id){return allNPCs().find(n=>n.id===id)||ensureGuardianship().contacts.find(n=>n.id===id)||null;}
+function currentGuardian(){const g=ensureGuardianship();return g.guardianId?guardianContact(g.guardianId):null;}
+function guardianCandidateScore(n){
+ if(!n?.alive||n.age<18||n.id===s.id)return -999;
+ normalizeNPC(n,n.type);const b=normalizeBonds(n);let v=(n.rel||0)*.42+b.trust*.28+b.respect*.08+(n.health||50)*.06+Math.min(18,(n.wealth||0)*.35),role=kinRole(n);
+ if(['Dede','Nine'].includes(role))v+=18;
+ if(['Amca','Dayı','Hala','Teyze','Amca / Dayı','Hala / Teyze'].includes(role))v+=14;
+ if(['Erkek kardeş','Kız kardeş'].includes(role))v+=16;
+ if(n.statusFlags?.familyFriend)v+=8;
+ if(n.place===s.place)v+=12;else v-=5;if(n.realm===s.realm)v+=8;else v-=12;
+ if(n.traits?.includes('merhametli'))v+=10;if(n.traits?.includes('sadik'))v+=7;if(n.traits?.includes('kinci'))v-=8;if(n.traits?.includes('kuskucu'))v-=4;
+ return Math.round(v);
+}
+function guardianCandidates(){
+ const seen=new Set(),pool=[],add=n=>{if(!n||seen.has(n.id))return;seen.add(n.id);if(n.alive&&n.age>=18)pool.push(n);};
+ [...s.siblings,...(s.relatives||[]),...s.friends,...extendedFamilyVisible()].forEach(add);
+ return pool.sort((a,b)=>guardianCandidateScore(b)-guardianCandidateScore(a));
+}
+function guardianCapacity(n){return Math.max(2,3+Math.floor((n?.wealth||0)/15)+(n?.traits?.includes('comert')?1:0));}
+function guardianCareQuality(n){
+ if(!n)return 30;const b=normalizeBonds(n);
+ return clamp(Math.round(20+(n.rel||50)*.25+b.trust*.2+(n.health||60)*.12+Math.min(12,(n.wealth||0)*.3)+(n.traits?.includes('merhametli')?10:0)+(n.traits?.includes('sadik')?6:0)-(n.traits?.includes('kinci')?6:0)));
+}
+function createObaGuardian(){
+ const cfg=D.realms[s.realm],gender=pick(['male','female']),age=rng(28,52);
+ const n=normalizeNPC({name:pick(cfg[gender]),gender,age,birthYear:s.year+s.age-age,alive:true,rel:rng(48,64),type:'Oba Koruyucusu',realm:s.realm,place:s.place,tribe:s.tribe,wealth:rng(8,30),prestige:rng(15,45),traits:['merhametli',pick(['sadik','sakin','caliskan'])]},'Oba Koruyucusu');
+ n.statusFlags.guardianContact=true;n.statusFlags.familyFriend=true;normalizeBonds(n);n.bonds.trust=Math.max(n.bonds.trust,55);
+ ensureGuardianship().contacts.push(n);if(!s.friends.some(x=>x.id===n.id))s.friends.push(n);return n;
+}
+function guardianWardPeers(guardian){
+ const g=ensureGuardianship();let peers=g.contacts.filter(n=>n.statusFlags?.guardianWard&&n.statusFlags?.guardianId===guardian.id&&n.alive);
+ const desired=Math.max(0,Math.min(2,guardianCapacity(guardian)-1-g.togetherSiblingIds.length)),cfg=D.realms[s.realm];
+ while(peers.length<desired){
+  const gender=pick(['male','female']),age=Math.max(1,Math.min(17,s.age+rng(-4,4)));
+  const n=normalizeNPC({name:pick(cfg[gender]),gender,age,birthYear:s.year+s.age-age,alive:true,rel:rng(42,60),type:'Himaye Yoldaşı',realm:s.realm,place:guardian.place||s.place,tribe:s.tribe},'Himaye Yoldaşı');
+  n.statusFlags.guardianWard=true;n.statusFlags.guardianId=guardian.id;g.contacts.push(n);peers.push(n);
+  adjustSocialLink(guardian,n,{score:35,trust:18,tag:'guardian'},'Aynı himaye ocağında yaşıyorlar.');
+ }
+ return peers;
+}
 
 const PARENTING_PATHS={
  war:{name:'At ve savaş yolu',goal:'war',skills:['riding','archery','combat'],traits:['cesur','caliskan']},
