@@ -42,9 +42,18 @@ const STORY_ARCS={
   feud_end:{stage:2,end:{0:'completed',1:'completed'}},
   feud_mediation_result:{stage:2,end:{0:'completed',1:'completed'}}
  }},
- household:{name:'Ocağın İlk Yılları',icon:'🏕',start:'household_first_winter',maxStage:2,nodes:{
-  household_first_winter:{stage:0,next:{0:'spouse_family_request'},end:{1:'completed'}},
-  spouse_family_request:{stage:1,end:{0:'completed',1:'completed'}}
+ household:{name:'Ocağın Yılları',icon:'🏕',start:'household_first_winter',maxStage:5,nodes:{
+  household_first_winter:{stage:0,next:{0:'spouse_family_request',1:'spouse_family_request'}},
+  spouse_family_request:{stage:1,next:{0:'household_work_balance',1:'household_work_balance'}},
+  household_work_balance:{stage:2,next:{0:'household_trust_test',1:'household_trust_test'}},
+  household_trust_test:{stage:3,next:{0:'household_long_memory',1:'household_long_memory'}},
+  household_long_memory:{stage:4,end:{0:'completed',1:'completed'}}
+ }},
+ childpath:{name:'Bir Çocuğun Yolu',icon:'🧒',start:'child_training_choice',maxStage:4,nodes:{
+  child_training_choice:{stage:0,next:{0:'child_training_conflict',1:'child_training_conflict',2:'child_training_conflict'}},
+  child_training_conflict:{stage:1,next:{0:'child_departure_choice',1:'child_departure_choice'}},
+  child_departure_choice:{stage:2,next:{0:'child_path_consequence',1:'child_path_consequence',2:'child_path_consequence'}},
+  child_path_consequence:{stage:3,end:{0:'completed',1:'completed'}}
  }},
  herd:{name:'Büyük Sürünün Yolu',icon:'🐎',start:'herd_expansion',maxStage:3,nodes:{
   herd_expansion:{stage:0,next:{0:'herd_disease'},end:{1:'completed'}},
@@ -145,6 +154,19 @@ function resolveDelayedRecord(id){
 }
 function delayedDetail(ctx){
  const p=ctx?.delayedPayload||{};return p.detail||p.pathLabel||p.note||'';
+}
+function targetPastLabel(n){
+ const v=n?.statusFlags?.guidance;return v==='war'?'at ve ok talimine':v==='craft'?'bir ustanın yanında zanaata':v==='free'?'kendi yolunu bulmaya':'kendi yolunu bulmaya';
+}
+function applyChildPathConsequence(n,context,choiceIndex){
+ if(!n)return;const path=context?.delayedPayload?.path||n.statusFlags?.guidance||'free';n.goal=path==='war'?'war':path==='craft'?'mastery':chooseNPCGoal(n);n.skills=n.skills||{};
+ if(path==='war'){n.skills.combat=clamp((n.skills.combat||0)+8);n.skills.riding=clamp((n.skills.riding||0)+6);n.skills.archery=clamp((n.skills.archery||0)+6);}
+ else if(path==='craft'){n.skills.craft=clamp((n.skills.craft||0)+10);}
+ else{n.skills.speech=clamp((n.skills.speech||0)+4);n.prestige=clamp((n.prestige||0)+2);}
+ n.role=npcCareerFor(n);n.roleHistory.push({year:s.year+s.age,role:n.role});rememberNPC(n,'milestone','Yıllar önce seçilen yetişme yolunun ardından '+n.role+' oldu.',6);
+ if(choiceIndex===0){n.prestige=clamp((n.prestige||0)+4);adjustNPC(n,{rel:5,trust:6,respect:5},'Yıllar sonra yolunu desteklemeye devam ettin.');}
+ else adjustNPC(n,{rel:-1,trust:-2,respect:2},'Yetişkin olduğunda kendi sorumluluğunu almasını istedin.');
+ log(safeText(n.name)+' yıllar süren yetişme yolunun ardından '+safeText(n.role)+' oldu.','major');
 }
 
 function safeText(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -503,7 +525,7 @@ function eventChoiceIssue(ch){const x=ch[1]||{};if(x.wealth<0&&s.wealth<-x.wealt
 function eventTargetCandidates(target){
  const pools={
   child:()=>s.children.filter(n=>n.alive),trainingChild:()=>s.children.filter(n=>n.alive&&n.age>=7&&n.age<18),friend:()=>s.friends.filter(n=>n.alive),
-  rival:()=>s.rivals.filter(n=>n.alive),familyFriend:()=>s.friends.filter(n=>n.alive&&n.statusFlags?.familyFriend),familyEnemy:()=>s.rivals.filter(n=>n.alive&&n.statusFlags?.familyEnemy),
+  rival:()=>s.rivals.filter(n=>n.alive),partner:()=>s.partner?.alive?[s.partner]:[],familyFriend:()=>s.friends.filter(n=>n.alive&&n.statusFlags?.familyFriend),familyEnemy:()=>s.rivals.filter(n=>n.alive&&n.statusFlags?.familyEnemy),
   parent:()=>s.parents.filter(n=>n.alive),sibling:()=>s.siblings.filter(n=>n.alive),relative:()=> (s.relatives||[]).filter(n=>n.alive),
   closeKin:()=>[...s.parents,...s.siblings,...s.children,...(s.relatives||[])].filter(n=>n.alive),trusted:()=>allNPCs().filter(n=>n.alive&&(n.bonds?.trust||0)>=55)
  };
@@ -544,7 +566,8 @@ function chooseContextEvent(i){
  if(target?.alive&&(fx.targetRel||fx.targetTrust||fx.targetRespect||fx.targetFear||fx.targetGrudge))adjustNPC(target,{rel:fx.targetRel||0,trust:fx.targetTrust||0,respect:fx.targetRespect||0,fear:fx.targetFear||0,grudge:fx.targetGrudge||0},eventDisplayText(ev,context)+' — '+ch[0]);
  if(other?.alive&&(fx.otherRel||fx.otherTrust||fx.otherRespect||fx.otherFear||fx.otherGrudge))adjustNPC(other,{rel:fx.otherRel||0,trust:fx.otherTrust||0,respect:fx.otherRespect||0,fear:fx.otherFear||0,grudge:fx.otherGrudge||0},eventDisplayText(ev,context)+' — '+ch[0]);
  if(target?.alive&&other?.alive&&(fx.linkScore||fx.linkTrust||fx.linkGrudge))adjustSocialLink(target,other,{score:fx.linkScore||0,trust:fx.linkTrust||0,grudge:fx.linkGrudge||0},eventDisplayText(ev,context)+' — '+ch[0]);
- if(target?.alive){if(ev.id==='child_ill')target.health=clamp(target.health+(i===0?4:7));if(ev.id==='friend_quarrel')target.rel=clamp(target.rel+(i===0?6:-6));if(ev.id==='child_training_choice'){target.skills=target.skills||{};const k=i===0?'archery':i===1?'craft':'speech';target.skills[k]=clamp((target.skills[k]||0)+3);}}
+ if(target?.alive&&fx.targetState){target.statusFlags=target.statusFlags||{};target.statusFlags[fx.targetState.key]=fx.targetState.value;}
+ if(target?.alive){if(ev.id==='child_ill')target.health=clamp(target.health+(i===0?4:7));if(ev.id==='friend_quarrel')target.rel=clamp(target.rel+(i===0?6:-6));if(ev.id==='child_training_choice'){target.skills=target.skills||{};const k=i===0?'archery':i===1?'craft':'speech';target.skills[k]=clamp((target.skills[k]||0)+3);}if(ev.id==='child_path_consequence')applyChildPathConsequence(target,context,i);}
  if(target?.alive&&fx.resolveRival){const ri=s.rivals.findIndex(n=>n.id===target.id);if(ri>=0){s.rivals.splice(ri,1);target.type='Dost';if(!s.friends.some(n=>n.id===target.id))s.friends.push(target);rememberNPC(target,'peace','Uzun süren husumet sona erdi.',7);unlock('reconciled');}}
  if(fx.scheduleEvent)scheduleDelayedEvent(fx.scheduleEvent,{...context,sourceEventId:ev.id});
  resolveDelayedRecord(context.delayedId);
@@ -552,7 +575,7 @@ function chooseContextEvent(i){
  s.eventArchive.push({id:ev.id,cat:ev.cat,...context,choice:i,actor:hasDirectAgency(ev)?'self':'guardian'});s.eventArchive=s.eventArchive.slice(-300);recordStoryArcChoice(ev.id,i,ch[0],context,false);log(`<b>${ev.cat}:</b> ${safeText(eventDisplayText(ev,context))} <i>${hasDirectAgency(ev)?'':'Ailen/bakıcıların: '}${safeText(ch[0])}</i>`);
  s.pendingEventId=null;s.pendingEventContext=null;s.decisionOffset=0;window._contextEvent=null;checkAchievements();if(s.health<=0)die();render();save();
 }
-function eventDisplayText(e,ctx){const target=allNPCs().find(n=>n.id===ctx?.targetId),other=allNPCs().find(n=>n.id===ctx?.otherTargetId);return String(e?.text||'').replaceAll('{name}',target?.name||'Yakının').replaceAll('{other}',other?.name||'yakının').replaceAll('{detail}',delayedDetail(ctx));}
+function eventDisplayText(e,ctx){const target=allNPCs().find(n=>n.id===ctx?.targetId),other=allNPCs().find(n=>n.id===ctx?.otherTargetId);return String(e?.text||'').replaceAll('{name}',target?.name||'Yakının').replaceAll('{other}',other?.name||'yakının').replaceAll('{detail}',delayedDetail(ctx)).replaceAll('{past}',targetPastLabel(target));}
 function currentDecisionPayload(){if(!s?.alive)return null;const e=activeContextEvent();if(e)return {kind:'event',cat:e.cat,title:hasDirectAgency(e)?'Hayat Olayı':'Ailenin / Bakıcının Kararı',text:eventDisplayText(e,s.pendingEventContext),choices:e.choices,context:s.pendingEventContext};if(s.pendingDecision?.id==='campaign_call')return {kind:'system',cat:'Sefer',title:'Boydan Haber',text:'Yaklaşan sefer için savaşçılar toplanıyor. Birliğe katılmak birkaç ay sürecek.',choices:[['Birliğe katıl',{prestige:4,combat:2,path:'military'}],['Obada kal',{happiness:1}]],context:s.pendingDecision};return null;}
 const CHOICE_STAT_META={
  health:["❤️","Sağlık"],happiness:["☀","Dirlik"],skill:["✦","Beceri"],prestige:["🐺","İtibar"],wealth:["🐎","Servet"],
@@ -574,6 +597,7 @@ function choiceImpactItems(choice,more=false){
  if(x.linkScore)items.push({cls:x.linkScore>0?"pos":"neg",label:`🔗 Aralarındaki bağ ${x.linkScore>0?"+":""}${x.linkScore}`});
  if(x.resolveRival)items.push({cls:"pos",label:"🤝 Husumet sona erebilir"});
  if(x.scheduleEvent){const y=x.scheduleEvent.years,txt=Array.isArray(y)?(y[0]+"–"+y[1]+" yıl sonra"):(y+" yıl sonra");items.push({cls:"neutral",label:"⏳ "+txt+" sonuç doğurabilir"});}
+ if(x.targetState)items.push({cls:"neutral",label:"🧭 Bu kişinin yolu değişir"});
  if(x.wound)items.push({cls:"neg",label:`🩸 Yara +${x.wound}`});
  if(x.clearExile)items.push({cls:"pos",label:"↩ Sürgün sona erer"});
  if(x.setRole)items.push({cls:"neutral",label:`🏕 Görev: ${x.setRole}`});
@@ -672,7 +696,18 @@ function configureRules(){
   if(adult.has(e.cat)||['marriage_pressure','family_debt','winter_shortage','summer_drought','wolf_attack','bandit_tracks','feud_challenge','feud_end'].includes(e.id))e.min=Math.max(18,e.min);
   if(e.id==='foal_friend')e.min=5;if(e.id==='smith_offer'){e.min=12;e.choices[0][1].craft=3;}if(e.id==='scribe_offer')e.choices[0][1].literacy=3;
   if(e.id==='river_crossing'){e.text='Göç sırasında oba bir ırmağın kıyısında bekliyor. Büyüklerin sana hafif bir iş gösterdi.';e.choices[0][0]='Büyüklerinin yanında yardım et';}if(e.id==='lost_lamb')e.choices[0][0]='Bir büyüğünle izine bak';
-  if(e.id==='friend_quarrel'){e.req='hasFriend';e.target='friend';}if(e.id==='child_training_choice'){e.req='trainableChild';e.target='trainingChild';}if(e.id==='child_ill')e.target='child';if(e.id==='grandchild_visit')e.req='hasGrandchild';
+  if(e.id==='friend_quarrel'){e.req='hasFriend';e.target='friend';}
+  if(e.id==='child_training_choice'){
+   e.req='trainableChild';e.target='trainingChild';e.once=true;
+   e.text='{name} artık hangi alanda yetişeceğini merak ediyor. Vereceğin yön, yıllar sonra kendi hayatına dönüşecek.';
+   e.choices=[
+    ['At ve ok öğret',{happiness:3,prestige:2,targetRel:4,targetTrust:3,targetState:{key:'guidance',value:'war'}}],
+    ['Bir ustanın yanına gönder',{wealth:-2,skill:2,targetRespect:4,targetState:{key:'guidance',value:'craft'}}],
+    ['Kendi yolunu seçsin',{happiness:5,targetRel:5,targetTrust:5,targetState:{key:'guidance',value:'free'}}]
+   ];
+  }
+  if(e.id==='child_ill')e.target='child';if(e.id==='grandchild_visit')e.req='hasGrandchild';
+  if(['household_first_winter','spouse_family_request'].includes(e.id))e.target='partner';
   if(e.id==='winter_shortage')e.months=[10,11,12];if(e.id==='summer_drought'){e.months=[4,5,6];e.req='asset:flock';}if(e.id==='exile_return')e.req=['exile','flag:exile_loyal'];
   if(e.cat==='Sefer')e.req=[e.req,'activeCampaign'].filter(Boolean);if(e.id==='spoils_choice'){e.req='recentCampaign';e.choices.forEach(c=>c[1].clearFlag='recent_campaign');}
   if(e.id==='merchant_offer')e.actions=['period','venture','work','role'];if(e.id==='minor_wound')e.actions=['training','activity','work','military'];if(e.id==='wolf_attack')e.actions=['activity','work','venture'];
@@ -685,6 +720,12 @@ function configureRules(){
  {id:'rival_arc_escalation',cat:'Husumet',min:13,max:85,w:8,cool:12,once:true,req:'flag:rival_story_active',target:'rival',text:'{name} ile arandaki mesele bu kez oba işlerine yansıdı; ikinizden bir çözüm bekleniyor.',choices:[['Beylerin önünde konuş',{prestige:3,targetRespect:4,targetGrudge:-3,setFlag:'rival_hearing'}],['Güç göster',{health:-2,prestige:4,targetFear:8,targetGrudge:7}]]},
  {id:'rival_arc_resolution',cat:'Husumet',min:14,max:90,w:9,cool:14,once:true,req:'flag:rival_story_active',target:'rival',text:'{name} ile süren husumet artık iki tarafı da yoruyor. Son bir karar vermen gerekiyor.',choices:[['Barış sözü ver',{happiness:3,prestige:4,targetRel:18,targetTrust:8,targetGrudge:-25,clearFlag:'rival_story_active',clearFlag2:'rival_hearing',resolveRival:true}],['Husumeti kapatmadan ayrıl',{prestige:3,targetGrudge:15,clearFlag:'rival_story_active',setFlag:'rival_bitter'}]]},
  {id:'feud_mediation_result',cat:'Husumet',min:16,max:60,w:8,cool:14,once:true,req:'flag:feud_mediation',text:'Araya giren büyükler iki taraf için bir uzlaşma sözü hazırladı.',choices:[['Uzlaşmayı kabul et',{happiness:4,prestige:4,clearFlag:'feud_mediation',clearFlag2:'feud_started',setFlag:'feud_settled'}],['Şartları yetersiz bul',{prestige:2,happiness:-2,clearFlag:'feud_mediation',setFlag:'feud_bitter'}]]},
+ {id:'household_work_balance',cat:'Ocak',min:18,max:65,w:9,cool:12,once:true,req:'married',target:'partner',text:'{name}, görevlerin ve oba işleri yüzünden ocağın yükünün çoğunun kendi omzunda kaldığını söylüyor.',choices:[['Yükü paylaş',{happiness:2,targetRel:7,targetTrust:8,targetRespect:4}],['Görevlerimin ağırlığını anlat',{prestige:2,targetRel:-3,targetTrust:-5,targetGrudge:3}]]},
+ {id:'household_trust_test',cat:'Ocak',min:18,max:70,w:8,cool:14,once:true,req:'married',target:'partner',text:'{name}, kendi ailesine senden habersiz bir yardım sözü verdi. Bu karar ocağınızda güven meselesine dönüştü.',choices:[['Sözünün arkasında dur',{wealth:-4,happiness:2,targetRel:6,targetTrust:8,targetRespect:3,scheduleEvent:{id:'household_long_memory',years:[4,8],payload:{detail:'Yıllar önce eşinin verdiği sözü birlikte taşımayı seçmiştin.'}}}],['Böyle kararların birlikte alınmasını iste',{prestige:1,targetRel:-2,targetTrust:-3,targetRespect:4,scheduleEvent:{id:'household_long_memory',years:[4,8],payload:{detail:'Yıllar önce ocakla ilgili kararların birlikte alınmasında ısrar etmiştin.'}}}]]},
+ {id:'household_long_memory',cat:'Ocak',min:22,max:90,w:15,cool:0,delayed:true,req:'married',target:'partner',text:'{detail} {name} bugün o eski kararı yeniden hatırlattı; yıllar içinde aranızdaki bağın neye dönüştüğünü konuşuyorsunuz.',choices:[['O günkü kararının arkasında dur',{happiness:3,targetRel:6,targetTrust:7,targetRespect:4}],['Artık farklı düşündüğünü söyle',{happiness:1,targetRel:-2,targetTrust:-3,targetRespect:2}]]},
+ {id:'child_training_conflict',cat:'Çocuk',min:24,max:75,w:10,cool:12,once:true,req:'hasChild',target:'child',text:'{name}, onu daha önce {past} yönlendirdiğini hatırlıyor ama artık kendi isteğini daha açık söylüyor.',choices:[['Onu dinle ve yolunu birlikte düzenle',{happiness:2,targetRel:7,targetTrust:8,targetRespect:3}],['Başladığı yolu tamamlamasını iste',{prestige:1,targetRel:-3,targetTrust:-4,targetRespect:4,targetGrudge:3}]]},
+ {id:'child_departure_choice',cat:'Çocuk',min:25,max:80,w:10,cool:12,once:true,req:'hasChild',target:'child',text:'{name} artık obanın dışında kendi yolunda daha fazla zaman geçirmek istiyor. Çocukken verdiğin yönlendirme şimdi gerçek bir yaşam seçimine dönüşüyor.',choices:[['At ve savaş yolunu destekle',{wealth:-3,prestige:2,targetRel:4,targetTrust:4,targetState:{key:'guidance',value:'war'},scheduleEvent:{id:'child_path_consequence',years:[5,9],payload:{path:'war',detail:'Onu at, ok ve savaş yolunda desteklemiştin.'}}}],['Bir ustalık yolunu destekle',{wealth:-3,skill:1,targetRespect:5,targetState:{key:'guidance',value:'craft'},scheduleEvent:{id:'child_path_consequence',years:[5,9],payload:{path:'craft',detail:'Onu bir ustalık ve zanaat yolunda desteklemiştin.'}}}],['Kendi kararını vermesine izin ver',{happiness:3,targetRel:6,targetTrust:6,targetState:{key:'guidance',value:'free'},scheduleEvent:{id:'child_path_consequence',years:[5,9],payload:{path:'free',detail:'Kendi yolunu seçmesine izin vermiştin.'}}}]]},
+ {id:'child_path_consequence',cat:'Çocuk',min:30,max:100,w:18,cool:0,delayed:true,target:'child',text:'{detail} Aradan yıllar geçti. {name} bugün sana kendi emeğiyle vardığı yeri anlatmak için geldi.',choices:[['Yoluyla gurur duyduğunu söyle',{happiness:3,targetRel:5,targetTrust:6,targetRespect:5}],['Artık kendi sorumluluğunu taşımasını söyle',{prestige:2,targetRel:-1,targetTrust:-2,targetRespect:3}]]},
  {id:'guardian_month',cat:'Bakım',min:0,max:4,w:1,fallback:true,agency:'guardian',text:'Yakınların bu ay bakım düzenini planlıyor.',choices:[['Dinlenmene ve beslenmene zaman ayırsınlar',{health:2}],['Yanında kalıp oyun ve seslerle ilgilensinler',{happiness:3}]]},
  {id:'child_month',cat:'Çocukluk',min:5,max:9,w:1,fallback:true,text:'Yakınlarının gözetiminde obada sakin bir gün geçiriyorsun.',choices:[['Yaşıtlarınla oyun kur',{happiness:2}],['Bir büyüğün anlattıklarını dinle',{speech:1}]]},
  {id:'youth_month',cat:'Yetişme',min:10,max:17,w:1,fallback:true,text:'Bu ay öğrendiklerini nasıl pekiştireceksin?',choices:[['Ustanın gösterdiklerini tekrarla',{skill:1}],['Yaşıtlarınla birlikte çalış',{happiness:2}]]},
