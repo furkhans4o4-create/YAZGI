@@ -422,3 +422,110 @@ Bu sistemin amacı devlet kariyerini yalnız "itibar sayısını yükselt" yapı
 Boy-meclisi zinciri mevcut eski **bey_request** eventini başlangıç noktası olarak kullandığı için hikâye arşivi üçüncü şemaya yükseltildi.
 
 v2 kayıtlar açılırken event arşivi tekrar okunur. Daha önce boy beyinden görüş isteme eventini yaşamış karakterler mümkün olduğu ölçüde yeni **Boy Meclisinde Yükseliş** zincirinin sonraki adımından devam eder.
+
+
+## Kalıcı sağlık, yaralanma ve yaşlanma
+
+Sağlık sistemi artık yalnızca tek bir **Sağlık** sayısının artıp azalmasına dayanmaz.
+
+Her yaşam için kalıcı bir sağlık profili tutulur:
+
+- aktif rahatsızlıklar,
+- rahatsızlığın şiddeti ve kalan iyileşme süresi,
+- kalıcı yara izleri,
+- dayanıklılık,
+- yaşla artan kırılganlık,
+- dinlenmeye ayrılan aylar,
+- otacı / bakım görüşmeleri,
+- geçmiş sağlık krizleri ve iyileşmeler.
+
+### Aktif rahatsızlıklar
+
+Rahatsızlıklar kendi süre ve şiddetlerini taşır. Örnekler:
+
+- ateşli rahatsızlık,
+- soğukta güçten düşme,
+- iyileşen yara,
+- ağır yara,
+- eklem ağrısı,
+- eski yaranın sızısı,
+- aşırı yorgunluk.
+
+Her ay rahatsızlığın türü ve şiddetine göre sağlık kaybı oluşabilir. Dinlenme iyileşme süresini kısaltır; otacı bakımı hem süreyi hem şiddeti azaltabilir.
+
+Bu, dönemin tıbbını kesin bir tarihsel model olarak sunmaz; oyundaki bakım / iyileşme kararlarını temsil eden soyut bir sistemdir.
+
+### Kalıcı otacı NPC'si
+
+Oyuncu bakım aradığında gerçek NPC sistemini kullanan bir **Otacı** karakter oluşabilir.
+
+Otacının:
+
+- adı,
+- yaşı,
+- kişiliği,
+- oyuncuyla ilişkisi,
+- güven ve saygısı,
+- hafızası
+
+kalıcıdır.
+
+Oyuncu yıllar boyunca aynı kişiye tekrar gidebilir. Otacı ölürse sonraki bakım ihtiyacında yeni bir kişiyle tanışılabilir.
+
+### İyileşme Yolu
+
+İlk ciddi hastalık dönemlerinden biri dört aşamalı bir hikâyeye dönüşebilir:
+
+1. rahatsızlığın uzaması,
+2. otacıyla takip / dinlenme kararı,
+3. gücün geri dönmeye başlaması,
+4. iyileşme sonrasında bedenini nasıl koruyacağına dair karar.
+
+Hikâye hangi otacıyla başladıysa aynı NPC ile devam eder.
+
+### Sefer yaraları
+
+Savaş yarası artık yalnızca **Sağlık -10** değildir.
+
+Bir ağır sefer yarası:
+
+- aktif bir ağır yara oluşturabilir,
+- savaş yarası sayısını artırabilir,
+- kalıcı iz bırakabilir,
+- ağır talim ve fiziksel eylemleri iyileşene kadar kilitleyebilir.
+
+Meydanda kalmayı seçmek daha fazla itibar getirebilir ancak yaranın şiddeti ve kalıcı izi daha ağır olabilir.
+
+Sefer sonucu sırasında alınan yaralar da aynı sağlık motoruna bağlanmıştır.
+
+### Eski yaranın yıllar sonra dönmesi
+
+Kalıcı bir sefer yarası 8–18 yıl sonra tekrar kendini hatırlatabilir.
+
+Bu gecikmiş event:
+
+- aynı eski yaranın geçmişinden gelir,
+- oyuncuya dinlenme veya otacı bakımı seçenekleri sunar,
+- geçici **eski yaranın sızısı** rahatsızlığı oluşturabilir.
+
+Yaş ilerledikçe kalıcı yaraların tekrar sorun çıkarma ihtimali de artar.
+
+### Yaşlanma ve kırılganlık
+
+45 yaş sonrasında yaş, düşük genel sağlık ve eski yara izleri karakterin **kırılganlık** değerini artırmaya başlar.
+
+Kırılganlık:
+
+- rahatsızlık dönemlerini daha ağır hale getirebilir,
+- bazı ağır talimleri sınırlayabilir,
+- yıllık ölüm riskine küçük fakat kalıcı bir katkı yapar.
+
+Ölüm hesabı artık yalnız yaş ve anlık sağlık değerine bakmaz; aktif sağlık yükü ve kırılganlık da değerlendirilir.
+
+### Eski kayıtların v5 geçişi
+
+Save şeması sağlık sistemiyle birlikte **v5** oldu.
+
+Eski kayıtlarda daha önce tutulmuş sefer yarası sayısı tamamen kaybolmaz. v5'e geçişte mevcut savaş yarası geçmişi mümkün olduğu ölçüde kalıcı yara izlerine dönüştürülür.
+
+Geçiş öncesi kayıt ayrıca ayrı bir v5 öncesi yedek anahtarında korunur.
