@@ -15,6 +15,8 @@
 - Yaşlılıkta aile meclisi, vasiyet hazırlığı ve son dilek
 - Ölüm nedeni ve malvarlığı kaydı; eşit paylaşım veya ana varis
 - Ölüm sonrası çocukla devam ve kardeşlerin mirasa uzun vadeli tepkileri
+- Gerçek hane ve barınma düzeni: ana-baba ocağı, kendi yurdu, aileden kalan yurt, yakın yanında kalma ve geçici barınma
+- Hane kapasitesi, kalabalık baskısı, yurt rahatlığı/durumu, yetişkin yaşta ayrı ocak baskısı, yurt genişletme ve göç sonrası barınma sonuçları
 - Derin töre ve suç sonuçları: kalıcı mağdur/tanık NPC’leri, iz-dayanak, şüphe, kötü şöhret ve açık töre vakaları
 - Arabuluculuk, tazminat, töre meclisi, mağdur ailesi husumeti ve yıllar sonra aynı vakadan geri dönen sonuçlar
 - Derin ilişki ve evlilik hayatı: ahenk, bağlılık, aile onayı, gerilim, kıskançlık, ortak geçmiş ve uyum
@@ -54,7 +56,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 14’ye taşınır; sürüm değişiminde önce `yazgi_before_v14` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 15’ye taşınır; sürüm değişiminde önce `yazgi_before_v15` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
