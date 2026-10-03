@@ -103,3 +103,52 @@ Bu temel üzerinde yapılacak sonraki çalışmalar:
 - zincir sonuçlarının miras, kariyer, servet ve devlet sistemlerini değiştirmesi.
 
 İkinci aşamanın kalite ölçütü event sayısı değil, bir kararın kaç yıl ve kaç başka sistem boyunca anlamlı kalabildiğidir.
+
+
+## Gecikmeli sonuç motoru
+
+İkinci aşamanın yeni temel parçası olarak kararların yıllar sonra geri dönmesini sağlayan kalıcı bir gecikmeli event kuyruğu eklendi.
+
+Bir seçim artık geleceğe şu bilgileri bırakabilir:
+
+- hangi eventin geri döneceği,
+- kaç yıl sonra döneceği,
+- hangi NPC'ye bağlı olduğu,
+- ikinci bir NPC varsa onun kimliği,
+- olayı doğuran eski event,
+- gelecekte kullanılacak yol / açıklama verisi.
+
+Gecikmiş event zamanı gelmeden normal event havuzuna girmez. Bağlı NPC ölürse sonuç başka bir kişiye aktarılmaz. Event çözüldüğünde kuyruk kaydı kapatılır.
+
+Kart üzerinde seçim gelecekte sonuç doğuracaksa oyuncuya örneğin **"5–9 yıl sonra sonuç doğurabilir"** bilgisi gösterilir.
+
+## Ocağın Yılları
+
+Evlilik sonrası kısa iki eventlik yapı beş aşamalı kalıcı bir hikâyeye dönüştürüldü.
+
+Akış:
+
+1. İlk zor kış
+2. Eşin ailesinin yardım talebi
+3. Ocağın iş yükünün paylaşılması
+4. Eşler arasında güven ve ortak karar sınavı
+5. 4–8 yıl sonra eski kararın yeniden hatırlanması
+
+Zincir başladığı eşe kilitlenir. Sonraki kartlarda rastgele başka eş / NPC kullanılmaz. Eş yaşamını yitirirse zincir doğal biçimde kapanır.
+
+## Bir Çocuğun Yolu
+
+Çocuk yetiştirme artık tek seferlik stat seçimi değildir.
+
+Akış:
+
+1. Çocuğun ilk yetişme yönü seçilir: at-ok, zanaat veya serbest yol.
+2. Çocuk büyüdükçe kendi isteğini dile getirir.
+3. Oba dışındaki yaşam yolu için aileyle yeni bir karar verilir.
+4. Son karar 5–9 yıl sonra gerçek bir kariyer / yaşam sonucu olarak geri döner.
+
+Hikâye tek bir çocuğa kilitlenir. Çocuğa verilen eski yönlendirme NPC'nin kendi durumunda saklanır ve sonraki event metninde hatırlanır.
+
+Gecikmiş final geldiğinde seçilen yola göre NPC'nin becerileri, amacı, mesleği, itibar / ilişki hafızası güncellenir. Örneğin zanaat yolu yıllar sonra gerçekten Demirci gibi bir role dönüşebilir.
+
+Bu sistemin amacı çocukların oyuncunun ekranındaki pasif isimler olarak kalmaması; çocuklukta verilen kararların yetişkin hayatlarında gözle görülür sonuç üretmesidir.
