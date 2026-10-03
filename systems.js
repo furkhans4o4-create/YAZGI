@@ -507,6 +507,87 @@ function stateYearTick(){
  if(s.role==='Boy Beyi'){q.influence=clamp(q.influence+1);q.obligations=Math.max(0,q.obligations-1);}
  else if(q.influence>0&&Math.random()<.35)q.influence=clamp(q.influence-1);
 }
+function ensureHealthProfile(){
+ if(!s.healthProfile||typeof s.healthProfile!=='object'||Array.isArray(s.healthProfile))s.healthProfile={scars:[],frailty:0,resilience:50,healerVisits:0,restMonths:0,crises:0,lastCareYear:null,history:[]};
+ const h=s.healthProfile;
+ h.scars=Array.isArray(h.scars)?h.scars.slice(-12):[];h.frailty=clamp(Number.isFinite(h.frailty)?h.frailty:0);h.resilience=clamp(Number.isFinite(h.resilience)?h.resilience:50);
+ h.healerVisits=Math.max(0,Math.floor(h.healerVisits||0));h.restMonths=Math.max(0,Math.floor(h.restMonths||0));h.crises=Math.max(0,Math.floor(h.crises||0));h.history=Array.isArray(h.history)?h.history.slice(-40):[];
+ s.ailments=Array.isArray(s.ailments)?s.ailments:[];
+ s.ailments=s.ailments.filter(x=>x&&AILMENTS[x.id]).map(x=>{const d=AILMENTS[x.id];return {id:x.id,remaining:Math.max(1,Math.floor(x.remaining??d.duration)),severity:Math.max(1,Math.min(4,Math.floor(x.severity??d.severity??1))),source:x.source||'',startedYear:x.startedYear??(s.year+s.age),treated:!!x.treated};});
+ return h;
+}
+function healthHealer(create=true){
+ ensureCareerSystems();ensureHealthProfile();let n=s.careerContacts.find(x=>x.statusFlags?.healthHealer);
+ if(n)return n.alive?n:null;if(!create)return null;
+ const cfg=D.realms[s.realm],gender=pick(['male','female']),age=Math.max(28,s.age+rng(8,24));
+ n=normalizeNPC({name:pick(cfg[gender]),gender,age,birthYear:s.year+s.age-age,alive:true,rel:rng(48,66),type:'Otacı',goal:'wisdom',role:'Otacı',prestige:rng(28,52),traits:['temkinli','merhametli']},'Otacı');
+ n.statusFlags=n.statusFlags||{};n.statusFlags.healthHealer=true;normalizeBonds(n);n.bonds.trust=clamp(Math.max(n.bonds.trust,48));n.bonds.respect=clamp(Math.max(n.bonds.respect,55));rememberNPC(n,'health','Bakım ve iyileşme dönemlerinden birinde tanıştınız.',4);s.careerContacts.push(n);return n;
+}
+function scarName(scar){const loc=scar.location?scar.location+' ':'';return loc+(scar.kind==='battle'?'sefer yarası':scar.kind==='fall'?'düşme izi':scar.kind==='illness'?'hastalık sonrası zayıflık':'eski yara');}
+function addScar(kind='injury',severity=1,source=''){
+ const h=ensureHealthProfile(),locations=['omuzda','kolda','bacakta','sırtta'],scar={id:'scar_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2),kind,severity:Math.max(1,Math.min(3,severity)),source,location:kind==='illness'?'':pick(locations),year:s.year+s.age,age:s.age,lastFlareYear:null};
+ h.scars.push(scar);h.scars=h.scars.slice(-12);h.history.unshift({year:s.year+s.age,type:'scar',text:scarName(scar)});h.history=h.history.slice(0,40);
+ if(kind==='battle')scheduleDelayedEvent({id:'old_wound_flare',years:[8,18],payload:{scarId:scar.id,detail:'Yıllar önceki '+scarName(scar)+' yeniden sızlamaya başladı.'}},{target:'none',sourceEventId:'battle_scar'});
+ return scar;
+}
+function healthBurden(){
+ const h=ensureHealthProfile(),active=s.ailments.reduce((sum,x)=>sum+(x.severity||1),0),scar=h.scars.reduce((sum,x)=>sum+(x.severity||1),0);
+ return active*5+scar*2+h.frailty;
+}
+function acquireAilment(id,opts={}){
+ const d=AILMENTS[id];if(!d||s.age<d.min)return null;ensureHealthProfile();let x=s.ailments.find(a=>a.id===id);
+ const sev=Math.max(1,Math.min(4,Math.floor(opts.severity??d.severity??1))),dur=Math.max(1,Math.floor(opts.duration??d.duration));
+ if(x){x.severity=Math.max(x.severity||1,sev);x.remaining=Math.max(x.remaining||1,dur);if(opts.source)x.source=opts.source;return x;}
+ x={id,remaining:dur,severity:sev,source:opts.source||'',startedYear:s.year+s.age,treated:false};s.ailments.push(x);s.healthProfile.crises++;s.healthProfile.history.unshift({year:s.year+s.age,type:'ailment',text:d.name+' başladı'});s.healthProfile.history=s.healthProfile.history.slice(0,40);log(d.name+' yaşamını zorlaştırıyor.','bad');return x;
+}
+function finishAilment(x){
+ const d=AILMENTS[x.id],h=ensureHealthProfile();if(!d)return;
+ h.history.unshift({year:s.year+s.age,type:'recovery',text:d.name+' hafifledi'});h.history=h.history.slice(0,40);
+ if(d.kind==='injury'&&x.severity>=3&&!h.scars.some(sc=>sc.source===x.source&&sc.year===x.startedYear))addScar(x.source==='battle'?'battle':'fall',x.severity>=4?2:1,x.source||d.name);
+}
+function tickHealthMonth(month){
+ const h=ensureHealthProfile(),keep=[];
+ for(const x of s.ailments){
+  const d=AILMENTS[x.id];if(!d)continue;const sev=x.severity||d.severity||1,loss=Math.max(0,d.loss+Math.floor((sev-1)/2)+(h.frailty>=60?1:0));if(loss)apply({health:-loss});
+  x.remaining--;if(x.remaining<=0)finishAilment(x);else keep.push(x);
+ }
+ s.ailments=keep;
+ if(month>=10&&Math.random()<(.018+h.frailty/5000))acquireAilment('chill',{source:'kış soğuğu'});
+ if(month===12&&s.age>=50&&Math.random()<Math.min(.5,.14+(s.age-50)*.008))acquireAilment('joints',{severity:s.age>=70?3:2,source:'yaşlılık'});
+}
+function healthAgeTick(){
+ const h=ensureHealthProfile(),scarWeight=h.scars.reduce((a,x)=>a+(x.severity||1),0);
+ h.frailty=clamp(Math.floor(Math.max(0,s.age-45)*1.15)+scarWeight*2+Math.max(0,45-s.health)/3);
+ h.resilience=clamp(58-Math.floor(Math.max(0,s.age-35)/3)-scarWeight+(s.health>=80?5:0));
+ if(s.age>=55&&h.scars.length&&Math.random()<Math.min(.35,.04+h.frailty/400)){
+  const old=pick(h.scars);if(old&&(old.lastFlareYear==null||s.year+s.age-old.lastFlareYear>=4)){old.lastFlareYear=s.year+s.age;scheduleDelayedEvent({id:'old_wound_flare',years:[1,2],payload:{scarId:old.id,detail:'Eski '+scarName(old)+' yaş ilerledikçe yeniden kendini hatırlattı.'}},{target:'none',sourceEventId:'ageing'});}
+ }
+}
+function healthRisk(){
+ const h=ensureHealthProfile();let risk=0;if(s.health<25)risk+=.07;if(s.health<10)risk+=.18;if(s.age>50)risk+=(s.age-50)*.006;if(s.age>70)risk+=(s.age-70)*.016;
+ risk+=Math.min(.12,healthBurden()/900);risk+=h.frailty>=70?.025:0;return Math.min(.75,Math.max(0,risk));
+}
+function mortality(){if(Math.random()<healthRisk())die();}
+function treatHealth(useHealer=false){
+ const h=ensureHealthProfile(),healer=useHealer?healthHealer(true):null;
+ if(useHealer){s.wealth=Math.max(0,s.wealth-2);h.healerVisits++;h.lastCareYear=s.year+s.age;if(healer)adjustNPC(healer,{rel:3,trust:4,respect:2},'Bakım için yeniden görüştünüz.');apply({health:7,happiness:1});}
+ else{h.restMonths++;h.lastCareYear=s.year+s.age;apply({health:4,happiness:1});}
+ for(const x of s.ailments){x.remaining=Math.max(0,x.remaining-(useHealer?2:1));if(useHealer){x.severity=Math.max(1,x.severity-1);x.treated=true;}}
+ const resolved=s.ailments.filter(x=>x.remaining<=0);resolved.forEach(finishAilment);s.ailments=s.ailments.filter(x=>x.remaining>0);
+ if(useHealer&&h.scars.length&&Math.random()<.35){const sc=pick(h.scars);sc.severity=Math.max(1,sc.severity-1);}
+}
+function healthSummaryHtml(){
+ const h=ensureHealthProfile(),healer=healthHealer(false),burden=healthBurden(),state=burden>=45?'Ağır':burden>=25?'Zorlanıyor':burden>=10?'Dikkat':'Dengeli';
+ const active=s.ailments.length?s.ailments.map(x=>AILMENTS[x.id].name+' • '+x.remaining+' ay • '+x.severity+'. derece').join('<br>'):'Aktif rahatsızlık yok';
+ const scars=h.scars.length?h.scars.slice(-4).map(x=>scarName(x)+' • iz '+x.severity).join('<br>'):'Kalıcı yara izi yok';
+ return '<div class="card"><h3>🌿 Sağlık Geçmişi</h3><p>'+state+' • Yük '+burden+' • Dayanıklılık '+h.resilience+' • Kırılganlık '+h.frailty+'<br>'+active+'</p><div class="memoryline">'+scars+(healer?'<br>Bakım için tanıdığın kişi: '+safeText(healer.name)+' ('+healer.rel+')':'')+'</div></div>';
+}
+function physicalHealthIssue(a){
+ const serious=s.ailments.find(x=>AILMENTS[x.id]?.kind==='injury'&&(x.severity||1)>=3);
+ if(serious&&(['activity','training','military','desert'].includes(a.kind)))return AILMENTS[serious.id].name+' iyileşmeden ağır eylem yapamazsın.';
+ if(ensureHealthProfile().frailty>=75&&a.kind==='training'&&['wrestling','archery'].includes(a.id))return 'Yaş ve eski yaraların bu ağır talimi artık çok zorluyor.';
+ return '';
+}
 function careerIssue(r){
  if(!r)return 'Görev bulunamadı.';const a=CAREER_RULES[r.id];
  if(s.age<a.age)return `${a.age} yaşında açılır`;
@@ -912,7 +993,7 @@ function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
  for(const k of ['parents','siblings','relatives','friends','rivals','children','careerContacts','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureStoryArcs();ensureDelayedEvents();
+ for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();ensureStoryArcs();ensureDelayedEvents();
  if(x.partner){x.partner.age=x.partner.age??Math.max(16,x.age);x.partner.gender=x.partner.gender||(x.gender==='male'?'female':'male');}
  allNPCs().forEach(n=>normalizeNPC(n,n.type));seedCoreSocialLinks();pruneSocialLinks();if(x.partner&&!x.partner.alive)x.married=false;
  if(x.role){const r=D.careers.find(r=>r.name===x.role);if(r&&x.age<r.age){x.deferredRole=x.role;x.role=null;}}
