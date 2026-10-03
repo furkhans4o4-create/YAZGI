@@ -724,6 +724,45 @@ function guardianshipAction(id,index=-1){
   else if(id==='change'){const alt=guardianCandidates().find(n=>n.id!==guardian.id&&guardianCandidateScore(n)>=guardianCandidateScore(guardian)+4);if(!alt){notice('Şu anda belirgin biçimde daha uygun başka bir koruyucu görünmüyor.');return;}assignGuardian('himaye değişikliği',alt.id);apply({happiness:1});}
  },id==='visitSibling'?'Ayrı yaşayan kardeşini görmekle bir ay geçti.':'Himaye ocağındaki yaşamına bir ay ayırdın.');
 }
+function tickGuardianshipMonth(action={}){
+ const g=ensureGuardianship();
+ if(s.age>=18||s.parents.some(n=>n.alive)){if(g.active)ensureMinorGuardianship();return;}
+ if(!g.active||!currentGuardian()?.alive){ensureMinorGuardianship('koruyucu kaybı');return;}
+ const guardian=currentGuardian();g.months++;
+ const cared=action.kind==='guardianship'||(action.kind==='npc'&&getFamilyGroup(action.group)[action.index]?.id===guardian.id);
+ if(cared)g.stability=clamp(g.stability+1);else if(g.months%4===0)g.stability=clamp(g.stability-1);
+ g.careQuality=clamp(Math.round((g.careQuality*3+guardianCareQuality(guardian))/4));
+ if(g.careQuality>=70&&g.months%3===0){apply({happiness:1});if(s.health<80)apply({health:1});}
+ if(g.careQuality<40&&g.months%3===0){apply({happiness:-2});if(g.careQuality<28)apply({health:-1});}
+ if(g.stability<30&&g.months%6===0)adjustNPC(guardian,{trust:-1,rel:-1},'Himaye düzeniniz uzun süredir istikrarsız ilerliyor.');
+}
+function guardianshipYearTick(){
+ const g=ensureGuardianship();
+ if(s.age>=18){if(g.active)endGuardianship('yetişkinliğe ulaştın');return;}
+ ensureMinorGuardianship();if(!g.active)return;
+ const guardian=currentGuardian();if(guardian&&g.careQuality>=65){normalizeBonds(guardian);guardian.bonds.trust=clamp(guardian.bonds.trust+2);if(s.age>=12&&guardian.traits?.includes('caliskan'))apply({skill:1});}
+ if(g.separatedSiblingIds.length)for(const sib of s.siblings.filter(n=>g.separatedSiblingIds.includes(n.id)&&n.alive)){sib.rel=clamp(sib.rel-1);normalizeBonds(sib);sib.bonds.trust=clamp(sib.bonds.trust-1);}
+}
+function guardianshipSummaryHtml(){
+ const g=ensureGuardianship();if(!g.active||s.age>=18)return '';const n=currentGuardian();if(!n)return '';
+ const peers=g.contacts.filter(x=>x.alive&&x.statusFlags?.guardianWard&&x.statusFlags?.guardianId===n.id),separated=s.siblings.filter(x=>x.alive&&g.separatedSiblingIds.includes(x.id));
+ let html='<div class="card"><h3>🫱 Himaye ve Koruyuculuk</h3><p><b>'+safeText(n.name)+'</b> • '+safeText(kinRole(n))+'<br>Bakım kalitesi '+g.careQuality+'/100 • istikrar '+g.stability+'/100 • '+g.months+' ay<br>Aynı yurtta küçük kardeş '+g.togetherSiblingIds.length+' • ayrı yaşayan kardeş '+separated.length+(peers.length?' • himaye yoldaşı '+peers.length:'')+'</p><div class="grid2">'+
+  actionButton('Birlikte vakit geçir',{kind:'guardianship',id:'time'},"guardianshipAction('time')",'Koruyucu bağını ve istikrarı güçlendirir.')+
+  actionButton('Yurt işlerine yardım et',{kind:'guardianship',id:'help'},"guardianshipAction('help')",'Saygı, beceri ve hane istikrarı.')+
+  actionButton('Ondan bir şey öğren',{kind:'guardianship',id:'learn'},"guardianshipAction('learn')",'Koruyucunun hayat yoluna göre beceri kazandırır.')+
+  actionButton('Anne ve atanı konuş',{kind:'guardianship',id:'remember'},"guardianshipAction('remember')",'Aile hafızasını ve güveni güçlendirir.')+
+  (guardianCandidates().some(x=>x.id!==n.id&&guardianCandidateScore(x)>=guardianCandidateScore(n)+4)?actionButton('Başka bir yakının himayesini iste',{kind:'guardianship',id:'change'},"guardianshipAction('change')",'Daha uygun bir yakın varsa bakım düzeni değişebilir.'):'')+
+ '</div></div>';
+ if(separated.length)html+='<h3 class="sectionTitle">Ayrı Yaşayan Kardeşler</h3><div class="grid2">'+separated.map((sib,i)=>actionButton(safeText(sib.name)+' ile görüş',{kind:'guardianship',id:'visitSibling',index:i},"guardianshipAction('visitSibling',"+i+")",'Ayrı himaye ocaklarında bağın zayıflamasını azaltır.')).join('')+'</div>';
+ return html;
+}
+function applyGuardianshipEvent(eventId,choiceIndex,target){
+ const g=ensureGuardianship();if(!g.active)return;
+ if(eventId==='guardian_household_strain'){if(choiceIndex===0){g.stability=clamp(g.stability+8);g.careQuality=clamp(g.careQuality+3);}else g.stability=clamp(g.stability-7);}
+ if(eventId==='guardian_family_memory'&&choiceIndex===0)g.stability=clamp(g.stability+4);
+ if(eventId==='guardian_sibling_distance'){if(choiceIndex===0)g.stability=clamp(g.stability+3);else if(target)adjustNPC(target,{rel:-2,trust:-2},'Ayrı yaşadığınız için görüşmeniz daha da seyrekleşti.');}
+}
+
 
 
 const PARENTING_PATHS={
