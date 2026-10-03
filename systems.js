@@ -699,6 +699,27 @@ function educationSummaryHtml(){
  return html;
 }
 
+
+if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)){
+ EVENT_DECK.push(
+  {id:'education_mentor_trial',cat:'Yetişme',min:7,max:70,w:7,cool:14,actions:['education'],target:'educationMentor',
+   text:'{name}, bu ay seni alıştığından daha zor bir sınamaya çağırdı.',choices:[
+    ['Zor sınamayı kabul et',{skill:2,prestige:1,targetRel:2,targetTrust:3,targetRespect:5}],
+    ['Eksiklerini çalışıp sonra dene',{happiness:1,targetRel:1,targetTrust:2,targetRespect:1}]
+   ]},
+  {id:'education_peer_competition',cat:'Yetişme',min:8,max:45,w:6,cool:16,actions:['education'],target:'educationPeer',
+   text:'{name}, aynı yetişme yolunda senden öne çıkmaya çalışıyor.',choices:[
+    ['Birlikte çalışıp birbirinizi geliştirin',{happiness:2,targetRel:5,targetTrust:4,targetRespect:2}],
+    ['Onu geçmek için daha çok çalış',{skill:3,prestige:1,targetRel:-2,targetRespect:4,targetGrudge:2}]
+   ]},
+  {id:'education_peer_help',cat:'Yetişme',min:8,max:60,w:5,cool:20,actions:['education'],target:'educationPeer',
+   text:'{name}, öğrendiğiniz konuda bir yerde takıldı ve yardımını istedi.',choices:[
+    ['Bildiğini paylaş',{happiness:2,prestige:1,targetRel:6,targetTrust:5,targetRespect:4}],
+    ['Önce kendi çalışmana odaklan',{skill:2,targetRel:-2,targetTrust:-1}]
+   ]}
+ );
+}
+
 function ensureMobility(){
  if(!s.mobility||typeof s.mobility!=='object'||Array.isArray(s.mobility))s.mobility={};
  const m=s.mobility;m.moves=Math.max(0,Math.round(m.moves||0));m.localStanding=clamp(Number.isFinite(m.localStanding)?m.localStanding:50);m.monthsHere=Math.max(0,Math.round(m.monthsHere||0));m.history=Array.isArray(m.history)?m.history.slice(-30):[];m.arrivalYear=m.arrivalYear??(s.year+s.age);m.arrivalAge=m.arrivalAge??s.age;m.homePlace=m.homePlace||s.place;m.homeRealm=m.homeRealm||s.realm;
@@ -1330,6 +1351,7 @@ function eventTargetCandidates(target){
   rival:()=>s.rivals.filter(n=>n.alive),partner:()=>s.partner?.alive?[s.partner]:[],comrade:()=>s.military.comrades.filter(n=>n.alive),trustedComrade:()=>s.military.comrades.filter(n=>n.alive&&((n.bonds?.trust||0)>=60||(n.rel||0)>=72)),
   smithMaster:()=>{const n=careerContact('smith');return n?[n]:[]},scribeMaster:()=>{const n=careerContact('scribe');return n?[n]:[]},caravanMaster:()=>{const n=careerContact('caravan');return n?[n]:[]},bardMaster:()=>{const n=careerContact('bard');return n?[n]:[]},merchantContact:()=>{const n=careerContact('merchant');return n?[n]:[]},
   statePatron:()=>{const n=stateContact('patron');return n?[n]:[]},stateRival:()=>{const n=stateContact('rival');return n?[n]:[]},stateElder:()=>{const n=stateContact('elder');return n?[n]:[]},healthHealer:()=>{const n=healthHealer(true);return n?[n]:[]},familyFriend:()=>s.friends.filter(n=>n.alive&&n.statusFlags?.familyFriend),familyEnemy:()=>s.rivals.filter(n=>n.alive&&n.statusFlags?.familyEnemy),
+  educationMentor:()=>ensureEducation().contacts.filter(n=>n.alive&&n.statusFlags?.educationMentor),educationPeer:()=>ensureEducation().contacts.filter(n=>n.alive&&n.statusFlags?.educationPeer),
   parent:()=>s.parents.filter(n=>n.alive),sibling:()=>s.siblings.filter(n=>n.alive),relative:()=> (s.relatives||[]).filter(n=>n.alive),
   closeKin:()=>[...s.parents,...s.siblings,...s.children,...(s.relatives||[])].filter(n=>n.alive),trusted:()=>allNPCs().filter(n=>n.alive&&(n.bonds?.trust||0)>=55)
  };
@@ -1384,7 +1406,8 @@ function chooseContextEvent(i){
  if(target?.alive&&fx.promoteTarget==='military_leader')promoteMilitaryComrade(target);
  if(target?.alive&&fx.makeTargetFriend)makeTargetFriend(target,'Eski sefer yoldaşı');
  if(target?.alive&&fx.makeTargetRival)makeTargetRival(target,'Eski sefer yoldaşı / Hasım');
- if(target?.alive){if(ev.id==='child_ill')target.health=clamp(target.health+(i===0?4:7));if(ev.id==='friend_quarrel')target.rel=clamp(target.rel+(i===0?6:-6));if(ev.id==='child_training_choice'){target.skills=target.skills||{};const k=i===0?'archery':i===1?'craft':'speech';target.skills[k]=clamp((target.skills[k]||0)+3);}if(ev.id==='child_path_consequence')applyChildPathConsequence(target,context,i);}
+ if(target?.alive){if(['education_mentor_trial','education_peer_competition','education_peer_help'].includes(ev.id)){const d=EDUCATION_TRACKS[target.statusFlags?.educationTrack];if(d)skillGain(d.skill,ev.id==='education_mentor_trial'?(i===0?3:1):ev.id==='education_peer_competition'?(i===0?2:3):(i===0?2:1));}
+  if(ev.id==='child_ill')target.health=clamp(target.health+(i===0?4:7));if(ev.id==='friend_quarrel')target.rel=clamp(target.rel+(i===0?6:-6));if(ev.id==='child_training_choice'){target.skills=target.skills||{};const k=i===0?'archery':i===1?'craft':'speech';target.skills[k]=clamp((target.skills[k]||0)+3);}if(ev.id==='child_path_consequence')applyChildPathConsequence(target,context,i);}
  if(target?.alive&&fx.resolveRival){const ri=s.rivals.findIndex(n=>n.id===target.id);if(ri>=0){s.rivals.splice(ri,1);target.type='Dost';if(!s.friends.some(n=>n.id===target.id))s.friends.push(target);rememberNPC(target,'peace','Uzun süren husumet sona erdi.',7);unlock('reconciled');}}
  for(const spec of [...(Array.isArray(fx.scheduleEvents)?fx.scheduleEvents:[]),...(fx.scheduleEvent?[fx.scheduleEvent]:[])])scheduleDelayedEvent(spec,{...context,sourceEventId:ev.id});
  resolveDelayedRecord(context.delayedId);
