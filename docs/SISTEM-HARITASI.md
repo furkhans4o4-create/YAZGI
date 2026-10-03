@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 14’tür. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v14` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 15’tir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v15` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -225,3 +225,14 @@ v14 ile suç/töre sistemi tek seferlik rastgele ceza modelinden kalıcı vaka s
 Karakter için toplam şüphe ve kötü şöhret değerleri vardır. Eylem hemen açığa çıkmasa bile yeterli iz ya da tanık varsa aynı vaka 1-4 yıl sonra yeniden gündeme gelebilir. Eski vaka doğru mağdur ve tanık kimliğine bağlı kalır. Ciddi mağduriyet aile husumeti oluşturabilir; bu husumet 2-6 yıl sonra mağdur yakınıyla yeniden dönen seçimli olaya dönüşebilir.
 
 Açık töre çağrısında yeni suçlar zincirlenemez. Oyuncu arabulucu arayabilir, uzlaşılan tazminatı ödeyebilir veya töre meclisinin kararına çıkabilir. Sonuçta izler, tanık sayısı, mevcut şüphe, hitabet ve itibar birlikte değerlendirilir. Hafif vakalar tazminat borcuna, ağır ve karşılanamayan yükümlülükler ise sürgün veya tutsaklığa dönüşebilir. Tazminat ve barış girişimleri mağdurun kinini ve aile husumetini gerçekten azaltır.
+
+
+### Hane, yurt ve barınma düzeni
+
+v15 ile karakterin nerede yaşadığı artık açık bir oyun durumudur. Çocukluk ve gençlikte ana-baba ocağı varsayılan barınma düzenidir. Yetişkin karakter Büyük Yurt edindikten sonra ayrı ocak kurabilir; eş ve yaşayan çocuklar aynı haneye taşınır. Ebeveynlerin ölümü sonrasında mevcut aile yurdu aileden kalan yurt olarak devam edebilir. Geçici barınmaya düşen karakter, aynı bölgede ilişkisi ve güveni yeterli bir ebeveyn, kardeş, akraba veya dosttan yanında kalmayı isteyebilir.
+
+Her barınma düzeninin kapasitesi, rahatlığı ve durumu vardır. Aynı yurtta yaşayan gerçek NPC sayısı kapasiteyi aşarsa mutluluk düşer; ciddi kalabalık sağlık üzerinde de baskı oluşturur. Kendi veya aileden kalan yurt üç kez genişletilebilir ve her genişletme kapasiteyi iki kişi artırır. Yurt işleriyle ilgilenmek barınak durumunu, rahatlığı ve aynı hanedeki kişilerin saygısını iyileştirir.
+
+Yetişkin yaşta ana-baba ocağında kalmaya devam etmek otomatik olarak yasak değildir. Ancak yaş, evlilik, çocuk sayısı, işsizlik, kalabalık ve ebeveyn ilişkisi birlikte ayrı ocak baskısını yükseltir. Baskı çok yükselir ve aile ilişkisi kötüyse karakter geçici barınmaya düşebilir. Geçici barınma özellikle kışın doğrudan sağlık ve mutluluk kaybına, soğuk rahatsızlığı riskine yol açar.
+
+Göç sistemi de hane sistemine bağlandı. Yurt sahibi olarak göç edildiğinde bağımsız yurt düzeni korunabilir; yurt olmadan yeni bölgeye yalnız veya kendi ocağınla gidildiğinde önce geçici barınma gerekir. Yaşanmakta olan Büyük Yurt başka barınma düzenine geçilmeden satılamaz. Hane biçimi ayrıca çeyreklik geçim maliyetini etkiler: aile ocağında veya bir yakının yanında kalmak kendi yurdunu tamamen geçindirmekten daha düşük doğrudan maliyet getirir.
