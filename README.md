@@ -24,6 +24,12 @@
 - 60+ yaşta güvenilen yetişkin çocuğun yurduna taşınma; aile desteği yüksekse kırılganlık döneminde sağlık ve dirlik desteği, düşükse yalnızlık baskısı
 - Yaşlılık kararları için yeni bağlamsal olaylar: yetişkin çocuğun öğüt istemesi, eski hasımla barış fırsatı, aileden bakım teklifi ve haleflik konuşması
 - Ölüm kaydı artık aile büyüğü dönemindeki meclis, tecrübe aktarımı, barışma ve görev devri mirasını da saklar
+- Yaşayan Dünya / NPC hayatları: yakınlar artık yalnızca yaşlanmaz; bağımsız hastalık, tutsaklık, sürgün ve göç olayları yaşayabilir
+- NPC hayat durumu kalıcıdır ve ilişki kartında görünür; hastalık/tutsaklık/sürgündeki kişiyle normal dertleşme, çalışma veya armağan akışı kullanılamaz
+- Duruma özel eylemler: hastanın başında kalma ve otacı getirme; tutsağa haber/fidye desteği; sürgündeki yakına haber, mal desteği ve dönüş için arabuluculuk
+- Yardım sonuçları aynı NPC üzerinde birikir; fidye veya arabuluculuk gerçekten serbest kalma/dönüş sağlayabilir ve kişinin geçmişinde saklanır
+- NPC olayları görev, evlilik, çocuk ve bağlamsal olay akışını geçici olarak etkiler; kişi düzelince aynı kimlik ve ilişkilerle hayatına devam eder
+- Aile sekmesinde Yaşayan Dünya özeti aktif durumları ve son bağımsız NPC hayat olaylarını gösterir
 - Derin dostluk ve sosyal çevre: çocukluk dostu, yakın dost, sırdaş, uzaklaşmış dost ve kalıcı yeniden buluşma geçmişi
 - 3+ güçlü dostla arkadaş çevresi, grup uyumu/gerilimi, ortak buluşmalar ve NPC-NPC dostluk bağları
 - Dost aracılığıyla görev çevresine giriş, eş adayı tanıştırması ve askerî dostun sefer yoldaşına dönüşmesi
@@ -75,7 +81,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 21’e taşınır; sürüm değişiminde önce `yazgi_before_v21` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 22’ye taşınır; sürüm değişiminde önce `yazgi_before_v22` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
