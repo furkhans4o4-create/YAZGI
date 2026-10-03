@@ -663,7 +663,7 @@ function newCharacter(base={}, inherit=false){
     wealth:base.wealth??rng(2,10), role:null, path:null, military:base.military||{called:false,served:false,campaigns:0,wounds:0,active:false,dutyMonths:0,comrades:[]},
     captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{}, eventArchive:base.eventArchive||[], delayedEvents:base.delayedEvents||[], pendingEventId:base.pendingEventId||null,
     parents:base.parents||[], siblings:base.siblings||[], relatives:base.relatives||[], friends:base.friends||[], rivals:base.rivals||[],
-    partner:base.partner||null, married:!!base.married, children:base.children||[], socialLinks:base.socialLinks||[], storyArcs:base.storyArcs||{}, storyArcVersion:base.storyArcVersion||1, timeline:base.timeline||[],
+    partner:base.partner||null, married:!!base.married, children:base.children||[], socialLinks:base.socialLinks||[], storyArcs:base.storyArcs||{}, storyArcVersion:base.storyArcVersion??2, timeline:base.timeline||[],
     legacy:base.legacy||{generation:1,familyName:base.tribe||"Boy",past:[]},
     flags:{}
   };
