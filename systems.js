@@ -1034,7 +1034,7 @@ function statePolicyQuarterTick(month){
  if(statePolicyActive('caravan_guard'))e.tradeDemand=clamp(e.tradeDemand+4);
  if(statePolicyActive('craft_patronage'))e.craftDemand=clamp(e.craftDemand+4);
 }
-function stateCampaignSafetyBonus(){return statePolicyActive('muster_order')?.06:0;}
+function stateCampaignSafetyBonus(){return statePolicyActive('muster_order')?0.06:0;}
 function statePolicyYearTick(){
  const q=ensureStateCourt(),year=s.year+s.age,expired=q.activePolicies.filter(p=>p.expiresYear<year);q.activePolicies=q.activePolicies.filter(p=>p.expiresYear>=year);
  if(statePolicyActive('feud_peace',year)){q.rivalPressure=clamp(q.rivalPressure-3);const j=ensureJustice();for(const feud of j.feuds.filter(x=>x.status==='active'))feud.heat=clamp(feud.heat-8);}
@@ -2888,11 +2888,11 @@ function passiveAssetQuarter(id,month){
  let gain=0;
  if(id==='flock'){
   const seasonal=month<=2?-1:month<=8?1:0,gross=rng(0,3)+seasonal+(s.skills.trade>=45?1:0);
-  const relief=statePolicyActive('winter_share')?.04:0;if(Math.random()<Math.max(.04,.12+e.foodPressure/700-relief)){gain=-rng(1,3);st.losses++;}else gain=Math.max(0,gross);
+  const relief=statePolicyActive('winter_share')?0.04:0;if(Math.random()<Math.max(.04,.12+e.foodPressure/700-relief)){gain=-rng(1,3);st.losses++;}else gain=Math.max(0,gross);
  }else if(id==='smithy'&&s.skills.craft>=40){
   if(Math.random()<.1){gain=-1;st.losses++;}else gain=Math.max(0,Math.round(rng(1,4)*(.65+e.craftDemand/100))+(statePolicyActive('craft_patronage')?1:0));
  }else if(id==='caravan_share'){
-  const guard=statePolicyActive('caravan_guard')?.08:0;if(Math.random()<Math.max(.06,.22-guard)){gain=-rng(1,5);st.losses++;}else gain=Math.max(0,Math.round(rng(1,5)*(.6+e.tradeDemand/100)));
+  const guard=statePolicyActive('caravan_guard')?0.08:0;if(Math.random()<Math.max(.06,.22-guard)){gain=-rng(1,5);st.losses++;}else gain=Math.max(0,Math.round(rng(1,5)*(.6+e.tradeDemand/100)));
  }
  if(gain){s.wealth=Math.max(0,s.wealth+gain);if(gain>0)st.profits+=gain;economyLedger('asset',gain,id+' dönem getirisi');}
  return gain;
@@ -3618,7 +3618,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v25'))localStorage.setItem('yazgi_before_v25',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v26'))localStorage.setItem('yazgi_before_v26',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
