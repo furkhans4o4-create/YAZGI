@@ -1208,12 +1208,12 @@ function stateYearTick(){
 }
 
 const LONG_TERM_CONDITIONS={
- mobility:{name:'Kalıcı hareket kısıtlılığı',domains:{mobility:18,endurance:6},flare:'old_wound'},
- upper:{name:'Kol ve omuz işlev kısıtlılığı',domains:{upper:20,endurance:4},flare:'old_wound'},
- chronic_pain:{name:'Süregelen ağrı',domains:{endurance:16,mobility:5,upper:5},flare:'old_wound'},
- sight:{name:'Görme zorluğu',domains:{vision:22},flare:'exhaustion'},
- hearing:{name:'İşitme zorluğu',domains:{hearing:24},flare:'exhaustion'},
- fatigue:{name:'Süregelen güç kaybı',domains:{endurance:20,mobility:4,upper:4},flare:'exhaustion'}
+ mobility:{name:'Kalıcı hareket kısıtlılığı',domains:{mobility:24,endurance:8},flare:'old_wound'},
+ upper:{name:'Kol ve omuz işlev kısıtlılığı',domains:{upper:24,endurance:6},flare:'old_wound'},
+ chronic_pain:{name:'Süregelen ağrı',domains:{endurance:20,mobility:7,upper:7},flare:'old_wound'},
+ sight:{name:'Görme zorluğu',domains:{vision:27},flare:'exhaustion'},
+ hearing:{name:'İşitme zorluğu',domains:{hearing:28},flare:'exhaustion'},
+ fatigue:{name:'Süregelen güç kaybı',domains:{endurance:24,mobility:6,upper:6},flare:'exhaustion'}
 };
 function normalizeLongTermCondition(x){
  if(!x||!LONG_TERM_CONDITIONS[x.id])return null;
@@ -1253,13 +1253,13 @@ function longTermWorkPenalty(r){
  else if(r.path==='trade')use=[c.mobility,c.endurance,c.vision];
  else if(r.path==='state')use=[c.endurance,c.hearing,c.vision];
  else use=[c.endurance,c.hearing];
- const avg=use.reduce((a,v)=>a+v,0)/Math.max(1,use.length),raw=Math.max(0,(70-avg)/180);
+ const avg=use.reduce((a,v)=>a+v,0)/Math.max(1,use.length),lowest=Math.min(...use),raw=Math.max(0,(70-avg)/180,(45-lowest)/150);
  return ensureHealthProfile().adaptations.work_adjust?raw*.45:raw;
 }
 function longTermMilitaryIssue(){
  const c=healthCapabilities();if(c.endurance<28)return 'Süregelen sağlık yükü şu anda sefer temposunu kaldıramayacak kadar ağır.';
- if(c.mobility<30&&!ensureHealthProfile().adaptations.mobility_support)return 'Sefer için hareket desteğini önce düzenlemen gerekiyor.';
- if(c.upper<30&&!ensureHealthProfile().adaptations.hand_tools)return 'Silah ve yük kullanımı için uyarlanmış araç düzeni gerekiyor.';return '';
+ if(c.mobility<38&&!ensureHealthProfile().adaptations.mobility_support)return 'Sefer için hareket desteğini önce düzenlemen gerekiyor.';
+ if(c.upper<38&&!ensureHealthProfile().adaptations.hand_tools)return 'Silah ve yük kullanımı için uyarlanmış araç düzeni gerekiyor.';return '';
 }
 function healthAdaptationIssue(id){
  const h=ensureHealthProfile(),conds=h.longTermConditions;if(!conds.length)return 'Uyum gerektiren kalıcı bir sağlık durumu yok.';
@@ -2871,7 +2871,7 @@ function migrationRisk(dest,mode='alone'){
  return Math.max(.04,Math.min(.48,.08+dest.distance*.045+(dest.cross?.07:0)+people*.008+winter+mobility-ride-horse-support));
 }
 function migrationIssue(realm,place,mode='alone'){
- if(s.captive)return 'Tutsakken göç edemezsin.';if(s.exile)return 'Sürgün meselesini çözmeden planlı göç yapamazsın.';if(s.military.active)return 'Aktif seferde göç edemezsin.';if(s.age<16)return '16 yaşından önce göç kararını ailen verir.';if(mode==='alone'&&healthCapabilities().mobility<28&&!ensureHealthProfile().adaptations.mobility_support)return 'Bu kadar düşük hareket kapasitesiyle yalnız uzun göç riskli; hareket desteği kur veya yakınlarınla göç et.';
+ if(s.captive)return 'Tutsakken göç edemezsin.';if(s.exile)return 'Sürgün meselesini çözmeden planlı göç yapamazsın.';if(s.military.active)return 'Aktif seferde göç edemezsin.';if(s.age<16)return '16 yaşından önce göç kararını ailen verir.';if(mode==='alone'&&healthCapabilities().mobility<36&&!ensureHealthProfile().adaptations.mobility_support)return 'Bu kadar düşük hareket kapasitesiyle yalnız uzun göç riskli; hareket desteği kur veya yakınlarınla göç et.';
  const dest=migrationDestinations().find(x=>x.realm===realm&&x.place===place);if(!dest)return 'Bu bölge şu anda ulaşılabilir değil.';
  const cost=migrationCost(dest,mode);if(s.wealth<cost)return cost+' servet yol ve yerleşme payı gerekiyor.';return '';
 }
