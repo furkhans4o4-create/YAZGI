@@ -233,3 +233,115 @@ En güçlü eski yoldaşlardan biri 1–4 yıl sonra yeni karakterin hayatına t
 etki edebilir.
 
 Bu sistemle tek bir savaş kararı potansiyel olarak oyuncunun kendi yetişkinlik döneminden çocuğunun hayatına kadar uzanabilir.
+
+
+## Mesleklerin uzun kariyer hayatı
+
+Meslek sistemi artık yalnızca "görevi seç → her ay birkaç servet kazan" yapısından çıkarıldı.
+
+Her meslek için kalıcı bir profil tutulur:
+
+- çalışılan ay sayısı,
+- meslek itibarı,
+- ustalık,
+- toplam kazanç,
+- başarılı iş sayısı,
+- aksayan işler,
+- en iyi çalışma serisi,
+- geçmiş görev / giriş kayıtları.
+
+Görev ekranında aktif mesleğin bu değerleri görünür. Aynı kişi başka bir role geçse bile eski meslek profilindeki ilerleme silinmez.
+
+### Meslek çevresi NPC'leri
+
+Meslek yollarının önemli bölümleri artık gerçek NPC'lere bağlıdır.
+
+Örnek meslek kişileri:
+
+- Demirci Ustası
+- Bitig Ustası
+- Kervanbaşı
+- Ozan Ustası
+- Pazar Ortağı
+
+Bu kişiler normal NPC modelini kullanır; kişilik, ilişki, güven, saygı, kin, hafıza, yaş, sağlık ve kariyerleri vardır. Görev ekranındaki **Meslek Çevresi** bölümünde görülebilir ve oyuncu onlarla normal sosyal etkileşimler kurabilir.
+
+Bir meslek hikâyesi hangi usta / ortak ile başladıysa sonraki eventler aynı NPC ile devam eder.
+
+### Meslekte çalışmak
+
+"Görevinde çalış" artık sabit +1 servet işlemi değildir.
+
+Sonuç üzerinde:
+
+- ilgili beceri seviyesi,
+- mesleğin gerektirdiği seviye,
+- sağlık,
+- meslek itibarı,
+- ustalık
+
+etkilidir.
+
+Başarılı aylarda kazanç, meslek itibarı, ustalık, beceri ve genel itibar artabilir. Arka arkaya başarılı işlerde karakterin meslekte adının duyulması hızlanır. Aksayan işlerde itibar düşebilir ancak tecrübe tamamen kaybolmaz.
+
+## Genişletilmiş meslek hikâyeleri
+
+### Demir Ocağının Yolu — 7 aşama
+
+1. Bir ustanın yanında çıraklığa giriş
+2. İlk ciddi hata
+3. Ustanın yeterlilik sınavı
+4. İlk gerçek müşteri siparişi
+5. Kendi ocağı / bağımsız çalışma kararı
+6. Rakip bir ocağın fiyat baskısı
+7. Büyük sipariş / meslekte tanınma
+
+İlk büyük işte verdiğin kalite-hız kararı 4–8 yıl sonra tekrar karşına çıkabilir. Eski işinin hâlâ kullanılması meslek itibarına ve ustalık geçmişine etki eder.
+
+### Bitigden Elçiliğe — 7 aşamalı dallı yol
+
+Yazıya girişten sonra kayıt tutma, hassas kayıtlar ve devlet hizmeti gelir.
+
+Elçilik heyetine katılmayı seçersen diplomasi yolu devam eder. Merkezde kalmayı seçersen zincir **kayıtların sorumluluğunu üstlenen Bitigçi** yoluna dallanabilir. Böylece her seçim aynı kariyer finaline zorlanmaz.
+
+Eski bir kayıt 4–9 yıl sonra yeni bir anlaşmazlıkla yeniden açılabilir.
+
+### Kervan Yolu — 7 aşama
+
+İlk yolculuk, geçit sorunu, pazar kararı, eksik yük hesabı, sermaye ortaklığı, rakip rota ve kervan yönetimine kadar uzanır.
+
+Güvenli veya yeni rota kararı 3–7 yıl sonra bölgedeki diğer tüccarların kullandığı yolları etkileyen bir sonuç olarak geri gelebilir.
+
+### Ozanın Sözü — 5 aşama
+
+Ozanlık artık yalnızca bir görev adı değildir:
+
+1. Ustanın yanında yetişme
+2. İlk büyük toy
+3. Başka bir ozanla söz rekabeti
+4. Bir ileri gelenin koruyuculuk / armağan teklifi
+5. Gençlere bırakılacak kendi anlatın
+
+Karakter kendi anlatısını oluşturursa 5–10 yıl sonra sözlerinin başka gençler tarafından söylenmesi yeniden event olabilir.
+
+### Pazarın Güveni — Tüccar kariyeri
+
+Tüccar zinciri gerçek çalışma tecrübesi ister. Meslekte birkaç ay çalışmadan hikâye başlamaz.
+
+Akışta:
+
+- ilk kez fiyatları tek başına belirleme,
+- veresiye / peşin satış kararı,
+- eski borcun yıllar sonra geri dönmesi,
+- pazarda isim kazanma,
+- ortaklık veya bağımsız devam etme
+
+vardır.
+
+Bu sistemde "servet arttı" dışında pazar itibarı ve ustalık da kalıcıdır.
+
+## Event motoru v2 geçişi
+
+Daha önce oynanmış kayıtlar tamamen sıfırlanmaz. Story arc şeması ikinci sürüme yükseltildi. Eski event arşivleri yeniden okunarak mümkün olan kariyer zincirlerinin güncel aşaması oluşturulur.
+
+Böylece daha önce Demirci / Bitig / Kervan zincirlerinin bir bölümünü oynamış kayıtların yeni genişletilmiş zincirlere mümkün olduğunca doğal biçimde devam etmesi hedeflenir.
