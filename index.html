@@ -113,6 +113,14 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
 .bond.good{background:#dfe8cd;border-color:#bdcda4}.bond.bad{background:#ecd4c7;border-color:#d4a99a}
 .memoryline{font-size:9px;color:#7a6d55;margin-top:5px;font-style:italic;line-height:1.35}
 .familySummary{display:flex;gap:7px;flex-wrap:wrap;margin:7px 0 11px}.familySummary .badge{font-size:10px}
+.socialGraph{margin:10px 0 16px;padding:10px;border:1px solid #d4c18f;border-radius:14px;background:#f7edcf88}
+.socialGraphTitle{font-size:11px;font-weight:1000;color:#6f5c3d;margin-bottom:8px}
+.socialGraphList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.socialEdge{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 8px;border:1px solid #d5c49b;border-radius:10px;background:#fff3d5;font-size:10px;color:#554832}
+.socialEdge strong{font-size:10px}.socialEdge.good{background:#e8f0d8;border-color:#bfd0a5}.socialEdge.bad{background:#f1ddd2;border-color:#d9b1a2}.socialEdge.kin{background:#efe5c7}
+.socialEdgeScore{font-weight:1000;white-space:nowrap}.networkline{font-size:9px;color:#6e6049;margin-top:5px;line-height:1.35}
+@media(max-width:700px){.socialGraphList{grid-template-columns:1fr}}
+
 
 .mini{border:1px solid var(--line);background:#eadbb5;color:#3a3122;border-radius:8px;padding:5px 7px;font-size:10px;font-weight:800;cursor:pointer}
 .mini:hover{background:#f7e9c4}
@@ -636,7 +644,7 @@ function newCharacter(base={}, inherit=false){
   const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
-    version:2,experience:{},careerMonths:{},ailments:[],pregnancy:null,will:"equal",pendingDecision:null,pendingEventContext:null,
+    version:4,experience:{},careerMonths:{},ailments:[],pregnancy:null,will:"equal",pendingDecision:null,pendingEventContext:null,
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
     name:base.name||$("customName").value.trim()||pick(cfg[g]), gender:g, realm, year,
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
@@ -646,7 +654,7 @@ function newCharacter(base={}, inherit=false){
     wealth:base.wealth??rng(2,10), role:null, path:null, military:base.military||{called:false,served:false,campaigns:0,wounds:0,active:false,dutyMonths:0,comrades:[]},
     captive:false, exile:false, crimeRecord:[], assets:[], achievements:base.achievements||[], eventHistory:base.eventHistory||[], eventCooldowns:base.eventCooldowns||{}, eventArchive:base.eventArchive||[], pendingEventId:base.pendingEventId||null,
     parents:base.parents||[], siblings:base.siblings||[], relatives:base.relatives||[], friends:base.friends||[], rivals:base.rivals||[],
-    partner:base.partner||null, married:!!base.married, children:base.children||[], timeline:base.timeline||[],
+    partner:base.partner||null, married:!!base.married, children:base.children||[], socialLinks:base.socialLinks||[], timeline:base.timeline||[],
     legacy:base.legacy||{generation:1,familyName:base.tribe||"Boy",past:[]},
     flags:{}
   };
@@ -698,8 +706,8 @@ function seedFamily(){
    const g=Math.random()<.5?"male":"female",maxAge=Math.max(0,Math.min(9,mother.age-18,father.age-18)),age=rng(0,maxAge);
    s.siblings.push(normalizeNPC({name:pick(cfg[g]),rel:rng(48,86),type:g==="male"?"Erkek kardeş":"Kız kardeş",alive:true,gender:g,age,birthYear:born-age,parentIds:[father.id,mother.id]},g==="male"?"Erkek kardeş":"Kız kardeş"));
  }
-}
-function log(text,type=""){s.timeline.unshift({age:s.age,month:s.pendingEventContext?.month||s.lastAction?.month||currentMonth(),text,type});if(s.timeline.length>220)s.timeline.length=220}
+ seedCoreSocialLinks();
+}function log(text,type=""){s.timeline.unshift({age:s.age,month:s.pendingEventContext?.month||s.lastAction?.month||currentMonth(),text,type});if(s.timeline.length>220)s.timeline.length=220}
 function apply(e={}){for(const[k,v]of Object.entries(e)){if(k==="wealth")s.wealth=Math.max(0,s.wealth+v);else if(["health","happiness","skill","prestige"].includes(k))s[k]=clamp(s[k]+v)}}
 function render(){
  if(!s)return;
@@ -857,6 +865,7 @@ function renderFamily(){
  const living=allNPCs().filter(x=>x.alive),close=[...s.parents,...s.siblings,...s.children,...(s.partner?[s.partner]:[])].filter(x=>x?.alive);
  const avg=close.length?Math.round(close.reduce((a,n)=>a+(n.rel||0),0)/close.length):0;
  let html=`<div class="familySummary"><span class="badge">Yaşayan yakın ${living.length}</span><span class="badge">Yakın bağ ort. ${avg}</span><span class="badge">Geniş aile ${(s.relatives||[]).length}</span><span class="badge">Dost ${s.friends.length} • Rakip ${s.rivals.length}</span></div>`;
+ html+=renderSocialNetworkSummary();
  html+=`<h3>Aile</h3><div class="grid2">${s.parents.map((r,i)=>familyCard(r,"parents",i)).join("")}${s.siblings.map((r,i)=>familyCard(r,"siblings",i)).join("")}</div>`;
  html+=`<h3>Ocak</h3><div class="grid2">`;
  if(!s.partner?.alive&&s.age>=16)html+=`<button class="card" onclick="meetPartner()"><h3>❤️ Eş Adayı Bul</h3><p>Başka bir aileyle bağ kur. Karakteri ve sana güveni ilerideki kararları etkiler.</p></button>`;
