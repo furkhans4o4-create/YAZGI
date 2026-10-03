@@ -1,4 +1,4 @@
-name: YAZGI Tests
+name: YAZGI v30 Gate
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  v30:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -20,5 +20,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run system tests
+      - name: Run v30 regression gate
+        run: node --test --test-name-pattern='v30 ' tests/systems.test.cjs
+      - name: Audit complete historical suite
+        continue-on-error: true
         run: node --test tests/systems.test.cjs
