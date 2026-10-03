@@ -657,7 +657,7 @@ function justiceRestitutionAmount(rec){
  return Math.max(3,Math.round(base+rec.severity/8+rec.evidence/18));
 }
 function justiceFeudForCase(rec,create=false){
- const j=ensureJustice();let f=j.feuds.find(x=>x.caseId===rec.id);if(!f&&create){const victim=justiceContact(rec.victimId),kin=victimKinFor(victim,true);f={id:'feud_'+rec.id,caseId:rec.id,victimId:rec.victimId,kinId:kin?.id||null,heat:clamp((CRIME_PROFILES[rec.crimeId]?.feud||25)+Math.round(rec.severity/5)),status:'active',startedYear:s.year+s.age};j.feuds.push(f);}return f||null;
+ const j=ensureJustice();let f=j.feuds.find(x=>x.caseId===rec.id);if(!f&&create){const victim=justiceContact(rec.victimId),kin=victimKinFor(victim,true);f={id:'feud_'+rec.id,caseId:rec.id,victimId:rec.victimId,kinId:kin?.id||null,heat:clamp((CRIME_PROFILES[rec.crimeId]?.feud||25)+Math.round(rec.severity/5)),status:'active',startedYear:s.year+s.age};j.feuds.push(f);if(kin)scheduleDelayedEvent({id:'crime_feud_returns',years:[2,6],payload:{caseId:rec.id,detail:'Mağdur tarafla aranızdaki eski husumet yıllar içinde tamamen sönmedi.'}},{targetId:kin.id,sourceEventId:'justice:'+rec.id});}return f||null;
 }
 function markJusticeHostility(rec,amount=0){
  const victim=justiceContact(rec.victimId);if(victim){adjustNPC(victim,{rel:-Math.max(3,Math.round(amount/8)),trust:-Math.max(3,Math.round(amount/10)),grudge:Math.max(5,Math.round(amount/5))},'Töre dışı eylemin mağduru oldu.');if(rec.severity>=60&&!s.rivals.some(x=>x.id===victim.id)){victim.type='Mağdur / Hasım';s.rivals.push(victim);}}
@@ -666,7 +666,7 @@ function markJusticeHostility(rec,amount=0){
 function settleJusticeCase(rec,reason='tazminatla uzlaşma'){
  const j=ensureJustice(),victim=justiceContact(rec.victimId),f=justiceFeudForCase(rec,false);rec.status='settled';rec.resolvedYear=s.year+s.age;rec.result=reason;j.settled++;j.suspicion=clamp(j.suspicion-16);if(f){f.heat=clamp(f.heat-28);if(f.heat<25)f.status='settled';}
  if(victim)adjustNPC(victim,{rel:6,trust:3,grudge:-18},'Tazminat ve arabuluculukla mesele yatıştırıldı.');
- j.history.unshift({year:s.year+s.age,age:s.age,caseId:rec.id,result:reason});j.history=j.history.slice(0,60);log('Töre meselesi kapandı: '+reason+'.','good');
+ const row=s.crimeRecord.find(x=>x.id===rec.id);if(row){row.result=reason;row.status=rec.status;}j.history.unshift({year:s.year+s.age,age:s.age,caseId:rec.id,result:reason});j.history=j.history.slice(0,60);log('Töre meselesi kapandı: '+reason+'.','good');
 }
 function imposeJusticeOutcome(rec){
  const j=ensureJustice(),due=rec.restitutionDue||justiceRestitutionAmount(rec);rec.restitutionDue=due;
