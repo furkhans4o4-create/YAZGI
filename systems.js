@@ -8,6 +8,100 @@ const CAREER_RULES={
 };
 const ASSET_AGES={horse:12,bow:12,flock:18,sword:18,armor:18,yurt:18,caravan_share:18,smithy:18};
 const AILMENTS={fever:{name:'Ateşli rahatsızlık',min:0,loss:2,duration:3},chill:{name:'Soğukta güçten düşme',min:0,loss:1,duration:2},injury:{name:'İyileşen yara',min:12,loss:2,duration:4},joints:{name:'Eklem ağrısı',min:50,loss:1,duration:8}};
+const STORY_ARCS={
+ smith:{name:'Demir Ocağının Yolu',icon:'🔥',start:'smith_offer',maxStage:5,nodes:{
+  smith_offer:{stage:0,next:{0:'smith_first_mistake'},end:{1:'abandoned'}},
+  smith_first_mistake:{stage:1,next:{0:'smith_master_test',1:'smith_master_test'}},
+  smith_master_test:{stage:2,next:{0:'smith_own_hearth'},end:{1:'abandoned'}},
+  smith_own_hearth:{stage:3,next:{0:'smith_state_order'},end:{1:'abandoned'}},
+  smith_state_order:{stage:4,end:{0:'completed',1:'completed'}}
+ }},
+ scribe:{name:'Bitigden Elçiliğe',icon:'𐱅',start:'scribe_offer',maxStage:5,nodes:{
+  scribe_offer:{stage:0,next:{0:'scribe_copy'},end:{1:'abandoned'}},
+  scribe_copy:{stage:1,next:{0:'scribe_record_dispute'},end:{1:'abandoned'}},
+  scribe_record_dispute:{stage:2,next:{0:'scribe_envoy_list'},end:{1:'abandoned'}},
+  scribe_envoy_list:{stage:3,next:{0:'envoy_border_talk'},end:{1:'abandoned'}},
+  envoy_border_talk:{stage:4,end:{0:'completed',1:'completed'}}
+ }},
+ caravan:{name:'Kervan Yolu',icon:'🐫',start:'caravan_invite',maxStage:5,nodes:{
+  caravan_invite:{stage:0,next:{0:'caravan_first_crossing'},end:{1:'completed'}},
+  caravan_first_crossing:{stage:1,next:{0:'caravan_market'},end:{1:'abandoned'}},
+  caravan_market:{stage:2,next:{0:'caravan_partner'},end:{1:'completed'}},
+  caravan_partner:{stage:3,next:{0:'caravan_master'},end:{1:'completed'}},
+  caravan_master:{stage:4,end:{0:'completed',1:'completed'}}
+ }},
+ military:{name:'Savaşçının Yükselişi',icon:'⚔',start:'military_comrade',maxStage:4,nodes:{
+  military_comrade:{stage:0,next:{0:'military_night_watch'},end:{1:'abandoned'}},
+  military_night_watch:{stage:1,next:{0:'military_small_command'},end:{1:'abandoned'}},
+  military_small_command:{stage:2,next:{0:'military_tarkan_path'},end:{1:'abandoned'}},
+  military_tarkan_path:{stage:3,end:{0:'completed',1:'completed'}}
+ }},
+ feud:{name:'Husumetin Sonu',icon:'🔥',start:'toy_insult',maxStage:3,nodes:{
+  toy_insult:{stage:0,next:{0:'feud_challenge'},end:{1:'completed'}},
+  feud_challenge:{stage:1,next:{0:'feud_end',1:'feud_mediation_result'}},
+  feud_end:{stage:2,end:{0:'completed',1:'completed'}},
+  feud_mediation_result:{stage:2,end:{0:'completed',1:'completed'}}
+ }},
+ household:{name:'Ocağın İlk Yılları',icon:'🏕',start:'household_first_winter',maxStage:2,nodes:{
+  household_first_winter:{stage:0,next:{0:'spouse_family_request'},end:{1:'completed'}},
+  spouse_family_request:{stage:1,end:{0:'completed',1:'completed'}}
+ }},
+ herd:{name:'Büyük Sürünün Yolu',icon:'🐎',start:'herd_expansion',maxStage:3,nodes:{
+  herd_expansion:{stage:0,next:{0:'herd_disease'},end:{1:'completed'}},
+  herd_disease:{stage:1,next:{0:'herd_reputation'},end:{1:'completed'}},
+  herd_reputation:{stage:2,end:{0:'completed',1:'completed'}}
+ }},
+ exile:{name:'Sürgün ve Dönüş',icon:'↗',start:'exile_new_oath',maxStage:2,nodes:{
+  exile_new_oath:{stage:0,next:{1:'exile_return'},end:{0:'completed'}},
+  exile_return:{stage:1,next:{1:'exile_return'},end:{0:'completed'}}
+ }}
+};
+function arcEventMeta(eventId){
+ for(const [id,arc] of Object.entries(STORY_ARCS))if(arc.nodes[eventId])return {id,arc,node:arc.nodes[eventId]};return null;
+}
+function ensureStoryArcs(){
+ s.storyArcs=s.storyArcs&&typeof s.storyArcs==='object'&&!Array.isArray(s.storyArcs)?s.storyArcs:{};
+ if(!s.storyArcVersion){
+  const archive=[...(s.eventArchive||[])];
+  for(const rec of archive)recordStoryArcChoice(rec.id,rec.choice,'',rec,true);
+  s.storyArcVersion=1;
+ }
+ return s.storyArcs;
+}
+function recordStoryArcChoice(eventId,choiceIndex,choiceText,context={},replay=false){
+ const meta=arcEventMeta(eventId);if(!meta)return null;
+ s.storyArcs=s.storyArcs||{};let st=s.storyArcs[meta.id];
+ if(!st)st=s.storyArcs[meta.id]={id:meta.id,status:'active',stage:0,nextEventId:meta.arc.start,startedAge:context.age??s.age,startedYear:context.year??s.year+s.age,lastYear:context.year??s.year+s.age,branch:'',participantIds:[],history:[]};
+ const duplicate=replay&&st.history.some(h=>h.eventId===eventId&&h.age===context.age&&h.month===context.month&&h.choice===choiceIndex);
+ if(!duplicate)st.history.push({eventId,choice:choiceIndex,choiceText:choiceText||'',age:context.age??s.age,year:context.year??s.year+s.age,month:context.month??currentMonth()});
+ st.history=st.history.slice(-20);st.stage=Math.max(st.stage,meta.node.stage+1);st.lastEventId=eventId;st.lastChoice=choiceIndex;st.lastChoiceText=choiceText||st.lastChoiceText||'';st.lastYear=context.year??s.year+s.age;
+ for(const id of [context.targetId,context.otherTargetId])if(id&&!st.participantIds.includes(id))st.participantIds.push(id);
+ const next=meta.node.next?.[choiceIndex]||null,end=meta.node.end?.[choiceIndex]||null;
+ if(next){st.status='active';st.nextEventId=next;}
+ else{st.status=end||'completed';st.nextEventId=null;st.completedYear=context.year??s.year+s.age;st.branch=choiceText||st.branch;}
+ if(!replay&&st.status==='completed')log('Hikâye tamamlandı: '+meta.arc.name+'.','major');
+ if(!replay&&st.status==='abandoned')log('Hikâye yolu kapandı: '+meta.arc.name+'.');
+ return st;
+}
+function eventEffectiveWeight(e){
+ const base=e?.w||1,meta=arcEventMeta(e?.id);if(!meta||!s)return base;ensureStoryArcs();const st=s.storyArcs[meta.id];
+ if(!st)return e.id===meta.arc.start?base*1.25:base;
+ if(st.status==='active')return st.nextEventId===e.id?base*7:base*.2;
+ return base*.08;
+}
+function storyArcProgress(st){
+ const arc=STORY_ARCS[st.id];return arc?Math.max(0,Math.min(100,Math.round((st.stage/arc.maxStage)*100))):0;
+}
+function renderStoryArcs(){
+ const root=$('storyArcBoard');if(!root)return;ensureStoryArcs();
+ const states=Object.values(s.storyArcs||{}).sort((a,b)=>(b.status==='active')-(a.status==='active')||(b.lastYear||0)-(a.lastYear||0));
+ const shown=[...states.filter(x=>x.status==='active'),...states.filter(x=>x.status!=='active').slice(0,2)];
+ if(!shown.length){root.innerHTML='';return;}
+ let html='<div class="storyArcWrap"><div class="storyArcTitle">Süren Hikâyeler</div>';
+ for(const st of shown){const arc=STORY_ARCS[st.id],pct=storyArcProgress(st),status=st.status==='active'?'Sürüyor':st.status==='completed'?'Tamamlandı':'Yol kapandı',cls=st.status==='active'?'active':st.status==='completed'?'done':'closed';html+='<div class="storyArc '+cls+'"><div class="storyArcHead"><strong>'+arc.icon+' '+safeText(arc.name)+'</strong><span>'+status+'</span></div><div class="storyArcBar"><i style="width:'+pct+'%"></i></div><div class="storyArcMeta">'+st.stage+'/'+arc.maxStage+' adım'+(st.lastChoiceText?' • Son karar: '+safeText(st.lastChoiceText):'')+'</div></div>';}
+ root.innerHTML=html+'</div>';
+}
+
 function safeText(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function npcId(){return 'n_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);}
 function pathName(p){return ({civil:'oba',craft:'zanaat',culture:'söz',trade:'ticaret',state:'bitig/devlet',military:'sefer'})[p]||p;}
