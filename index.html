@@ -782,6 +782,8 @@ function statusText(){
  if(s.age<12)return "Oba işlerini öğreniyor";
  if(s.role)return s.role;
  if(s.age<18)return "Yetişme çağı";
+ if(s.age>=65)return "Aile büyüğü";
+ if(s.age>=50)return "Tecrübe çağında";
  return "Kendi yolunu arıyor";
 }
 function setupSwipeCard(){
