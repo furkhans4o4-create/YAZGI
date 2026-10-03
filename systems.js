@@ -847,9 +847,9 @@ function configureRules(){
   if(['scribe_copy','scribe_record_dispute','scribe_envoy_list','envoy_border_talk'].includes(e.id))e.target='scribeMaster';
   if(['caravan_first_crossing','caravan_market','caravan_partner','caravan_master'].includes(e.id))e.target='caravanMaster';
   if(e.id==='smith_master_test'){e.text='{name}, sana gözetimsiz olarak sağlam bir mızrak ucu dövme görevi verdi.';e.choices[0][1].career={id:'smith',reputation:6,mastery:7,orders:1};e.choices[1][0]='Biraz daha çalışıp sonra teslim et';e.choices[1][1].setFlag='smith_journeyman';e.choices[1][1].setRole='Demirci';e.choices[1][1].career={id:'smith',reputation:2,mastery:4,orders:1};}
-  if(e.id==='scribe_record_dispute'){e.req=['flag:scribe_student','skill45'];e.choices[0][1].career={id:'scribe',reputation:6,mastery:6,orders:1};e.choices[1][1].career={id:'scribe',reputation:-2,mastery:3,orders:1};}
+  if(e.id==='scribe_record_dispute'){e.req=['flag:scribe_student','skill45'];e.choices[0][1].career={id:'scribe',reputation:6,mastery:6,orders:1};e.choices[1][1].setFlag='scribe_clerk';e.choices[1][1].career={id:'scribe',reputation:-2,mastery:3,orders:1};}
   if(e.id==='caravan_first_crossing'){e.req='flag:caravan_member';e.choices[0][1].career={id:'caravan',reputation:5,mastery:5,orders:1};e.choices[1][1].career={id:'caravan',reputation:1,mastery:2};}
-  if(e.id==='caravan_market'){e.req='flag:caravan_member';}
+  if(e.id==='caravan_market'){e.req='flag:caravan_member';e.choices[1][1].setFlag='trader';e.choices[0][1].career={id:'merchant',reputation:4,mastery:3,orders:1};e.choices[1][1].career={id:'merchant',reputation:2,mastery:2,orders:1};}
   if(e.id==='smith_state_order')e.req=['role:smith','prestige20'];
   if(e.id==='caravan_master')e.req=['flag:caravan_member','prestige20'];
   if(e.id==='river_crossing'){e.text='Göç sırasında oba bir ırmağın kıyısında bekliyor. Büyüklerin sana hafif bir iş gösterdi.';e.choices[0][0]='Büyüklerinin yanında yardım et';}if(e.id==='lost_lamb')e.choices[0][0]='Bir büyüğünle izine bak';
