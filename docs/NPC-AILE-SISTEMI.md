@@ -103,3 +103,16 @@ Bir NPC ile bugün verilen karar mümkün olduğunca yalnız o ayın stat deği�
 gibi uzun zincirlere bağlamaktır.
 
 NPC ve aile sistemi diğer büyük sistemlerin taşıyıcı katmanı olarak ele alınır; yeni özellikler bu modeli atlayarak ayrı birer mini oyun şeklinde eklenmemelidir.
+
+
+## Birinci aşama durumu
+
+NPC + Aile aşaması tamamlandı.
+
+Bu aşamanın kapanışında NPC'ler artık yalnızca oyuncuyla değil birbirleriyle de kalıcı bağ kurabiliyor. Akrabalık, eş bağı, yoldaşlık, dostluk ve husumet sosyal ağda saklanıyor; kişilikler bu bağların yıllık değişimini etkiliyor. Yakın bir aile üyesinin başka bir NPC ile dost veya hasım olması oyuncunun hayatına geri dönebiliyor.
+
+Soydan çocukla devam edildiğinde eski karakterin güçlü dostları ve yakın yoldaşları **Aile dostu**, yaşayan rakipleri ise **Aile hasmı** olarak yeni nesle taşınabiliyor. Bu bağlantılar yeni nesilde event üretmeye devam ediyor.
+
+Aile ekranında NPC'lerin kendi güçlü bağları ve yakınların birbirleriyle ilişkileri görülebiliyor. Kayıt şeması v4'e yükseltildi ve eski kayıtlar için geçiş katmanı korunuyor.
+
+Bundan sonraki büyük geliştirmeler NPC çekirdeğini tekrar kurmak yerine bu çekirdeği kullanmalıdır.
