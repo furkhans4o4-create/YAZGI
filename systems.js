@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=27,ADULT_AGE=18;
+const SAVE_VERSION=28,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -1206,11 +1206,117 @@ function stateYearTick(){
  if(s.role==='Boy Beyi'){q.influence=clamp(q.influence+1);q.obligations=Math.max(0,q.obligations-1);}
  else if(q.influence>0&&Math.random()<.35)q.influence=clamp(q.influence-1);
 }
+
+const LONG_TERM_CONDITIONS={
+ mobility:{name:'Kalıcı hareket kısıtlılığı',domains:{mobility:18,endurance:6},flare:'old_wound'},
+ upper:{name:'Kol ve omuz işlev kısıtlılığı',domains:{upper:20,endurance:4},flare:'old_wound'},
+ chronic_pain:{name:'Süregelen ağrı',domains:{endurance:16,mobility:5,upper:5},flare:'old_wound'},
+ sight:{name:'Görme zorluğu',domains:{vision:22},flare:'exhaustion'},
+ hearing:{name:'İşitme zorluğu',domains:{hearing:24},flare:'exhaustion'},
+ fatigue:{name:'Süregelen güç kaybı',domains:{endurance:20,mobility:4,upper:4},flare:'exhaustion'}
+};
+function normalizeLongTermCondition(x){
+ if(!x||!LONG_TERM_CONDITIONS[x.id])return null;
+ x.severity=Math.max(1,Math.min(3,Math.round(x.severity||1)));x.management=clamp(Number.isFinite(x.management)?x.management:20);x.source=x.source||'';
+ x.startedYear=Number.isFinite(x.startedYear)?x.startedYear:s.year+s.age;x.startedAge=Number.isFinite(x.startedAge)?x.startedAge:s.age;x.flares=Math.max(0,Math.round(x.flares||0));x.lastFlareYear=Number.isFinite(x.lastFlareYear)?x.lastFlareYear:null;
+ x.adaptations=Array.isArray(x.adaptations)?[...new Set(x.adaptations)]:[];x.history=Array.isArray(x.history)?x.history.slice(0,20):[];return x;
+}
+function longTermCondition(id){return ensureHealthProfile().longTermConditions.find(x=>x.id===id)||null;}
+function acquireLongTermCondition(id,opts={}){
+ const d=LONG_TERM_CONDITIONS[id];if(!d)return null;const h=ensureHealthProfile();let x=h.longTermConditions.find(c=>c.id===id);
+ const severity=Math.max(1,Math.min(3,Math.round(opts.severity||1)));
+ if(x){x.severity=Math.max(x.severity,severity);x.management=clamp(x.management-(severity>1?5:0));if(opts.source)x.source=opts.source;x.history.unshift({year:s.year+s.age,type:'worsen',severity:x.severity,source:opts.source||''});return x;}
+ x=normalizeLongTermCondition({id,severity,management:opts.management??20,source:opts.source||'',startedYear:s.year+s.age,startedAge:s.age,flares:0,lastFlareYear:null,adaptations:[],history:[{year:s.year+s.age,type:'start',severity,source:opts.source||''}]});
+ h.longTermConditions.push(x);h.history.unshift({year:s.year+s.age,type:'long_term',text:d.name+' kalıcı bir sağlık durumuna dönüştü.'});h.history=h.history.slice(0,60);log(d.name+' günlük hayatında kalıcı bir uyum gerektirmeye başladı.','major');return x;
+}
+function longTermConditionName(x){return LONG_TERM_CONDITIONS[x?.id]?.name||x?.id||'';}
+function conditionAdapted(x,id){return !!x?.adaptations?.includes(id);}
+function healthCapabilities(){
+ const h=ensureHealthProfile(),caps={mobility:100,upper:100,vision:100,hearing:100,endurance:100};
+ for(const x of h.longTermConditions){
+  const d=LONG_TERM_CONDITIONS[x.id],manage=Math.min(.55,(x.management||0)/180),adapt=Math.min(.35,(x.adaptations?.length||0)*.09);
+  for(const [domain,base] of Object.entries(d.domains||{}))caps[domain]-=Math.round(base*x.severity*(1-manage-adapt));
+ }
+ if(h.adaptations.mobility_support)caps.mobility+=14;
+ if(h.adaptations.hand_tools)caps.upper+=14;
+ if(h.adaptations.sight_guidance)caps.vision+=12;
+ if(h.adaptations.hearing_signals)caps.hearing+=12;
+ if(h.adaptations.home_adjust)caps.endurance+=8;
+ if(h.adaptations.family_support){caps.mobility+=4;caps.endurance+=6;}
+ for(const k of Object.keys(caps))caps[k]=clamp(caps[k]);return caps;
+}
+function healthCapabilityLabel(v){return v>=80?'Rahat':v>=60?'Uyumlu':v>=40?'Zorlanıyor':v>=25?'Ağır zorlanıyor':'Çok sınırlı';}
+function longTermWorkPenalty(r){
+ if(!r)return 0;const c=healthCapabilities();let use=[];
+ if(r.path==='military')use=[c.mobility,c.upper,c.vision,c.endurance];
+ else if(r.path==='craft')use=[c.upper,c.endurance,c.vision];
+ else if(r.path==='trade')use=[c.mobility,c.endurance,c.vision];
+ else if(r.path==='state')use=[c.endurance,c.hearing,c.vision];
+ else use=[c.endurance,c.hearing];
+ const avg=use.reduce((a,v)=>a+v,0)/Math.max(1,use.length),raw=Math.max(0,(70-avg)/180);
+ return ensureHealthProfile().adaptations.work_adjust?raw*.45:raw;
+}
+function longTermMilitaryIssue(){
+ const c=healthCapabilities();if(c.endurance<28)return 'Süregelen sağlık yükü şu anda sefer temposunu kaldıramayacak kadar ağır.';
+ if(c.mobility<30&&!ensureHealthProfile().adaptations.mobility_support)return 'Sefer için hareket desteğini önce düzenlemen gerekiyor.';
+ if(c.upper<30&&!ensureHealthProfile().adaptations.hand_tools)return 'Silah ve yük kullanımı için uyarlanmış araç düzeni gerekiyor.';return '';
+}
+function healthAdaptationIssue(id){
+ const h=ensureHealthProfile(),conds=h.longTermConditions;if(!conds.length)return 'Uyum gerektiren kalıcı bir sağlık durumu yok.';
+ if(id==='mobility_support'){if(!conds.some(x=>LONG_TERM_CONDITIONS[x.id].domains.mobility))return 'Hareket desteği gerektiren bir durum yok.';if(h.adaptations.mobility_support)return 'Hareket desteği zaten hazır.';if(s.wealth<2)return 'Dayanak, eyer ve yol düzeni için 2 servet gerekiyor.';}
+ else if(id==='hand_tools'){if(!conds.some(x=>LONG_TERM_CONDITIONS[x.id].domains.upper))return 'El ve kol kullanımını uyarlamayı gerektiren bir durum yok.';if(h.adaptations.hand_tools)return 'Uyarlanmış araç düzeni zaten hazır.';if(s.wealth<2)return 'Araçları uyarlamak için 2 servet gerekiyor.';}
+ else if(id==='sight_guidance'){if(!conds.some(x=>x.id==='sight'))return 'Görme desteği gerektiren bir durum yok.';if(h.adaptations.sight_guidance)return 'Görme desteği düzeni zaten hazır.';}
+ else if(id==='hearing_signals'){if(!conds.some(x=>x.id==='hearing'))return 'İşitme desteği gerektiren bir durum yok.';if(h.adaptations.hearing_signals)return 'El işareti ve dikkat düzeni zaten hazır.';}
+ else if(id==='home_adjust'){if(h.adaptations.home_adjust)return 'Yurt içi düzen zaten uyarlanmış.';if(s.wealth<3)return 'Yurt içi düzenleme için 3 servet gerekiyor.';}
+ else if(id==='work_adjust'){if(!s.role)return 'Uyarlanacak aktif görevin yok.';if(h.adaptations.work_adjust)return 'Görev düzenin zaten uyarlanmış.';}
+ else if(id==='family_support'){if(h.adaptations.family_support)return 'Yakın desteği düzeni zaten kuruldu.';if(![...s.parents,...s.siblings,...s.children,s.partner].some(n=>n?.alive&&(n.rel||0)>=50))return 'Düzenli destek isteyebileceğin yakın görünmüyor.';}
+ else if(id==='management'){if(s.wealth<2)return 'Otacıyla uzun süreli bakım planı için 2 servet gerekiyor.';}
+ else return 'Uyum eylemi bulunamadı.';return '';
+}
+function healthAdaptationAction(id){
+ const issue=healthAdaptationIssue(id);if(issue){notice(issue);return false;}const h=ensureHealthProfile();
+ return performAction({kind:'healthAdapt',id},()=>{
+  if(id==='mobility_support'){s.wealth-=2;h.adaptations.mobility_support=true;for(const x of h.longTermConditions.filter(x=>LONG_TERM_CONDITIONS[x.id].domains.mobility)){x.management=clamp(x.management+12);if(!x.adaptations.includes(id))x.adaptations.push(id);}}
+  else if(id==='hand_tools'){s.wealth-=2;h.adaptations.hand_tools=true;for(const x of h.longTermConditions.filter(x=>LONG_TERM_CONDITIONS[x.id].domains.upper)){x.management=clamp(x.management+12);if(!x.adaptations.includes(id))x.adaptations.push(id);}}
+  else if(id==='sight_guidance'){h.adaptations.sight_guidance=true;for(const x of h.longTermConditions.filter(x=>x.id==='sight')){x.management=clamp(x.management+10);if(!x.adaptations.includes(id))x.adaptations.push(id);}}
+  else if(id==='hearing_signals'){h.adaptations.hearing_signals=true;for(const x of h.longTermConditions.filter(x=>x.id==='hearing')){x.management=clamp(x.management+10);if(!x.adaptations.includes(id))x.adaptations.push(id);}}
+  else if(id==='home_adjust'){s.wealth-=3;h.adaptations.home_adjust=true;h.longTermConditions.forEach(x=>x.management=clamp(x.management+7));}
+  else if(id==='work_adjust'){h.adaptations.work_adjust=true;h.longTermConditions.forEach(x=>x.management=clamp(x.management+5));if(s.role)ensureWorkplaceForRole().standing=clamp(ensureWorkplaceForRole().standing+2);}
+  else if(id==='family_support'){h.adaptations.family_support=true;const kin=[...s.parents,...s.siblings,...s.children,s.partner].filter(n=>n?.alive&&(n.rel||0)>=50).sort((a,b)=>(b.rel||0)-(a.rel||0))[0];if(kin)adjustNPC(kin,{rel:4,trust:5,respect:2},'Günlük yaşamındaki bazı yükleri düzenli paylaşmayı kararlaştırdınız.');h.longTermConditions.forEach(x=>x.management=clamp(x.management+8));}
+  else if(id==='management'){s.wealth-=2;const healer=healthHealer(true);if(healer)adjustNPC(healer,{rel:2,trust:3},'Süregelen sağlık durumunu yönetmek için düzenli bir plan yaptınız.');h.longTermConditions.forEach(x=>x.management=clamp(x.management+15));h.healerVisits++;}
+  h.history.unshift({year:s.year+s.age,type:'adaptation',text:id});h.history=h.history.slice(0,60);apply({happiness:1});
+ },'Günlük yaşamını sağlık durumuna göre uyarlamakla bir ay geçti.');
+}
+function longTermHealthMonthTick(month,action={}){
+ const h=ensureHealthProfile();if(!h.longTermConditions.length)return;
+ for(const x of h.longTermConditions){
+  if(month===1&&x.management>0)x.management=clamp(x.management-1);
+  const d=LONG_TERM_CONDITIONS[x.id],adaptCount=x.adaptations.length+(h.adaptations.home_adjust?1:0)+(h.adaptations.family_support?1:0),flare=Math.max(.01,.025*x.severity+(35-x.management)/1000-adaptCount*.008);
+  if(Math.random()<flare&&!s.ailments.some(a=>a.id===d.flare)){x.flares++;x.lastFlareYear=s.year+s.age;acquireAilment(d.flare,{severity:Math.min(3,x.severity),duration:2+x.severity,source:d.name});x.history.unshift({year:s.year+s.age,type:'flare',month});}
+  if(month%3===0&&x.severity>=2&&x.management<35){apply({happiness:-1});if(x.severity>=3&&x.management<20)apply({health:-1});}
+ }
+}
+function longTermConditionFromAilment(x){
+ if(!x)return null;if(x.id==='deep_wound'||x.id==='injury'){if(String(x.source).includes('battle'))return Math.random()<.55?'mobility':'upper';return Math.random()<.55?'chronic_pain':'mobility';}
+ if(x.id==='fever'&&x.severity>=4)return 'fatigue';return null;
+}
+function longTermHealthSummaryHtml(){
+ const h=ensureHealthProfile();if(!h.longTermConditions.length)return '';const caps=healthCapabilities();
+ const rows=h.longTermConditions.map(x=>'<div class="memoryline"><b>'+safeText(longTermConditionName(x))+'</b> • derece '+x.severity+' • yönetim '+x.management+'/100 • alevlenme '+x.flares+(x.source?'<br>Kaynak: '+safeText(x.source):'')+'</div>').join('');
+ let buttons='';
+ const defs=[['mobility_support','Hareket desteği hazırla'],['hand_tools','Araçları uyarlat'],['sight_guidance','Görme desteği düzenle'],['hearing_signals','İşaret düzeni kur'],['home_adjust','Yurdu uyumla'],['work_adjust','Görev düzenini uyumla'],['family_support','Yakın desteği iste'],['management','Otacıyla yönetim planı']];
+ for(const [id,label] of defs){const issue=healthAdaptationIssue(id);if(!issue)buttons+=actionButton(label,{kind:'healthAdapt',id},"healthAdaptationAction('"+id+"')",'Kalıcı durumu ortadan kaldırmaz; günlük işlevi ve yönetimi güçlendirir.');}
+ return '<div class="card"><h3>🪵 Süregelen Sağlık ve Uyum</h3><p>Hareket '+caps.mobility+' ('+healthCapabilityLabel(caps.mobility)+') • kol/el '+caps.upper+' ('+healthCapabilityLabel(caps.upper)+')<br>Görme '+caps.vision+' • işitme '+caps.hearing+' • dayanma '+caps.endurance+'</p>'+rows+'</div>'+(buttons?'<div class="grid2">'+buttons+'</div>':'');
+}
+
 function ensureHealthProfile(){
  if(!s.healthProfile||typeof s.healthProfile!=='object'||Array.isArray(s.healthProfile))s.healthProfile={scars:[],frailty:0,resilience:50,healerVisits:0,restMonths:0,crises:0,lastCareYear:null,history:[]};
  const h=s.healthProfile;
  h.scars=Array.isArray(h.scars)?h.scars.slice(-12):[];h.frailty=clamp(Number.isFinite(h.frailty)?h.frailty:0);h.resilience=clamp(Number.isFinite(h.resilience)?h.resilience:50);
- h.healerVisits=Math.max(0,Math.floor(h.healerVisits||0));h.restMonths=Math.max(0,Math.floor(h.restMonths||0));h.crises=Math.max(0,Math.floor(h.crises||0));h.history=Array.isArray(h.history)?h.history.slice(-40):[];
+ h.healerVisits=Math.max(0,Math.floor(h.healerVisits||0));h.restMonths=Math.max(0,Math.floor(h.restMonths||0));h.crises=Math.max(0,Math.floor(h.crises||0));h.history=Array.isArray(h.history)?h.history.slice(-60):[];
+ h.longTermConditions=Array.isArray(h.longTermConditions)?h.longTermConditions.map(normalizeLongTermCondition).filter(Boolean):[];
+ h.adaptations=h.adaptations&&typeof h.adaptations==='object'&&!Array.isArray(h.adaptations)?h.adaptations:{};
+ for(const k of ['mobility_support','hand_tools','sight_guidance','hearing_signals','home_adjust','work_adjust','family_support'])h.adaptations[k]=!!h.adaptations[k];
  s.ailments=Array.isArray(s.ailments)?s.ailments:[];
  s.ailments=s.ailments.filter(x=>x&&AILMENTS[x.id]).map(x=>{const d=AILMENTS[x.id];return {id:x.id,remaining:Math.max(1,Math.floor(x.remaining??d.duration)),severity:Math.max(1,Math.min(4,Math.floor(x.severity??d.severity??1))),source:x.source||'',startedYear:x.startedYear??(s.year+s.age),treated:!!x.treated};});
  return h;
