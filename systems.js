@@ -707,7 +707,7 @@ function configureRules(){
    ];
   }
   if(e.id==='child_ill')e.target='child';if(e.id==='grandchild_visit')e.req='hasGrandchild';
-  if(['household_first_winter','spouse_family_request'].includes(e.id))e.target='partner';
+  if(['household_first_winter','spouse_family_request'].includes(e.id))e.target='partner';if(e.id==='household_first_winter'){e.choices[0][1].setFlag='household_proven';e.choices[1][1].setFlag='household_proven';}
   if(e.id==='winter_shortage')e.months=[10,11,12];if(e.id==='summer_drought'){e.months=[4,5,6];e.req='asset:flock';}if(e.id==='exile_return')e.req=['exile','flag:exile_loyal'];
   if(e.cat==='Sefer')e.req=[e.req,'activeCampaign'].filter(Boolean);if(e.id==='spoils_choice'){e.req='recentCampaign';e.choices.forEach(c=>c[1].clearFlag='recent_campaign');}
   if(e.id==='merchant_offer')e.actions=['period','venture','work','role'];if(e.id==='minor_wound')e.actions=['training','activity','work','military'];if(e.id==='wolf_attack')e.actions=['activity','work','venture'];
