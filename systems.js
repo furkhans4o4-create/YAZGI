@@ -17,7 +17,7 @@ const AILMENTS={
  injury:{name:'İyileşen yara',min:12,loss:2,duration:4,severity:2,kind:'injury'},
  deep_wound:{name:'Ağır yara',min:16,loss:3,duration:7,severity:3,kind:'injury'},
  joints:{name:'Eklem ağrısı',min:50,loss:1,duration:8,severity:2,kind:'chronic'},
- old_wound:{name:'Eski yaranın sızısı',min:40,loss:1,duration:4,severity:2,kind:'chronic'},
+ old_wound:{name:'Eski yaranın sızısı',min:18,loss:1,duration:4,severity:2,kind:'chronic'},
  exhaustion:{name:'Aşırı yorgunluk',min:10,loss:1,duration:3,severity:1,kind:'strain'}
 };
 const STORY_ARCS={
@@ -231,7 +231,7 @@ function applyChildPathConsequence(n,context,choiceIndex){
  else if(path==='family'){n.skills.riding=clamp((n.skills.riding||0)+4);n.skills.trade=clamp((n.skills.trade||0)+4);}
  else{n.skills.speech=clamp((n.skills.speech||0)+4);n.prestige=clamp((n.prestige||0)+2);}
  if(prof){n.prestige=clamp((n.prestige||0)+Math.round((prof.wellbeing+prof.expectation-90)/20));}
- n.role=npcCareerFor(n);n.roleHistory.push({year:s.year+s.age,role:n.role});rememberNPC(n,'milestone','Yıllar önce seçilen yetişme yolunun ardından '+n.role+' oldu.',6);
+ const guidedRole={craft:'Demirci',trade:'Tüccar',wisdom:'Bitigçi',war:'Alp'}[path]||null;n.role=guidedRole||npcCareerFor(n);n.roleHistory.push({year:s.year+s.age,role:n.role});rememberNPC(n,'milestone','Yıllar önce seçilen yetişme yolunun ardından '+n.role+' oldu.',6);
  if(choiceIndex===0){n.prestige=clamp((n.prestige||0)+4);adjustNPC(n,{rel:5,trust:6,respect:5},'Yıllar sonra yolunu desteklemeye devam ettin.');}
  else adjustNPC(n,{rel:-1,trust:-2,respect:2},'Yetişkin olduğunda kendi sorumluluğunu almasını istedin.');
  log(safeText(n.name)+' yıllar süren yetişme yolunun ardından '+safeText(n.role)+' oldu.','major');
@@ -2658,7 +2658,7 @@ function marriageSettlement(mode='amicable'){
 }
 function separationResidenceLabel(v){return v==='player'?'senin ocağın':v==='former_partner'?'diğer ebeveynin ocağı':'iki ocakla ortak bağ';}
 function applyChildResidence(record,n){
- for(const id of record.children||[]){const c=s.children.find(x=>x.id===id);if(!c?.alive)continue;c.statusFlags=c.statusFlags||{};c.statusFlags.separationId=record.id;c.statusFlags.primaryHousehold=record.residence;
+ for(const id of record.childIds||record.children||[]){const c=s.children.find(x=>x.id===id);if(!c?.alive)continue;c.statusFlags=c.statusFlags||{};c.statusFlags.separationId=record.id;c.statusFlags.primaryHousehold=record.residence;
   if(record.residence==='former_partner'&&n){c.realm=n.realm||s.realm;c.place=n.place||s.place;adjustNPC(c,{rel:-2,trust:-2},'Ocak ayrılığından sonra çoğunlukla diğer ebeveynin yanında yaşamaya başladı.');}
   else if(record.residence==='player'){c.realm=s.realm;c.place=s.place;adjustNPC(c,{trust:1},'Ocak ayrılığından sonra senin yanında yaşamayı sürdürdü.');}
   else rememberNPC(c,'family','Anne ve ata ayrı ocaklarda yaşasa da iki tarafla bağını sürdürdü.',5);
@@ -2698,7 +2698,7 @@ function separationYearTick(){
 }
 function marriageCrisisSummaryHtml(){
  const r=ensureRomance(),p=r.current,n=s.partner;if(n?.alive&&s.married&&p){const b=p.betrayal||{},other=romanceThirdParty();return '<div class="card"><h3>🔥 Ocak Güveni</h3><p>Sadakat: '+safeText(marriageLoyaltyLabel())+' • gerilim '+p.tension+' • bağlılık '+p.commitment+(b.discovered?'<br>Ortaya çıkan ihlal '+b.incidents+' • dayanak '+b.evidence+(other?' • adı geçen '+safeText(other.name):''):'')+'</p></div>';}
- const last=r.separations?.[0];if(last)return '<div class="card"><h3>🪶 Son Ocak Ayrılığı</h3><p>'+safeText(last.name)+' • '+safeText(last.reason)+'<br>Paylaşım '+last.wealth+' servet'+(last.asset?' • '+safeText(D.assets.find(a=>a.id===last.asset)?.name||last.asset):'')+(last.childIds?.length?' • çocuk düzeni '+safeText(last.residence):'')+'</p></div>';return '';
+ const last=r.separations?.[0];if(last)return '<div class="card"><h3>🪶 Son Ocak Ayrılığı</h3><p>'+safeText(last.name)+' • '+safeText(last.reason)+'<br>Paylaşım '+last.wealth+' servet'+(last.asset?' • '+safeText(D.assets.find(a=>a.id===last.asset)?.name||last.asset):'')+(last.childIds?.length?' • çocuk düzeni '+safeText(separationResidenceLabel(last.residence)):'')+'</p></div>';return '';
 }
 function applyMarriageCrisisEffect(spec={}){
  const mode=spec.mode||'';if(mode==='discover'){recordPartnerBetrayal(spec.evidence||45);}
