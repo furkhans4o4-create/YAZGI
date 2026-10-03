@@ -670,7 +670,7 @@ function migrateTo(realm,place,mode='alone'){
   s.wealth=Math.max(0,s.wealth-cost);economyLedger('migration',-cost,oldPlace+' → '+place+' göçü');
   const trouble=Math.random()<risk;
   if(trouble){const harm=rng(2,7);apply({health:-harm,happiness:-2});if(Math.random()<.28)acquireAilment('injury',{source:'göç yolu'});log('Göç yolunda zorlu hava, yol veya yük kaybı yaşadınız.','bad');}
-  s.realm=realm;s.place=place;if(dest.cross){s.tribe=D.realms[realm].tribes.includes(s.tribe)?s.tribe:pick(D.realms[realm].tribes);apply({prestige:-2});}
+  s.realm=realm;s.place=place;if(dest.cross){apply({prestige:-2});const q=ensureStateCourt();q.influence=Math.floor(q.influence*.25);q.councilTrust=Math.floor(q.councilTrust*.4);q.tribeSupport=Math.floor(q.tribeSupport*.6);q.rivalPressure=Math.floor(q.rivalPressure*.5);q.started=false;q.initialized=false;}
   const movedIds=[];for(const n of members){moveNPCTo(n,realm,place);movedIds.push(n.id);}
   if(mode==='alone'&&s.partner?.alive){adjustNPC(s.partner,{rel:-8,trust:-6,grudge:2},'Göç kararında yanında götürülmedi.');}
   if(mode==='household')for(const n of [...s.parents,...s.siblings].filter(n=>n.alive))adjustNPC(n,{rel:-2,trust:-1},'Göçten sonra daha uzakta yaşamaya başladınız.');
