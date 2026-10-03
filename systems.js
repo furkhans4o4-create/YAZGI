@@ -684,6 +684,49 @@ function friendCircleAction(groupId,id){
   g.history.unshift({year:s.year+s.age,id,cohesion:g.cohesion,tension:g.tension});g.history=g.history.slice(0,20);
  },id==='gather'?'Dost çevrenle bir ayın önemli kısmını birlikte geçirdin.':'Dost çevrendeki gerilimi çözmeye bir ay ayırdın.');
 }
+function tickFriendshipMonth(action={}){
+ const x=ensureSocialLife();
+ for(let i=0;i<s.friends.length;i++){
+  const n=s.friends[i];if(!n?.alive)continue;const p=ensureFriendProfile(n);p.monthsKnown++;p.monthsSinceContact=Math.max(0,Math.round(p.monthsSinceContact||0));
+  const direct=(action.kind==='friendship'&&action.index===i)||(action.kind==='npc'&&action.group==='friends'&&action.index===i)||(action.kind==='friendCircle'&&friendCircleFor(n)?.id===action.groupId);
+  if(direct){p.monthsSinceContact=0;p.monthsDistant=0;p.status='active';}
+  else{p.monthsSinceContact++;const remote=(n.place&&n.place!==s.place)||(n.realm&&n.realm!==s.realm);if(remote)p.monthsDistant+=2;else if(p.monthsSinceContact>=6)p.monthsDistant++;}
+  if(p.monthsSinceContact>=12&&p.monthsSinceContact%6===0){const loyal=n.traits?.includes('sadik');n.rel=clamp(n.rel-(loyal?0:1));normalizeBonds(n);n.bonds.trust=clamp(n.bonds.trust-1);}
+  if(p.monthsDistant>=18||p.monthsSinceContact>=30)p.status='distant';
+ }
+ for(const g of x.groups){
+  const members=g.memberIds.map(npcById).filter(n=>n?.alive);if(members.length<2)continue;let friction=0,good=0;
+  for(let i=0;i<members.length;i++)for(let j=i+1;j<members.length;j++){const l=socialLinkBetween(members[i],members[j],true);if(l.score<10||l.grudge>35)friction++;if(l.score>=45&&l.trust>=55)good++;}
+  if(friction){g.tension=clamp(g.tension+Math.min(3,friction));g.cohesion=clamp(g.cohesion-1);}else if(g.tension>0&&good)g.tension=clamp(g.tension-1);
+ }
+}
+function friendshipYearTick(){
+ const x=ensureSocialLife();autoCreateFriendCircle();
+ for(const n of s.friends.filter(n=>n?.alive)){
+  const p=ensureFriendProfile(n);
+  if(n.age>=16&&Math.random()<.045&&!n.statusFlags?.guardianContact&&!n.statusFlags?.educationMentor){
+   const places=D.realms[n.realm||s.realm]?.places||[];const opts=places.filter(q=>q!==n.place);if(opts.length){const old=n.place||s.place;n.place=pick(opts);p.history.unshift({year:s.year+s.age,kind:'moved',from:old,to:n.place});rememberNPC(n,'move',old+' çevresinden '+n.place+' çevresine taşındı.',3);}
+  }
+  if(p.status==='distant'&&p.childhood&&p.monthsDistant>=36&&Math.random()<.12)rememberNPC(n,'old_friend','Çocukluk dostluğunuz uzun yıllardır seyrek görüşmelerle sürüyor.',4);
+ }
+ x.referrals=x.referrals.filter(r=>r.expiresYear>=s.year+s.age&&s.friends.some(n=>n.id===r.friendId&&n.alive));
+ for(const g of x.groups){g.memberIds=g.memberIds.filter(id=>npcById(id));if(g.memberIds.filter(id=>npcById(id)?.alive).length<2)g.archived=true;}
+}
+function friendshipSummaryHtml(){
+ const x=ensureSocialLife(),living=s.friends.filter(n=>n?.alive),distant=living.filter(n=>ensureFriendProfile(n).status==='distant'),conf=living.filter(n=>ensureFriendProfile(n).chosenConfidant&&n.rel>=72&&(n.bonds?.trust||0)>=72),childhood=living.filter(n=>ensureFriendProfile(n).childhood);
+ let html='<div class="card"><h3>🫂 Dostluk ve Sosyal Çevre</h3><p>Yaşayan dost '+living.length+' • çocukluk dostu '+childhood.length+' • sırdaş '+conf.length+' • uzaklaşmış '+distant.length+' • dost çevresi '+x.groups.filter(g=>!g.archived).length+'</p></div>';
+ if(living.length)html+='<div class="grid2">'+living.slice(0,24).map((n,i)=>{const p=ensureFriendProfile(n),circle=friendCircleFor(n),path=friendRolePath(n);return '<div class="card"><h3>'+safeText(n.name)+'</h3><p>'+safeText(friendTier(n))+' • '+n.age+' yaş • '+safeText(n.role||'')+'<br>İlişki '+n.rel+' • güven '+(n.bonds?.trust||0)+' • ortak anı '+p.sharedExperiences+(circle?'<br>Çevre: '+safeText(circle.name):'')+(p.status==='distant'?'<br>⚠ Uzun süredir görüşmüyorsunuz':'')+'</p><div class="actions"><button class="mini" onclick="friendshipAction('+i+',\'deepen\')">Dostluğu güçlendir</button>'+(n.rel>=72&&(n.bonds?.trust||0)>=72?'<button class="mini" onclick="friendshipAction('+i+',\'confidant\')">Sırdaş ol</button>':'')+(p.status==='distant'?'<button class="mini" onclick="friendshipAction('+i+',\'reconnect\')">Yeniden görüş</button>':'')+(path?'<button class="mini" onclick="friendshipAction('+i+',\'referral\')">Görev çevresine tanıştır</button>':'')+(!s.partner?.alive&&s.age>=16?'<button class="mini" onclick="friendshipAction('+i+',\'matchmake\')">Eş adayı tanıştırmasını iste</button>':'')+(['Alp','Akıncı','Tarkan'].includes(n.role)&&s.age>=18?'<button class="mini" onclick="friendshipAction('+i+',\'comrade\')">Sefer yoldaşı ol</button>':'')+'</div></div>';}).join('')+'</div>';
+ const groups=x.groups.filter(g=>!g.archived&&g.memberIds.filter(id=>npcById(id)?.alive).length>=2);
+ if(groups.length)html+='<h3 class="sectionTitle">Dost Çevreleri</h3><div class="grid2">'+groups.map(g=>'<div class="card"><h3>🔥 '+safeText(g.name)+'</h3><p>'+g.memberIds.map(npcById).filter(n=>n?.alive).map(n=>safeText(n.name)).join(' • ')+'<br>Uyum '+g.cohesion+' • gerilim '+g.tension+' • buluşma '+g.gatherings+'</p><div class="actions"><button class="mini" onclick="friendCircleAction('+JSON.stringify(g.id)+',\'gather\')">Birlikte buluş</button>'+(g.tension>=15?'<button class="mini" onclick="friendCircleAction('+JSON.stringify(g.id)+',\'mediate\')">Aralarını bul</button>':'')+'</div></div>').join('')+'</div>';
+ return html;
+}
+function applyFriendshipEvent(eventId,choiceIndex,target){
+ const x=ensureSocialLife();if(!target)return;const p=s.friends.some(n=>n.id===target.id)?ensureFriendProfile(target):null;
+ if(eventId==='friend_returns'&&p){if(choiceIndex===0){p.status='active';p.monthsDistant=0;p.monthsSinceContact=0;x.reconnections++;adjustNPC(target,{rel:6,trust:5,grudge:-3},'Yıllar sonra dostluğunuzu yeniden canlandırdınız.');}else p.monthsDistant+=6;}
+ if(eventId==='friend_work_opening'&&choiceIndex===0){const path=friendRolePath(target);if(path){x.referrals.push({friendId:target.id,path,year:s.year+s.age,expiresYear:s.year+s.age+2});adjustNPC(target,{trust:3,respect:2},'Seni kendi iş çevresine önerdi.');}}
+ if(eventId==='friend_circle_conflict'){const g=friendCircleFor(target);if(g){if(choiceIndex===0){g.tension=clamp(g.tension-12);g.cohesion=clamp(g.cohesion+5);}else{g.tension=clamp(g.tension+10);g.cohesion=clamp(g.cohesion-6);}}}
+}
+
 
 function ensureGuardianship(){
  if(!s.guardianship||typeof s.guardianship!=='object'||Array.isArray(s.guardianship))s.guardianship={};
