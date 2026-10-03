@@ -345,3 +345,80 @@ Bu sistemde "servet arttı" dışında pazar itibarı ve ustalık da kalıcıdı
 Daha önce oynanmış kayıtlar tamamen sıfırlanmaz. Story arc şeması ikinci sürüme yükseltildi. Eski event arşivleri yeniden okunarak mümkün olan kariyer zincirlerinin güncel aşaması oluşturulur.
 
 Böylece daha önce Demirci / Bitig / Kervan zincirlerinin bir bölümünü oynamış kayıtların yeni genişletilmiş zincirlere mümkün olduğunca doğal biçimde devam etmesi hedeflenir.
+
+
+## Boy meclisi, nüfuz ve beylik yükü
+
+Devlet / boy kariyeri artık yalnızca **Bitigçi → Elçi → Boy Beyi** şeklinde düz bir görev listesi değildir.
+
+Karakter için kalıcı bir boy-meclisi durumu tutulur:
+
+- meclis nüfuzu,
+- meclis güveni,
+- oba desteği,
+- rakip ileri gelenlerin baskısı,
+- devam eden yükümlülükler,
+- önemli karar geçmişi.
+
+Bu değerler event seçimlerinden ve devlet görevinde geçirilen başarılı / başarısız aylardan etkilenir.
+
+### Kalıcı devlet çevresi
+
+Meclis hikâyesi başladığında üç kalıcı NPC oluşur:
+
+- seni meclise sokan / destekleyebilen bir **Boy İleri Geleni**,
+- kararlarına karşı çıkabilen bir **Rakip İleri Gelen**,
+- gerilim yükseldiğinde devreye girebilen bir **Boy Büyüğü**.
+
+Bunlar normal NPC sisteminin parçasıdır. Yaş, sağlık, kişilik, güven, saygı, kin ve hafızaları vardır. Meclis hikâyesi aynı destekçi ve aynı rakiple devam eder; kişiler ölürse ilgili uzun hikâye doğal biçimde kapanabilir.
+
+## Boy Meclisinde Yükseliş — 6 aşama
+
+1. Boy beyi / ileri gelen tarafından mecliste görüş vermeye çağrılma
+2. Otlak anlaşmazlığında karar
+3. Ortak katkı yükünün nasıl paylaşılacağı
+4. Rakip ileri gelenin açık meydan okuması
+5. Desteğin oba içinde mi yoksa meclisin güçlü isimleri arasında mı büyütüleceği
+6. Yeterli yaş, beceri, devlet tecrübesi, itibar, meclis nüfuzu ve güven oluşursa Boy Beyi sorumluluğunun teklif edilmesi
+
+Oyuncu son aşamada görevi kabul etmek zorunda değildir; mecliste etkili biri olarak kalmayı seçebilir.
+
+Boy Beyi görevi artık yalnızca yüksek stat / beceri ile doğrudan açılamaz. Normal kariyer şartlarının yanında en az:
+
+- 20 meclis nüfuzu,
+- 30 meclis güveni
+
+gerektirir.
+
+Böylece yüksek becerili fakat boy çevresinde hiç ağırlık kazanmamış bir karakter tek tıkla Boy Beyi olamaz.
+
+## Beyliğin Yükü — 5 aşama
+
+Boy Beyi olduktan sonra ayrı bir yönetim hikâyesi başlar:
+
+1. ilk büyük anlaşmazlık ve karar,
+2. kış için ortak rezerv meselesi,
+3. yakına ayrıcalık tanıyıp tanımama,
+4. komşu toplulukla geçiş / otlak şartları,
+5. 4–8 yıl sonra eski sınır kararının yeni kuşaklarla yeniden karşıya gelmesi.
+
+Kararlar yalnız anlık stat değiştirmez. Örneğin sınır ve geçiş kararı yıllar sonra yeniden açılır; oyuncu eski kararını koruyabilir veya değişen koşullara göre yeniden düzenleyebilir.
+
+Kış hazırlığı kararı da 2–4 yıl sonra tekrar tartışılabilir.
+
+## Rakip baskısı
+
+Rakip ileri gelen zaman içinde kendi etkisini artırabilir. Rakip baskısı yüksek seviyeye çıkarsa Boy Büyüğü oyuncuyu çekişmenin kararların önüne geçtiği konusunda uyarabilir.
+
+Oyuncu:
+
+- görüşme zemini arayıp baskıyı düşürebilir,
+- veya geri adım atmayıp kendi nüfuzunu artırırken gerilimi büyütebilir.
+
+Bu sistemin amacı devlet kariyerini yalnız "itibar sayısını yükselt" yapısından çıkarıp, aynı insanların ve eski kararların yıllar boyunca birbirini etkilediği bir sosyal yönetim simülasyonuna dönüştürmektir.
+
+## Story arc v3
+
+Boy-meclisi zinciri mevcut eski **bey_request** eventini başlangıç noktası olarak kullandığı için hikâye arşivi üçüncü şemaya yükseltildi.
+
+v2 kayıtlar açılırken event arşivi tekrar okunur. Daha önce boy beyinden görüş isteme eventini yaşamış karakterler mümkün olduğu ölçüde yeni **Boy Meclisinde Yükseliş** zincirinin sonraki adımından devam eder.
