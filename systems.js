@@ -469,7 +469,7 @@ function npcLifeAction(npcId,id){
 function npcLifeActionsHtml(n){
  const l=normalizeNPCLifeState(n);if(!n.alive||l.status==='normal'||s.age<5)return '';
  const defs=l.status==='ill'?[['visit','Başında kal'],['healer','Otacı getir']]:l.status==='captive'?[['message','Haber gönder'],['ransom','Fidye desteği']]:[['message','Haber gönder'],['aid','Mal desteği'],['appeal','Dönüş için arabulucu ol']];
- return defs.map(([id,label])=>{const issue=npcLifeActionIssue(n,id);return '<button class="mini" '+(issue?'disabled':'')+' title="'+safeText(issue)+'" onclick="npcLifeAction('+JSON.stringify(n.id)+','+JSON.stringify(id)+')">'+label+'</button>';}).join('');
+ return defs.map(([id,label])=>{const issue=npcLifeActionIssue(n,id);return '<button class="mini" '+(issue?'disabled':'')+' title="'+safeText(issue)+'" onclick=\'npcLifeAction('+JSON.stringify(n.id)+','+JSON.stringify(id)+')\'>'+label+'</button>';}).join('');
 }
 function npcWorldSummaryHtml(){
  const w=ensureNPCWorld(),active=allNPCs().filter(n=>n.alive&&npcWorldRelevant(n)&&normalizeNPCLifeState(n).status!=='normal').sort((a,b)=>(b.rel||0)-(a.rel||0)),recent=w.history.slice(0,4);
