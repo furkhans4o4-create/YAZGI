@@ -1880,6 +1880,7 @@ function marriageSettlement(mode='amicable'){
  const careContribution=minor.length&&residence!=='shared'?Math.max(1,Math.min(3,Math.ceil(minor.length/2))):0;
  return {mode,rate,wealth,asset,residence,careContribution,children:minor.map(c=>c.id),evidence:betrayal.evidence||0};
 }
+function separationResidenceLabel(v){return v==='player'?'senin ocağın':v==='former_partner'?'diğer ebeveynin ocağı':'iki ocakla ortak bağ';}
 function applyChildResidence(record,n){
  for(const id of record.children||[]){const c=s.children.find(x=>x.id===id);if(!c?.alive)continue;c.statusFlags=c.statusFlags||{};c.statusFlags.separationId=record.id;c.statusFlags.primaryHousehold=record.residence;
   if(record.residence==='former_partner'&&n){c.realm=n.realm||s.realm;c.place=n.place||s.place;adjustNPC(c,{rel:-2,trust:-2},'Ocak ayrılığından sonra çoğunlukla diğer ebeveynin yanında yaşamaya başladı.');}
