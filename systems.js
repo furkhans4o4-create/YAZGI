@@ -500,9 +500,23 @@ function healthAction(id){performAction({kind:'health',id},()=>{if(id==='healer'
 function activity(t){performAction({kind:'activity',id:t},()=>{if(t==='at'){skillGain('riding',3);apply({skill:2,happiness:2});}if(t==='ok'){skillGain('archery',3);skillGain('combat',1);apply({skill:2});}if(t==='av'){skillGain('archery',2);apply(Math.random()<.65?{wealth:rng(1,3),skill:2}:{health:-2});}if(t==='toy'){skillGain('speech',1);apply({happiness:4,prestige:2});}},s.age<18?'Büyüklerin gözetiminde faaliyetine zaman ayırdın.':'Faaliyetinle bir ay geçirdin.');}
 function train(t){performAction({kind:'training',id:t},()=>{const [k,p]={horse:['riding','civil'],archery:['archery','military'],wrestling:['combat','military'],smith:['craft','craft'],bitig:['literacy','state'],story:['speech','culture']}[t];skillGain(k,rng(3,5));apply({skill:2,happiness:1});addExperience(p);s.path=p;},s.age<18?'Bir büyüğün veya ustanın gözetiminde çalıştın.':'Öğrenmeye ve talime bir ay ayırdın.');}
 function doPeriodActivity(id){if(id==='healer'||id==='rest')return healthAction(id);const a=PERIOD_ACTIVITIES.find(x=>x.id===id);if(a)performAction({kind:'period',id},()=>{a.do();if(['market','caravanmarket','herdcare'].includes(id))addExperience('trade');},a.name+' ile bir ay geçti.');}
-function takeRole(id){const r=D.careers.find(x=>x.id===id);if(!r)return;performAction({kind:'role',id},()=>{if(Math.random()<Math.min(.95,.5+(s.skill-r.skill)/100+s.prestige/300)){s.role=r.name;s.path=r.path;apply({prestige:r.prestige});log(r.name+' görevini üstlendin.'+(s.age<18?' Büyüklerin gözetiminde yetişeceksin.':''),'good');if(id==='bey')unlock('bey');}else log('Bu kez başvurun kabul edilmedi.');},'Görev görüşmeleriyle bir ay geçti.');}
-function workRole(){performAction({kind:'work'},()=>{const r=D.careers.find(x=>x.name===s.role);if(r){skillGain(Object.keys(CAREER_RULES[r.id].skills)[0],2);apply({wealth:rng(1,3),prestige:1});}},'Görevin üzerinde çalıştın.');}
-function retireRole(){performAction({kind:'retire'},()=>{s.retiredRole=s.role;s.role=null;apply({health:2,happiness:2});},'Ağır görevini bıraktın.');}
+function takeRole(id){const r=D.careers.find(x=>x.id===id);if(!r)return;performAction({kind:'role',id},()=>{
+ const p=careerProfile(id),fit=Math.min(.96,.48+(s.skill-r.skill)/100+s.prestige/300+p.reputation/500+p.mastery/600);
+ if(Math.random()<fit){
+  const old=s.role;s.role=r.name;s.path=r.path;p.lastYear=s.year+s.age;apply({prestige:r.prestige});p.history.push({year:s.year+s.age,entry:true,from:old||''});
+  if(['smith','smith_apprentice'].includes(id))careerContact('smith');
+  if(['scribe','envoy','bey'].includes(id))careerContact('scribe');
+  if(['merchant','caravan'].includes(id))careerContact(id==='merchant'?'merchant':'caravan');
+  if(id==='bard')careerContact('bard');
+  log(r.name+' görevini üstlendin.'+(s.age<18?' Büyüklerin gözetiminde yetişeceksin.':''),'good');if(id==='bey')unlock('bey');
+ }else{p.failures++;p.reputation=clamp(p.reputation-1);log('Bu kez '+r.name+' görevi için kabul edilmedin.');}
+},'Görev görüşmeleriyle bir ay geçti.');}
+function workRole(){performAction({kind:'work'},()=>{
+ const r=D.careers.find(x=>x.name===s.role);if(!r)return;const result=careerWorkOutcome(r);
+ if(result.success)log(safeText(r.name)+' görevinde verimli bir ay geçirdin; '+result.gain+' servet kazandın.','good');
+ else log(safeText(r.name)+' görevinde bu ay işler istediğin gibi gitmedi.');
+},'Görevin üzerinde çalıştın.');}
+function retireRole(){performAction({kind:'retire'},()=>{const cur=currentCareer();if(cur){cur.profile.history.push({year:s.year+s.age,retired:true});s.retiredRole=s.role;}s.role=null;apply({health:2,happiness:2});},'Ağır görevini bıraktın.');}
 function buyAsset(id){performAction({kind:'asset',id},()=>{const a=D.assets.find(x=>x.id===id);s.wealth-=a.cost;s.assets.push(id);apply({happiness:3});},'Alım ve takasla bir ay geçti.');}
 function sellAsset(id){performAction({kind:'asset',id,sell:true},()=>{const a=D.assets.find(x=>x.id===id);s.assets=s.assets.filter(x=>x!==id);s.wealth+=Math.floor(a.cost*.6);},'Varlığını takas ettin.');}
 function manageVenture(id){performAction({kind:'venture',id},()=>{skillGain(id==='forge'?'craft':'trade',2);apply({wealth:id==='caravan'?(Math.random()<.25?-rng(3,8):rng(3,10)):rng(1,5)});},'Malına ve üretime bir ay ayırdın.');}
@@ -607,7 +621,7 @@ function continueAsHeir(i){
  unlock('heir');log(safeText(old.name)+' ardından soyun '+safeText(s.name)+' ile devam ediyor.','major');$('heirModal').classList.remove('show');activateLifeTab();render();save();
 }
 function eventRequirementOK(ev){
- const check=r=>{if(!r)return true;if(Array.isArray(r))return r.every(check);if(r.startsWith('flag:'))return !!s.flags[r.slice(5)];if(r.startsWith('notflag:'))return !s.flags[r.slice(8)];if(r.startsWith('asset:'))return s.assets.includes(r.slice(6));if(r.startsWith('career:'))return !careerIssue(D.careers.find(x=>x.id===r.slice(7)));const num=r.match(/^(skill|wealth|prestige)(\d+)$/);if(num)return s[num[1]]>=+num[2];
+ const check=r=>{if(!r)return true;if(Array.isArray(r))return r.every(check);if(r.startsWith('flag:'))return !!s.flags[r.slice(5)];if(r.startsWith('notflag:'))return !s.flags[r.slice(8)];if(r.startsWith('asset:'))return s.assets.includes(r.slice(6));if(r.startsWith('career:'))return !careerIssue(D.careers.find(x=>x.id===r.slice(7)));if(r.startsWith('role:'))return D.careers.find(x=>x.id===r.slice(5))?.name===s.role;let cm=r.match(/^careermonths:([^:]+):(\d+)$/);if(cm)return careerProfile(cm[1]).months>=+cm[2];let cr=r.match(/^careerrep:([^:]+):(\d+)$/);if(cr)return careerProfile(cr[1]).reputation>=+cr[2];const num=r.match(/^(skill|wealth|prestige)(\d+)$/);if(num)return s[num[1]]>=+num[2];
  const map={single:()=>!s.partner?.alive&&!s.married,married:()=>s.age>=18&&s.married&&s.partner?.alive&&s.partner.age>=18,hasChild:()=>s.children.some(x=>x.alive),hasAdultChild:()=>s.children.some(x=>x.alive&&x.age>=18),trainableChild:()=>s.children.some(x=>x.alive&&x.age>=7&&x.age<18),hasGrandchild:()=>s.children.some(x=>x.alive&&x.children>0),hasFriend:()=>s.friends.some(x=>x.alive),hasRival:()=>s.rivals.some(x=>x.alive),hasFamilyFriend:()=>s.friends.some(x=>x.alive&&x.statusFlags?.familyFriend),hasFamilyEnemy:()=>s.rivals.some(x=>x.alive&&x.statusFlags?.familyEnemy),hasRivalKinLink:()=>rivalKinPairs().length>0,hasCloseKin:()=>[...s.parents,...s.siblings,...s.children,...(s.relatives||[])].some(x=>x.alive),hasTrustedPerson:()=>allNPCs().some(x=>x.alive&&(x.bonds?.trust||0)>=55),hasComrade:()=>s.military.comrades.some(x=>x.alive),hasTrustedComrade:()=>s.military.comrades.some(x=>x.alive&&((x.bonds?.trust||0)>=60||(x.rel||0)>=72)),military:()=>s.age>=18&&s.military.served,activeCampaign:()=>s.age>=18&&s.military.active,recentCampaign:()=>!!s.flags.recent_campaign,captive:()=>s.captive,exile:()=>s.exile};return map[r]?!!map[r]():false;};return check(ev.req);
 }
 function eventChoiceIssue(ch){const x=ch[1]||{};if(x.wealth<0&&s.wealth<-x.wealth)return `${-x.wealth} servet gerekiyor`;if(x.setRole)return careerIssue(D.careers.find(r=>r.name===x.setRole));return '';}
@@ -749,7 +763,13 @@ function animateSwipeOut(index){
 function finishSwipeChoice(index){const p=currentDecisionPayload();if(!p||![0,1].includes(index))return;const offset=s.decisionOffset||0;if(index===1&&offset+2<p.choices.length){s.decisionOffset=offset+1;renderEventBoard();save();return;}if(p.kind==='event')chooseContextEvent(offset+index);else chooseDecision(offset+index);}
 function actionButton(label,a,onclick,desc=''){const issue=accessIssue(a);return `<button class="card ${issue?'locked':''}" ${issue?'disabled':''} onclick="${onclick}"><h3>${label}</h3><p>${desc}</p>${issue?`<div class="lockline">${safeText(issue)}</div>`:''}</button>`;}
 function trainingCard(id,icon,title,desc){return actionButton(icon+' '+title,{kind:'training',id},`train('${id}')`,desc);}
-function renderRole(){ $('tab-gorev').innerHTML=(s.role?`<div class="card"><h3>${safeText(s.role)}</h3><p>${s.age<18?'Büyüklerin gözetiminde':'Mevcut görevin'}</p></div><div class="grid2">${actionButton('Görevinde çalış',{kind:'work'},'workRole()')}${s.age>=50?actionButton('Ağır görevi bırak',{kind:'retire'},'retireRole()'):''}</div>`:'')+`<div class="grid2">${D.careers.map(r=>actionButton(r.name,{kind:'role',id:r.id},`takeRole('${r.id}')`,careerRequirements(r))).join('')}</div>`;}
+function renderRole(){
+ let html=s.role?careerRoleSummary():'';
+ if(s.role)html+=`<div class="grid2">${actionButton('Görevinde çalış',{kind:'work'},'workRole()','Meslek tecrübesi, ustalık ve ün kazan.')}${s.age>=50?actionButton('Ağır görevi bırak',{kind:'retire'},'retireRole()'):''}</div>`;
+ html+=careerContactsSummary();
+ html+=`<h3 class="sectionTitle">Görev Yolları</h3><div class="grid2">${D.careers.map(r=>actionButton(r.name,{kind:'role',id:r.id},`takeRole('${r.id}')`,careerRequirements(r))).join('')}</div>`;
+ $('tab-gorev').innerHTML=html;
+}
 function renderActivities(){const cats=[...new Set(PERIOD_ACTIVITIES.map(x=>x.cat))];$('tab-faaliyet').innerHTML=cats.map(cat=>`<h3 class="sectionTitle">${cat}</h3><div class="grid2">${PERIOD_ACTIVITIES.filter(x=>x.cat===cat).map(a=>actionButton(a.icon+' '+a.name,{kind:'period',id:a.id},`doPeriodActivity('${a.id}')`,a.desc+' • '+a.age+' yaş')).join('')}</div>`).join('');}
 function renderAssets(){ $('tab-varlik').innerHTML=`<div class="grid2">${D.assets.filter(a=>!s.assets.includes(a.id)).map(a=>actionButton(a.icon+' '+a.name,{kind:'asset',id:a.id},`buyAsset('${a.id}')`,a.cost+' servet • '+ASSET_AGES[a.id]+' yaş')).join('')}</div><h3>Sahip oldukların</h3><div class="grid2">${s.assets.map(id=>{const a=D.assets.find(x=>x.id===id);return a?actionButton(a.icon+' '+a.name,{kind:'asset',id,sell:true},`sellAsset('${id}')`,'Takas değeri '+Math.floor(a.cost*.6)) :'';}).join('')}</div><h3>Üretim</h3><div class="grid2">${[['herd','Sürüyü yönet'],['forge','Ocakta üret'],['caravan','Kervan payını yönet']].map(([id,n])=>actionButton(n,{kind:'venture',id},`manageVenture('${id}')`)).join('')}</div>`;}
 function familyCard(n,group,index){
