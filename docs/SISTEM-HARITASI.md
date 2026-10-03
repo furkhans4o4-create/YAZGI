@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 13’tür. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v13` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 14’tür. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v14` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -216,3 +216,12 @@ v13 ile romantik ilişki tek ilişki çubuğundan ayrı bir yaşam sistemine dö
 Oyuncu eş/eş adayıyla vakit geçirebilir, ortak geleceği konuşabilir, ailelerle görüşebilir, birlikte iş yapabilir, gerilimi çözebilir ve kıskançlık/kuşku durumunda güven verebilir. Ailelerle görüşmek partner ile ebeveyn/kardeşler arasında gerçek sosyal bağlantılar oluşturur. Uzak yaşamak ve uzun süre ilişkiye zaman ayırmamak gerilimi şeffaf biçimde artırır; yakın arkadaşlarla yoğun etkileşim kuşkucu partnerlerde kıskançlığı yükseltebilir.
 
 Ayrılıkta NPC silinmez. Eski eş/eş adayı ayrı listede kalır, ilişkinin kapanış nedeni ve eski profil arşivlenir. Oyuncunun mevcut ilişkisi yoksa eski partnerle yeniden görüşme denenebilir. Aile onayı, kıskançlık, ev içi gerilim ve ortak gelecek artık seçimli hayat olaylarına da bağlanmıştır.
+
+
+### Töre, mağdur, tanık ve kalıcı suç sonuçları
+
+v14 ile suç/töre sistemi tek seferlik rastgele ceza modelinden kalıcı vaka sistemine dönüştürüldü. Her töre dışı eylem ayrı vaka oluşturur; vakada suç türü, mağdur NPC, varsa tanık NPC'leri, olayın ağırlığı, iz/dayanak düzeyi, kazanım, durum ve tazminat bilgisi saklanır. Mağdur ve tanıklar kalıcı NPC havuzuna katılır; ciddi olaylarda mağdur veya yakını hasım olarak yaşamda kalabilir.
+
+Karakter için toplam şüphe ve kötü şöhret değerleri vardır. Eylem hemen açığa çıkmasa bile yeterli iz ya da tanık varsa aynı vaka 1-4 yıl sonra yeniden gündeme gelebilir. Eski vaka doğru mağdur ve tanık kimliğine bağlı kalır. Ciddi mağduriyet aile husumeti oluşturabilir; bu husumet 2-6 yıl sonra mağdur yakınıyla yeniden dönen seçimli olaya dönüşebilir.
+
+Açık töre çağrısında yeni suçlar zincirlenemez. Oyuncu arabulucu arayabilir, uzlaşılan tazminatı ödeyebilir veya töre meclisinin kararına çıkabilir. Sonuçta izler, tanık sayısı, mevcut şüphe, hitabet ve itibar birlikte değerlendirilir. Hafif vakalar tazminat borcuna, ağır ve karşılanamayan yükümlülükler ise sürgün veya tutsaklığa dönüşebilir. Tazminat ve barış girişimleri mağdurun kinini ve aile husumetini gerçekten azaltır.
