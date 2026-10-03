@@ -653,7 +653,7 @@ function newCharacter(base={}, inherit=false){
   const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
-    version:5,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,ailments:base.ailments||[],pregnancy:null,will:"equal",pendingDecision:null,pendingEventContext:null,
+    version:6,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
     name:base.name||$("customName").value.trim()||pick(cfg[g]), gender:g, realm, year,
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
@@ -828,9 +828,9 @@ function mortality(){
  if(Math.random()<risk)die();
 }
 function showHeirModal(){
- const heirs=s.children.filter(c=>c.alive);
- $("heirText").textContent=heirs.length?`Hayatın sona erdi. Soyundan biriyle devam edebilirsin.`:"Hayatın sona erdi ve devam edecek yaşayan çocuğun yok.";
- $("heirChoices").innerHTML=heirs.map((c,i)=>`<button class="card" onclick="continueAsHeir(${i})"><h3>${safeText(c.name)}</h3><p>${c.age} yaş • ${c.gender==="male"?"Erkek":"Kadın"}</p></button>`).join("");
+ const heirs=s.children.filter(c=>c.alive),record=s.deathRecord||{},q=ensureSuccession(),cause=record.cause||"bilinmeyen neden";
+ $("heirText").innerHTML=`<b>${safeText(s.name)}</b>, ${s.age} yaşında yaşamını yitirdi.<br><span class="note">Neden: ${safeText(cause)} • ${successionModeText()} • Aile uyumu ${q.familyHarmony}${q.lastWish?`<br>Son dilek: ${safeText(q.lastWish)}`:""}</span>`;
+ $("heirChoices").innerHTML=heirs.length?heirs.map((c,i)=>{const share=inheritanceShareFor(c,heirs),favored=s.will===c.id;return `<button class="card" onclick="continueAsHeir(${i})"><h3>${favored?"🪶 ":""}${safeText(c.name)}</h3><p>${c.age} yaş • ${c.gender==="male"?"Erkek":"Kadın"}<br>Devralacağı servet: ${share.wealth} • Varlık: ${share.assets.length}<br>Seninle ilişkisi: ${c.rel??60}</p></button>`}).join(""):`<button class="card" onclick="openNew();document.getElementById('heirModal').classList.remove('show')"><h3>Yeni Yazgı Başlat</h3><p>Bu soyda devam edecek yaşayan çocuk kalmadı.</p></button>`;
  $("heirModal").classList.add("show")
 }
 function renderTraining(){
