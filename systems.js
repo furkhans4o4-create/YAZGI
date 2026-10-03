@@ -180,6 +180,23 @@ function promoteMilitaryComrade(n){
  if(n.age>=30&&n.prestige>=58)next='Boy Beyi';else if(n.age>=24&&n.prestige>=42)next='Tarkan';
  n.role=next;if(old!==next)n.roleHistory.push({year:s.year+s.age,role:next});rememberNPC(n,'career','Eski sefer yıllarından sonra '+next+' konumuna yükseldi.',7);
 }
+function militaryComradeSummary(){
+ const cs=(s.military?.comrades||[]).filter(n=>n.alive);if(!cs.length)return '';
+ const loyal=cs.filter(n=>(n.bonds?.trust||0)>=60||(n.rel||0)>=72).length,tense=cs.filter(n=>(n.bonds?.grudge||0)>=30||(n.rel||0)<=35).length,leaders=cs.filter(n=>['Tarkan','Boy Beyi'].includes(n.role)).length;
+ const pending=(s.delayedEvents||[]).filter(x=>x.status==='pending'&&['comrade_debt_returns','comrade_request_aid','comrade_rises','comrade_betrayal','comrade_battle_rescue'].includes(x.eventId)).length;
+ return '<div class="card"><h3>🛡 Yoldaşlık İzleri</h3><p>'+cs.length+' yaşayan yoldaş • '+loyal+' güçlü bağ • '+tense+' gergin bağ'+(leaders?' • '+leaders+' yükselmiş yoldaş':'')+(pending?' • '+pending+' geleceğe kalan iz':'')+'</p></div>';
+}
+function resolveComradeCampaignOutcome(kind='return'){
+ for(const n of s.military.comrades||[]){
+  if(!n.alive)continue;normalizeNPC(n,n.type);n.statusFlags=n.statusFlags||{};n.statusFlags.campaignsTogether=(n.statusFlags.campaignsTogether||0)+1;n.prestige=clamp((n.prestige||0)+rng(1,4));
+  const danger=Math.random();
+  if(danger<.035){n.alive=false;n.health=0;rememberNPC(n,'death','Aynı seferde yaşamını yitirdi.',10);log('Sefer yoldaşın '+safeText(n.name)+' çatışmalarda yaşamını yitirdi.','bad');continue;}
+  if(danger<.13){n.health=clamp(n.health-rng(8,22));rememberNPC(n,'military','Seferden yaralı döndü.',5);}
+  if(kind==='success')adjustNPC(n,{rel:2,trust:3,respect:2},'Bir seferi daha birlikte tamamladınız.');
+  else if(kind==='captured')adjustNPC(n,{rel:1,trust:2,grudge:-1},'Tutsak düştüğün seferin hatırasını taşıyor.');
+ }
+ seedCoreSocialLinks();
+}
 function makeTargetFriend(n,type='Dost'){
  if(!n)return;const ri=s.rivals.findIndex(x=>x.id===n.id);if(ri>=0)s.rivals.splice(ri,1);n.type=type;if(!s.friends.some(x=>x.id===n.id))s.friends.push(n);n.statusFlags=n.statusFlags||{};n.statusFlags.oldComrade=true;rememberNPC(n,'bond','Eski sefer bağınız dostluğa dönüştü.',6);
 }
@@ -481,7 +498,7 @@ function militaryCall(){if(s.age<18||s.captive||s.exile||s.military.called||s.mi
 function chooseDecision(i){if(!s?.alive||s.pendingDecision?.id!=='campaign_call'||![0,1].includes(i)||s.age<18)return;if(i===0&&(s.health<40||s.captive||s.exile)){notice('Özgürlük ve en az 40 sağlık gerekiyor.');return;}if(i===0){s.military.served=true;s.military.active=true;s.military.dutyMonths=rng(4,8);s.military.campaigns++;generateComrades();s.path='military';apply({prestige:4});unlock('military');log('Sefer birliğine katıldın.','major');}else{s.flags.military_declined=true;log('Bu çağrıda obada kaldın.');}s.pendingDecision=null;render();save();}
 function militaryTrain(id){performAction({kind:'military',id},()=>{skillGain({horse:'riding',bow:'archery',drill:'combat',watch:'combat'}[id],3);apply({skill:1,prestige:1});},'Birlik talimine bir ay ayırdın.');}
 function desertCampaign(){performAction({kind:'desert'},()=>{s.military.active=false;s.military.dutyMonths=0;apply({prestige:-18,happiness:-4});if(Math.random()<.35)s.exile=true;log('Birliği izinsiz terk ettin.','bad');},'Ayrılmanın sonuçlarıyla bir ay geçti.');}
-function campaignResult(){s.military.active=false;s.military.dutyMonths=0;const roll=Math.random();if(roll<.12){s.captive=true;unlock('captive');log('Seferde tutsak düştün.','bad');}else if(roll<.32){s.military.wounds++;apply({health:-rng(8,18),prestige:4});acquireAilment('injury');}else{apply({wealth:rng(4,12),prestige:rng(4,8)});s.flags.recent_campaign=true;log('Seferden ganimet ve tecrübeyle döndün.','good');}}
+function campaignResult(){s.military.active=false;s.military.dutyMonths=0;const roll=Math.random();if(roll<.12){s.captive=true;resolveComradeCampaignOutcome('captured');unlock('captive');log('Seferde tutsak düştün.','bad');}else if(roll<.32){s.military.wounds++;resolveComradeCampaignOutcome('wounded');apply({health:-rng(8,18),prestige:4});acquireAilment('injury');}else{resolveComradeCampaignOutcome('success');apply({wealth:rng(4,12),prestige:rng(4,8)});s.flags.recent_campaign=true;log('Seferden ganimet ve tecrübeyle döndün.','good');}}
 function captivityMonth(){performAction({kind:'captivity'},()=>{apply({health:-rng(0,2),happiness:-rng(1,2)});if(s.age>=12&&Math.random()<.06+s.skill/600){s.captive=false;unlock('free');}else if(Math.random()<.05&&s.wealth>=10){s.wealth-=10;s.captive=false;unlock('free');log('Yakınlarının fidye girişimiyle serbest kaldın.');}},'Tutsaklıkta bir ay geçti.');}
 function attemptEscape(){performAction({kind:'escape'},()=>{if(Math.random()<.18+s.skill/350){s.captive=false;unlock('free');log('Tutsaklıktan kurtuldun.','major');}else apply({health:-5,happiness:-4});},'Kaçış girişimiyle bir ay geçti.');}
 function commitCrime(id){const c=D.crimes.find(x=>x.id===id);if(!c)return;performAction({kind:'crime',id},()=>{let result;if(Math.random()<c.risk){apply({prestige:c.prestige});const r=Math.random();if(r<.35){const fine=rng(4,12);apply({wealth:-fine});result=fine+' servet tazminata hükmedildi.';}else if(r<.68){s.exile=true;s.place=pick(D.realms[s.realm].places);result='Obadan sürgün edildin.';}else{s.captive=true;unlock('captive');result='Gözetim altında tutsak edildin.';}}else{const gain=rng(...c.gain);s.wealth+=gain;result=gain+' servet kazandın; yakalanmadın.';}s.crimeRecord.push({name:c.name,result,age:s.age,month:currentMonth()});log(result,'bad');},'Töre dışı girişimin sonuçlarıyla bir ay geçti.');}
@@ -536,7 +553,7 @@ function continueAsHeir(i){
  s.assets=equal?old.assets.filter((_,j)=>j%heirs.length===i):old.will===c.id?[...old.assets]:[];s=migrateState(s);
  const veteran=(old.military?.comrades||[]).filter(n=>n.alive&&(n.rel||0)>=70).sort((a,b)=>((b.bonds?.trust||0)+(b.rel||0))-((a.bonds?.trust||0)+(a.rel||0)))[0];
  const inheritedVeteran=veteran?s.friends.find(n=>n.id===veteran.id):null;
- if(inheritedVeteran)scheduleDelayedEvent({id:'legacy_comrade_visit',years:[1,4],payload:{detail:safeText(old.name)+' ile yıllar önce omuz omuza savaşmıştı.'}},{targetId:inheritedVeteran.id,sourceEventId:'heir_succession'});
+ if(inheritedVeteran)scheduleDelayedEvent({id:'legacy_comrade_visit',years:[1,4],payload:{detail:old.name+' ile yıllar önce omuz omuza savaşmıştı.'}},{targetId:inheritedVeteran.id,sourceEventId:'heir_succession'});
  unlock('heir');log(safeText(old.name)+' ardından soyun '+safeText(s.name)+' ile devam ediyor.','major');$('heirModal').classList.remove('show');activateLifeTab();render();save();
 }
 function eventRequirementOK(ev){
