@@ -517,8 +517,8 @@ function ensureHealthProfile(){
  return h;
 }
 function healthHealer(create=true){
- ensureCareerSystems();ensureHealthProfile();let n=s.careerContacts.find(x=>x.statusFlags?.healthHealer);
- if(n)return n.alive?n:null;if(!create)return null;
+ ensureCareerSystems();ensureHealthProfile();let n=s.careerContacts.find(x=>x.statusFlags?.healthHealer&&x.alive);
+ if(n||!create)return n||null;
  const cfg=D.realms[s.realm],gender=pick(['male','female']),age=Math.max(28,s.age+rng(8,24));
  n=normalizeNPC({name:pick(cfg[gender]),gender,age,birthYear:s.year+s.age-age,alive:true,rel:rng(48,66),type:'Otacı',goal:'wisdom',role:'Otacı',prestige:rng(28,52),traits:['temkinli','merhametli']},'Otacı');
  n.statusFlags=n.statusFlags||{};n.statusFlags.healthHealer=true;normalizeBonds(n);n.bonds.trust=clamp(Math.max(n.bonds.trust,48));n.bonds.respect=clamp(Math.max(n.bonds.respect,55));rememberNPC(n,'health','Bakım ve iyileşme dönemlerinden birinde tanıştınız.',4);s.careerContacts.push(n);return n;
@@ -998,7 +998,11 @@ function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
  for(const k of ['parents','siblings','relatives','friends','rivals','children','careerContacts','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();ensureStoryArcs();ensureDelayedEvents();
+ for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();
+ if((x.version||0)<5&&x.military?.wounds>0&&!x.healthProfile.scars.length){
+  const count=Math.min(3,x.military.wounds);for(let i=0;i<count;i++)x.healthProfile.scars.push({id:'legacy_scar_'+i,kind:'battle',severity:i===0&&x.military.wounds>=3?2:1,source:'eski sefer kaydı',location:['omuzda','kolda','bacakta'][i%3],year:x.year+Math.max(18,x.age-5-i),age:Math.max(18,x.age-5-i),lastFlareYear:null});
+ }
+ ensureStoryArcs();ensureDelayedEvents();
  if(x.partner){x.partner.age=x.partner.age??Math.max(16,x.age);x.partner.gender=x.partner.gender||(x.gender==='male'?'female':'male');}
  allNPCs().forEach(n=>normalizeNPC(n,n.type));seedCoreSocialLinks();pruneSocialLinks();if(x.partner&&!x.partner.alive)x.married=false;
  if(x.role){const r=D.careers.find(r=>r.name===x.role);if(r&&x.age<r.age){x.deferredRole=x.role;x.role=null;}}
