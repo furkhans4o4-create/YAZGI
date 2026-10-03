@@ -491,6 +491,68 @@ function workplacePromotionCheck(){
  if(w.rank>=2&&!workplaceJuniors().length)makeWorkplaceContact(r,'junior',workplaceRoleLabels(r));
  log(safeText(r.name)+' görevinde '+workplaceRankTitle()+' düzeyine yükseldin.','major');return true;
 }
+function workplaceAction(index,id){
+ const w=ensureWorkplaceForRole(),contacts=currentWorkplaceContacts(),n=contacts[index];if(!n?.alive)return false;
+ return performAction({kind:'workplace',index,id},()=>{
+  const pos=n.statusFlags?.workplacePosition,b=normalizeBonds(n),r=D.careers.find(x=>x.id===w.roleId);
+  if(id==='collaborate'){
+   w.projectProgress=clamp(w.projectProgress+12);w.cohesion=clamp(w.cohesion+5);w.conflict=clamp(w.conflict-3);w.standing=clamp(w.standing+3);
+   adjustNPC(n,{rel:5,trust:5,respect:4,grudge:-3},'Bir işi omuz omuza yürüttünüz.');adjustSocialLink(n,workplaceSupervisor()||n,{score:n===workplaceSupervisor()?0:2,trust:1,tag:'work'},'Ortak görev çevresinde birlikte çalıştılar.');apply({skill:1});
+  }else if(id==='advice'){
+   if(pos!=='supervisor'){notice('Bu kişi görev çevrende amir veya usta konumunda değil.');return;}
+   w.standing=clamp(w.standing+2);w.cohesion=clamp(w.cohesion+2);adjustNPC(n,{rel:3,trust:4,respect:4},'Görevle ilgili öğüdünü dinledin.');skillGain(careerPrimarySkill(r),2);
+  }else if(id==='sponsor'){
+   if(pos!=='supervisor'){notice('Kefillik için amir veya usta gerekir.');return;}
+   const chance=Math.min(.92,.15+(n.rel||0)/240+b.trust/220+b.respect/260+w.standing/500-w.conflict/600);
+   if(Math.random()<chance){w.sponsorId=n.id;w.sponsorUntil=s.year+s.age+2;w.standing=clamp(w.standing+5);adjustNPC(n,{rel:4,trust:5,respect:3},'Görev çevrende sana kefil olmayı kabul etti.');log(safeText(n.name)+' iki yıl boyunca görev çevresinde sana kefil olacak.','good');}
+   else{adjustNPC(n,{rel:-1,respect:-2},'Henüz sana kefil olmak için erken olduğunu söyledi.');log(safeText(n.name)+' bu kez kefil olmayı kabul etmedi.');}
+  }else if(id==='compete'){
+   if(pos!=='peer'){notice('Görev rekabeti akranlarla olur.');return;}
+   const my=(s.skill+s.prestige+w.standing)/3,their=((n.skills?.[careerPrimarySkill(r)]||40)+(n.prestige||20)+(n.bonds?.respect||40))/3,chance=Math.max(.15,Math.min(.85,.5+(my-their)/120));
+   if(Math.random()<chance){w.standing=clamp(w.standing+7);w.conflict=clamp(w.conflict+5);adjustNPC(n,{rel:-4,trust:-3,respect:6,grudge:5},'Aynı görev için rekabet ettiniz ve sen öne çıktın.');apply({prestige:2});}
+   else{w.standing=clamp(w.standing-3);w.conflict=clamp(w.conflict+8);adjustNPC(n,{rel:-5,trust:-4,respect:-2,grudge:7},'Görev rekabetinde bu kez o öne çıktı.');apply({happiness:-2});}
+   if((n.bonds?.grudge||0)>=35&&!s.rivals.some(x=>x.id===n.id)){n.type='Görev Rakibi';s.rivals.push(n);}
+  }else if(id==='befriend'){
+   adjustNPC(n,{rel:6,trust:6,respect:2,grudge:-3},'Görev dışındaki zamanlarda da görüşmeye başladınız.');
+   if(n.rel>=68&&(n.bonds?.trust||0)>=60&&!s.friends.some(x=>x.id===n.id)){n.type=pos==='supervisor'?'Kıdemli Dost':'Görev Dostu';s.friends.push(n);ensureFriendProfile(n);autoCreateFriendCircle();rememberNPC(n,'work_friend','Görev çevresindeki tanışıklığınız gerçek dostluğa dönüştü.',6);}
+  }else if(id==='mentor'){
+   if(pos!=='junior'){notice('Bu eylem çırak veya genç yardımcı içindir.');return;}
+   w.standing=clamp(w.standing+3);w.cohesion=clamp(w.cohesion+3);adjustNPC(n,{rel:5,trust:5,respect:8},'Ona kendi tecrübenden bir şeyler öğrettin.');n.skills=n.skills||{};const key=careerPrimarySkill(r);n.skills[key]=clamp((n.skills[key]||0)+4);apply({prestige:1});
+  }else if(id==='mediate'){
+   w.conflict=clamp(w.conflict-14);w.cohesion=clamp(w.cohesion+6);adjustNPC(n,{rel:2,trust:2,respect:4,grudge:-5},'Görev çevresindeki sürtüşmeyi yatıştırmaya çalıştın.');
+   const peers=workplacePeers();for(const m of peers.filter(x=>x.id!==n.id).slice(0,2))adjustSocialLink(n,m,{score:5,trust:2,grudge:-6,tag:'work'},'Görev anlaşmazlığında araları bulundu.');
+  }
+  workplacePromotionCheck();
+ },id==='collaborate'?'Ortak görev üzerinde çalışmakla bir ay geçti.':'Görev çevrendeki ilişkilerine bir ay ayırdın.');
+}
+function tickWorkplaceMonth(action={}){
+ const w=ensureWorkplace();if(!s.role){return;}ensureWorkplaceForRole();w.months++;
+ const contacts=currentWorkplaceContacts();for(const n of contacts){if(!n?.alive)continue;normalizeBonds(n);if(n.place!==s.place&&Math.random()<.08)n.place=s.place;if(n.realm!==s.realm&&Math.random()<.06)n.realm=s.realm;}
+ if(action.kind==='work'){w.projectProgress=clamp(w.projectProgress+6);w.standing=clamp(w.standing+1);}
+ if(action.kind!=='workplace'&&action.kind!=='work'&&w.months%4===0){w.cohesion=clamp(w.cohesion-1);if(w.conflict>0)w.conflict=clamp(w.conflict-1);}
+ const peers=workplacePeers();for(let i=0;i<peers.length;i++)for(let j=i+1;j<peers.length;j++){const l=socialLinkBetween(peers[i],peers[j],true,{tags:['work']});if(l.score<0||l.grudge>30)w.conflict=clamp(w.conflict+1);}
+ if(w.projectProgress>=100){w.projectProgress=0;w.projects++;w.standing=clamp(w.standing+6);w.cohesion=clamp(w.cohesion+4);apply({prestige:2,wealth:1});for(const n of contacts)adjustNPC(n,{rel:2,respect:2},'Bir ortak işi başarıyla tamamladınız.');log('Görev çevreniz ortak bir işi tamamladı.','good');}
+ if(w.conflict>=75&&w.months%3===0){apply({happiness:-1});w.standing=clamp(w.standing-1);}
+}
+function workplaceYearTick(){
+ if(!s.role)return;const w=ensureWorkplaceForRole();workplacePromotionCheck();
+ const sup=workplaceSupervisor();if(sup?.alive&&w.sponsorUntil&&w.sponsorUntil<s.year+s.age){w.sponsorUntil=0;w.sponsorId=null;}
+ if(w.rank>=2&&!workplaceJuniors().length)makeWorkplaceContact(D.careers.find(x=>x.id===w.roleId),'junior',workplaceRoleLabels(D.careers.find(x=>x.id===w.roleId)));
+ for(const n of currentWorkplaceContacts()){if(!n?.alive)continue;if(Math.random()<.04&&n.statusFlags?.workplacePosition==='peer'){n.statusFlags.workplacePosition='former_peer';n.statusFlags.formerWorkplace=true;if(!n.type.startsWith('Eski '))n.type='Eski '+n.type;rememberNPC(n,'career_move','Aynı görev çevresinden ayrılıp başka bir yola geçti.',3);}}
+}
+function workplaceSummaryHtml(){
+ if(!s.role)return '';const w=ensureWorkplaceForRole(),contacts=currentWorkplaceContacts(),sup=workplaceSupervisor();
+ let html='<div class="card"><h3>🧭 Görev Çevresi</h3><p><b>'+safeText(workplaceRankTitle())+'</b> • '+safeText(w.roleName||s.role)+'<br>Görev itibarı '+w.standing+'/100 • çevre uyumu '+w.cohesion+'/100 • gerilim '+w.conflict+'/100<br>Ortak iş '+w.projectProgress+'/100 • tamamlanan '+w.projects+(w.sponsorUntil>=s.year+s.age&&sup?'<br>🤝 Kefil: '+safeText(sup.name)+' • '+w.sponsorUntil+' yılına kadar':'')+'</p></div>';
+ if(contacts.length)html+='<div class="grid2">'+contacts.map((n,idx)=>{const pos=n.statusFlags?.workplacePosition,label=pos==='supervisor'?'Usta / amir':pos==='junior'?'Çırak / yardımcı':'Akran',issueSponsor=pos==='supervisor'&&n.rel>=45;return '<div class="card"><h3>'+safeText(n.name)+'</h3><p>'+safeText(label)+' • '+safeText(n.role||n.type)+'<br>İlişki '+n.rel+' • güven '+(n.bonds?.trust||0)+' • saygı '+(n.bonds?.respect||0)+'</p><div class="actions"><button class="mini" onclick="workplaceAction('+idx+',\'collaborate\')">Birlikte çalış</button>'+(pos==='supervisor'?'<button class="mini" onclick="workplaceAction('+idx+',\'advice\')">Öğüt iste</button>'+(issueSponsor?'<button class="mini" onclick="workplaceAction('+idx+',\'sponsor\')">Kefillik iste</button>':''):'')+(pos==='peer'?'<button class="mini" onclick="workplaceAction('+idx+',\'compete\')">Görevde yarış</button>':'')+(pos==='junior'?'<button class="mini" onclick="workplaceAction('+idx+',\'mentor\')">Yetiştir</button>':'')+'<button class="mini" onclick="workplaceAction('+idx+',\'befriend\')">Dostluğu ilerlet</button>'+(w.conflict>=20?'<button class="mini" onclick="workplaceAction('+idx+',\'mediate\')">Gerilimi yatıştır</button>':'')+'</div></div>';}).join('')+'</div>';
+ return html;
+}
+function applyWorkplaceEvent(eventId,choiceIndex,target){
+ if(!s.role)return;const w=ensureWorkplaceForRole();
+ if(eventId==='workplace_credit_dispute'){if(choiceIndex===0){w.conflict=clamp(w.conflict-10);w.cohesion=clamp(w.cohesion+5);}else{w.standing=clamp(w.standing+5);w.conflict=clamp(w.conflict+10);}}
+ if(eventId==='workplace_supervisor_test'){if(choiceIndex===0){w.standing=clamp(w.standing+5);w.projectProgress=clamp(w.projectProgress+12);}else w.conflict=clamp(w.conflict+6);}
+ if(eventId==='workplace_junior_mistake'&&target){if(choiceIndex===0){w.cohesion=clamp(w.cohesion+5);adjustNPC(target,{trust:5,respect:6},'Hatasını düzeltmesine yardım ettin.');}else{w.standing=clamp(w.standing+2);adjustNPC(target,{trust:-4,fear:5,respect:2},'Hatasını sert biçimde yüzüne vurdun.');}}
+}
+
 
 function ensureCareerSystems(){
  s.careerProfiles=s.careerProfiles&&typeof s.careerProfiles==='object'&&!Array.isArray(s.careerProfiles)?s.careerProfiles:{};
