@@ -344,8 +344,8 @@ function normalizeNPC(n,type='Yakın'){
 }
 function allNPCs(){
  const out=[],seen=new Set();const visit=n=>{if(!n||seen.has(n.id))return;seen.add(n.id);normalizeNPC(n,n.type);out.push(n);(n.descendants||[]).forEach(visit);};
- const disp=s.displacement||{},cap=disp.captivity?.contacts||[],ex=disp.exile?.contacts||[],edu=s.education?.contacts||[],oldLove=s.exPartners||[],justice=s.justice?.contacts||[],inlaws=s.extendedFamily?.inLaws||[];
- [...s.parents,...s.siblings,...(s.relatives||[]),...s.friends,...s.rivals,...s.children,...(s.careerContacts||[]),...edu,...cap,...ex,...oldLove,...justice,...inlaws,s.partner,...s.military.comrades].forEach(visit);return out;
+ const disp=s.displacement||{},cap=disp.captivity?.contacts||[],ex=disp.exile?.contacts||[],edu=s.education?.contacts||[],oldLove=s.exPartners||[],justice=s.justice?.contacts||[],inlaws=s.extendedFamily?.inLaws||[],guardian=s.guardianship?.contacts||[];
+ [...s.parents,...s.siblings,...(s.relatives||[]),...s.friends,...s.rivals,...s.children,...(s.careerContacts||[]),...edu,...cap,...ex,...oldLove,...justice,...inlaws,...guardian,s.partner,...s.military.comrades].forEach(visit);return out;
 }
 function socialKey(a,b){
  const ai=typeof a==='string'?a:a?.id,bi=typeof b==='string'?b:b?.id;if(!ai||!bi||ai===bi)return '';
@@ -1971,7 +1971,7 @@ function careerIssue(r){
  if(s.exile&&['state','military'].includes(r.path))return 'Önce sürgün meselesini çözmelisin';return '';
 }
 function careerRequirements(r){const a=CAREER_RULES[r.id];return `${a.age} yaş • genel beceri ${Math.max(0,r.skill-10)} • ${Object.entries(a.skills).map(([k,v])=>skillName(k)+' '+v).join(' • ')}${a.months?' • '+a.months+' ay '+pathName(a.track):''}${a.prestige?' • itibar '+a.prestige:''}${a.campaigns?' • '+a.campaigns+' sefer':''}${r.id==='bey'?' • meclis nüfuzu 20 • meclis güveni 30':''}`;}
-function getFamilyGroup(group){if(group==='partner')return s.partner?[s.partner]:[];if(group==='exPartners')return s.exPartners||[];if(group==='extendedFamily')return extendedFamilyVisible();if(group==='inLaws')return ensureExtendedFamily().inLaws;if(group==='justiceContacts')return ensureJustice().contacts;if(group==='comrades')return s.military?.comrades||[];if(group==='careerContacts')return s.careerContacts||[];if(group==='educationContacts')return ensureEducation().contacts;if(group==='captivityContacts')return ensureDisplacement().captivity.contacts;if(group==='exileContacts')return ensureDisplacement().exile.contacts;return ['parents','siblings','relatives','friends','rivals','children'].includes(group)?(s[group]||[]):[];}
+function getFamilyGroup(group){if(group==='partner')return s.partner?[s.partner]:[];if(group==='guardianContacts')return ensureGuardianship().contacts;if(group==='exPartners')return s.exPartners||[];if(group==='extendedFamily')return extendedFamilyVisible();if(group==='inLaws')return ensureExtendedFamily().inLaws;if(group==='justiceContacts')return ensureJustice().contacts;if(group==='comrades')return s.military?.comrades||[];if(group==='careerContacts')return s.careerContacts||[];if(group==='educationContacts')return ensureEducation().contacts;if(group==='captivityContacts')return ensureDisplacement().captivity.contacts;if(group==='exileContacts')return ensureDisplacement().exile.contacts;return ['parents','siblings','relatives','friends','rivals','children'].includes(group)?(s[group]||[]):[];}
 function accessIssue(a){
  if(!s?.alive)return 'Bu yaşam sona erdi.';
  if(s.pendingEventId||s.pendingDecision)return 'Önce karar kartını çöz.';
@@ -2012,6 +2012,7 @@ function accessIssue(a){
  else if(a.kind==='meet'){min=16;if(s.partner?.alive)return 'Zaten görüştüğün biri var.';}
  else if(a.kind==='marry'){min=18;if(!s.partner?.alive||s.married)return 'Yaşayan eş adayı gerekiyor.';if(s.partner.age<18)return 'İkiniz de 18 yaşında olmalısınız.';if(s.partner.rel<65)return 'İlişkiniz en az 65 olmalı.';}
  else if(a.kind==='crime'){min=18;if(!D.crimes.some(x=>x.id===a.id))return 'Eylem bulunamadı.';if(openJusticeCase())return 'Önce açık töre meselesini çözmelisin.';}
+ else if(a.kind==='guardianship'){if(s.age>=18||!ensureGuardianship().active||!currentGuardian()?.alive)return 'Aktif bir koruyuculuk düzenin yok.';if(!['time','help','learn','remember','visitSibling','change'].includes(a.id))return 'Koruyuculuk eylemi bulunamadı.';if(a.id==='visitSibling'&&!s.siblings.some(n=>n.alive&&ensureGuardianship().separatedSiblingIds.includes(n.id)))return 'Ayrı yaşayan kardeşin yok.';}
  else if(a.kind==='parenting'){min=18;const c=s.children[a.index];if(!c?.alive||c.age>=18)return 'Bu çocuk için aktif yetiştirme dönemi sona ermiş.';if(a.id==='guide'&&!PARENTING_PATHS[a.path])return 'Yetişme yolu bulunamadı.';if(!['care','teach','listen','discipline','guide','mediate'].includes(a.id))return 'Ebeveynlik eylemi bulunamadı.';}
  else if(a.kind==='extendedFamily'){min=5;if(a.id==='reunion'){if(familyReunionGuests().length<2)return 'Aynı bölgede buluşacak yeterli yakın yok.';}else{const n=extendedFamilyVisible()[a.index];if(!n?.alive)return 'Bu akrabayla etkileşemezsin.';if(a.id==='support'&&s.wealth<3)return '3 servet gerekiyor.';if(!['support','ask_help'].includes(a.id))return 'Geniş aile eylemi bulunamadı.';}}
  else if(a.kind==='housing'){min=a.id==='chores'?8:16;const issue=housingIssue(a.id);if(issue)return issue;}
@@ -2043,7 +2044,7 @@ function monthlyTick(month,action,allowEvent=true){
  tickEventCooldowns();
  for(const n of allNPCs())if(n.alive&&n.birthYear!=null){const before=n.age;n.age=Math.max(0,s.year+s.age-n.birthYear-(month<n.birthMonth?1:0));if(before!==n.age&&[8,12,18].includes(n.age))n.role=npcRole(n.age);}
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
- tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);
+ tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);tickGuardianshipMonth(action);
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
  if(s.age>=18&&month%3===0)tickEconomyQuarter(month);
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
@@ -2192,7 +2193,7 @@ function familyTick(){
   if(n.age>45)n.health=clamp(n.health-rng(0,2));
   if(Math.random()<npcDeathRisk(n)){n.alive=false;rememberNPC(n,'death','Yaşamı sona erdi.',10);maybeExtendedInheritance(n);log(safeText(n.name)+' yaşamını yitirdi.','bad');if(n===s.partner){s.married=false;s.pregnancy=null;}}
  }
- tickNPCSocialNetwork(year);parentingYearTick();
+ tickNPCSocialNetwork(year);parentingYearTick();guardianshipYearTick();
  stateYearTick();
  if(canHaveChild()&&Math.random()<.18){s.pregnancy={remaining:9};log('Ocağınızda bir çocuk bekleniyor.','major');}
 }
@@ -2419,7 +2420,7 @@ function familyCard(n,group,index){
  ${memory?`<div class="memoryline">Hatırladığı: ${safeText(memory)}</div>`:''}${tieLine?`<div class="networkline">${safeText(tieLine)}</div>`:''}</div><div class="actions">${actions}</div></div>`;
 }
 function renderSystems(){
- $('lifeCare').innerHTML=`<h3 class="sectionTitle">${lifeStage(s.age)}</h3>${healthSummaryHtml()}${displacementSummaryHtml()}<div class="grid2">${s.age<5?actionButton('Aile bakımında bir ay',{kind:'guardian'},'guardianCare()'):actionButton('Dinlen',{kind:'health',id:'rest'},"healthAction('rest')",'Aktif rahatsızlıkların iyileşmesini hızlandırır.')+actionButton(s.age<12?'Ailenle otacıya git':'Otacıya Git',{kind:'health',id:'healer'},"healthAction('healer')",'2 servet • rahatsızlık şiddetini ve iyileşme süresini azaltır.')}</div>${s.pregnancy?'<p class="note">Doğum bekleniyor • yaklaşık '+s.pregnancy.remaining+' ay.</p>':''}`;
+ $('lifeCare').innerHTML=`<h3 class="sectionTitle">${lifeStage(s.age)}</h3>${healthSummaryHtml()}${displacementSummaryHtml()}${guardianshipSummaryHtml()}<div class="grid2">${s.age<5?actionButton('Aile bakımında bir ay',{kind:'guardian'},'guardianCare()'):actionButton('Dinlen',{kind:'health',id:'rest'},"healthAction('rest')",'Aktif rahatsızlıkların iyileşmesini hızlandırır.')+actionButton(s.age<12?'Ailenle otacıya git':'Otacıya Git',{kind:'health',id:'healer'},"healthAction('healer')",'2 servet • rahatsızlık şiddetini ve iyileşme süresini azaltır.')}</div>${s.pregnancy?'<p class="note">Doğum bekleniyor • yaklaşık '+s.pregnancy.remaining+' ay.</p>':''}`;
  $('tab-yetisme').insertAdjacentHTML('beforeend',educationSummaryHtml()+'<h3 class="sectionTitle">Yetişme tecrübesi</h3><p class="note">'+Object.entries(s.experience).map(([k,v])=>pathName(k)+': '+v+' ay').join(' • ')+'</p>');
  $('tab-faaliyet').insertAdjacentHTML('afterbegin',appearanceSummaryHtml());
  $('tab-aile').insertAdjacentHTML('afterbegin',romanceSummaryHtml()+parentingSummaryHtml()+extendedFamilySummaryHtml());
@@ -2431,7 +2432,7 @@ function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');const sourceVersion=x.version||0;x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
  for(const k of ['parents','siblings','relatives','friends','rivals','children','careerContacts','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments','exPartners'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureEconomy();ensureDisplacement();ensureLifeVariety();ensureMobility();ensureEducation();ensureAppearance();ensureRomance();ensureJustice();ensureHousing();ensureExtendedFamily();ensureParenting();if(s.partner?.alive)ensurePartnerFamily();refreshKinRoles();
+ for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureEconomy();ensureDisplacement();ensureLifeVariety();ensureMobility();ensureEducation();ensureAppearance();ensureRomance();ensureJustice();ensureHousing();ensureExtendedFamily();ensureParenting();ensureGuardianship();if(s.partner?.alive)ensurePartnerFamily();refreshKinRoles();if(s.age<18)ensureMinorGuardianship('kayıt göçü');
  if(sourceVersion<5&&x.military?.wounds>0&&!x.healthProfile.scars.length){
   const count=Math.min(3,x.military.wounds);for(let i=0;i<count;i++)x.healthProfile.scars.push({id:'legacy_scar_'+i,kind:'battle',severity:i===0&&x.military.wounds>=3?2:1,source:'eski sefer kaydı',location:['omuzda','kolda','bacakta'][i%3],year:x.year+Math.max(18,x.age-5-i),age:Math.max(18,x.age-5-i),lastFlareYear:null});
  }
@@ -2449,7 +2450,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v17'))localStorage.setItem('yazgi_before_v17',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v18'))localStorage.setItem('yazgi_before_v18',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
