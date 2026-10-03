@@ -947,7 +947,8 @@ function ensureStateCircle(){
 }
 
 function stateCouncilEligible(){
- const q=ensureStateCourt();return s.age>=18&&q.initialized&&(['Boy Beyi','Elçi','Bitigçi'].includes(s.role)||q.influence>=50);
+ const q=ensureStateCourt(),stateRole=['Boy Beyi','Elçi','Bitigçi'].includes(s.role);if(stateRole&&!q.initialized)ensureStateCircle();
+ return s.age>=18&&ensureStateCourt().initialized&&(stateRole||ensureStateCourt().influence>=50);
 }
 function statePolicyActive(id,year=s.year+s.age){return ensureStateCourt().activePolicies.some(p=>p.id===id&&p.startedYear<=year&&p.expiresYear>=year);}
 function activeStatePolicies(year=s.year+s.age){return ensureStateCourt().activePolicies.filter(p=>p.startedYear<=year&&p.expiresYear>=year);}
