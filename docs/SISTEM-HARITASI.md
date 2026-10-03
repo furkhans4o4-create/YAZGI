@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 11’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v11` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 12’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v12` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -200,3 +200,10 @@ Geride kalan NPC'ler eski yerlerinde yaşamaya devam eder. Uzakta yaşayan yakı
 v11 ile tek tuşla stat artıran eğitim modeli kalıcı yetişme yollarına dönüştürüldü. Atlı yetişme, okçuluk, güreş, demir ocağı, bitig/yazı, söz-destan ve takas-kervan yollarının her biri ayrı ay sayısı ve basamak tutar. 6, 18, 36 ve 60 aylık eşiklerde karakter yeni bir seviyeye çıkar ve ustası tarafından sınanır.
 
 Her yolun gerçek bir usta NPC'si ve beraber yetişilen akranları vardır. Güven, saygı ve ilişki ilerlemesi saklanır; akranlar kalıcı dosta dönüşebilir. Usta ve akranlar artık seçimli hayat olaylarının doğrudan hedefidir. Derin bir yetişme geçmişi ilgili mesleğe kabul şansına küçük bir avantaj verir ancak yaş, beceri, tecrübe, itibar veya sefer gibi temel meslek şartlarını bypass etmez.
+
+
+### Karakter görünüşü ve yaşlanma
+
+v12 ile profil emojisi katmanlı CSS portresine dönüştürüldü. Oyuncu yüz yapısını, ten tonunu, saç biçimini, temel saç rengini, yetişkin erkek karakterlerde sakal/bıyığı ve uygun başlığı değiştirebilir. Görünüş seçimi eylem hakkı tüketmez; günlük bakım ise bir aylık eylemdir.
+
+Portre yalnız kozmetik değildir. Saç ağarması 35 yaş sonrasında kademeli ilerler; yüksek kırılganlık ve düşük sağlık ağarmayı hızlandırabilir. 45 yaş sonrasında yüz çizgileri aşamalı belirir. Sağlık sistemindeki kalıcı yara izlerinden ilk üçü portrede görünür. Tutsaklık doygunluk/parlaklık değişimiyle yorgun görünüm bırakır. Görünüş bakım değeri zaman içinde azalır, hastalık ve zor koşullar bunu hızlandırır; saç/sakal bakımı değeri yeniden yükseltir. Savaş başlığı gibi bazı seçenekler yaşam durumuna bağlıdır.
