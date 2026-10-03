@@ -628,7 +628,7 @@ function ensureJustice(){
  j.totalCrimes=Math.max(0,Math.round(j.totalCrimes||0));j.caught=Math.max(0,Math.round(j.caught||0));j.settled=Math.max(0,Math.round(j.settled||0));
  j.contacts=Array.isArray(j.contacts)?j.contacts:[];j.cases=Array.isArray(j.cases)?j.cases:[];j.feuds=Array.isArray(j.feuds)?j.feuds:[];j.history=Array.isArray(j.history)?j.history.slice(-60):[];
  j.contacts=j.contacts.filter(Boolean).map(n=>normalizeNPC(n,n.type||'Töre Çevresi'));
- j.cases=j.cases.filter(Boolean).map(c=>({...c,id:c.id||('case_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2)),status:c.status||'hidden',evidence:clamp(Number.isFinite(c.evidence)?c.evidence:0),severity:clamp(Number.isFinite(c.severity)?c.severity:50),witnessIds:Array.isArray(c.witnessIds)?c.witnessIds:[],restitutionDue:Math.max(0,Math.round(c.restitutionDue||0)),mediationBonus:clamp(Number.isFinite(c.mediationBonus)?c.mediationBonus:0)}));
+ j.cases=j.cases.filter(Boolean);for(const c of j.cases){c.id=c.id||('case_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2));c.status=c.status||'hidden';c.evidence=clamp(Number.isFinite(c.evidence)?c.evidence:0);c.severity=clamp(Number.isFinite(c.severity)?c.severity:50);c.witnessIds=Array.isArray(c.witnessIds)?c.witnessIds:[];c.restitutionDue=Math.max(0,Math.round(c.restitutionDue||0));c.mediationBonus=clamp(Number.isFinite(c.mediationBonus)?c.mediationBonus:0);}
  return j;
 }
 function justiceContact(id){return ensureJustice().contacts.find(n=>n.id===id)||null;}
