@@ -117,10 +117,10 @@ function arcEventMeta(eventId){
 }
 function ensureStoryArcs(){
  s.storyArcs=s.storyArcs&&typeof s.storyArcs==='object'&&!Array.isArray(s.storyArcs)?s.storyArcs:{};
- if((s.storyArcVersion||0)<2){
+ if((s.storyArcVersion||0)<3){
   const archive=[...(s.eventArchive||[])];
   for(const rec of archive)recordStoryArcChoice(rec.id,rec.choice,'',rec,true);
-  s.storyArcVersion=2;
+  s.storyArcVersion=3;
  }
  for(const st of Object.values(s.storyArcs)){
   if(st.status!=='active'||!st.nextEventId)continue;
