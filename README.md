@@ -12,7 +12,9 @@
 - Sefer, yaralanma, ganimet, tutsaklık ve kaçış
 - Evlilik ve soy devamı
 - Varlıklar ve töre ihlalleri
-- Ölüm sonrası çocukla devam
+- Yaşlılıkta aile meclisi, vasiyet hazırlığı ve son dilek
+- Ölüm nedeni ve malvarlığı kaydı; eşit paylaşım veya ana varis
+- Ölüm sonrası çocukla devam ve kardeşlerin mirasa uzun vadeli tepkileri
 - LocalStorage kayıt sistemi
 
 ## Çalıştırma
@@ -35,7 +37,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları sürüm 2’ye taşınır; önce `yazgi_before_v2` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 6’ya taşınır; sürüm değişiminde önce `yazgi_before_v6` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 ### Dosyalar ve çalıştırma
 
