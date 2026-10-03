@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=18,ADULT_AGE=18;
+const SAVE_VERSION=19,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -623,6 +623,67 @@ const AMBITION_DEFS=[
 
 
 
+
+
+function ensureSocialLife(){
+ if(!s.socialLife||typeof s.socialLife!=='object'||Array.isArray(s.socialLife))s.socialLife={};
+ const x=s.socialLife;x.profiles=x.profiles&&typeof x.profiles==='object'&&!Array.isArray(x.profiles)?x.profiles:{};x.groups=Array.isArray(x.groups)?x.groups:[];x.referrals=Array.isArray(x.referrals)?x.referrals:[];x.history=Array.isArray(x.history)?x.history.slice(-80):[];
+ x.totalGatherings=Math.max(0,Math.round(x.totalGatherings||0));x.reconnections=Math.max(0,Math.round(x.reconnections||0));
+ for(const n of s.friends||[])if(n)ensureFriendProfile(n);
+ x.groups=x.groups.filter(g=>g&&Array.isArray(g.memberIds)&&g.memberIds.length>=2).map(g=>({...g,id:g.id||('circle_'+Math.random().toString(36).slice(2)),name:g.name||'Dost Çevresi',memberIds:[...new Set(g.memberIds)],cohesion:clamp(Number.isFinite(g.cohesion)?g.cohesion:55),tension:clamp(Number.isFinite(g.tension)?g.tension:5),gatherings:Math.max(0,Math.round(g.gatherings||0)),history:Array.isArray(g.history)?g.history.slice(-20):[]}));
+ return x;
+}
+function ensureFriendProfile(n){
+ if(!n)return null;if(!s.socialLife||typeof s.socialLife!=='object'||Array.isArray(s.socialLife))s.socialLife={profiles:{},groups:[],referrals:[],history:[]};
+ s.socialLife.profiles=s.socialLife.profiles&&typeof s.socialLife.profiles==='object'&&!Array.isArray(s.socialLife.profiles)?s.socialLife.profiles:{};
+ let p=s.socialLife.profiles[n.id];if(!p)p=s.socialLife.profiles[n.id]={friendId:n.id,startedYear:s.year+s.age,startedAge:s.age,monthsKnown:0,monthsDistant:0,sharedExperiences:0,secrets:0,supportGiven:0,supportReceived:0,chosenConfidant:false,childhood:s.age<=13&&n.age<=15,lastInteractionYear:s.year+s.age,lastInteractionMonth:currentMonth(),status:'active',history:[]};
+ p.monthsKnown=Math.max(0,Math.round(p.monthsKnown||0));p.monthsDistant=Math.max(0,Math.round(p.monthsDistant||0));p.sharedExperiences=Math.max(0,Math.round(p.sharedExperiences||0));p.secrets=Math.max(0,Math.round(p.secrets||0));p.supportGiven=Math.max(0,Math.round(p.supportGiven||0));p.supportReceived=Math.max(0,Math.round(p.supportReceived||0));p.chosenConfidant=!!p.chosenConfidant;p.childhood=!!p.childhood;p.history=Array.isArray(p.history)?p.history.slice(-25):[];p.status=p.status||'active';
+ n.statusFlags=n.statusFlags||{};if(p.childhood)n.statusFlags.childhoodFriend=true;return p;
+}
+function friendTier(n){
+ const p=ensureFriendProfile(n),b=normalizeBonds(n);if(!n?.alive)return 'Kaybedilen dost';
+ if(p.status==='distant'||p.monthsDistant>=18||(n.rel<40&&b.trust<40))return p.childhood?'Uzaklaşmış çocukluk dostu':'Uzaklaşmış dost';
+ if(p.chosenConfidant&&n.rel>=72&&b.trust>=72)return 'Sırdaş';
+ if(n.rel>=78&&b.trust>=68&&p.sharedExperiences>=3)return p.childhood?'Yakın çocukluk dostu':'Yakın dost';
+ return p.childhood?'Çocukluk dostu':'Dost';
+}
+function friendRolePath(n){return D.careers.find(r=>r.name===n?.role)?.path||null;}
+function friendCircleFor(n){return ensureSocialLife().groups.find(g=>g.memberIds.includes(n?.id))||null;}
+function autoCreateFriendCircle(){
+ const x=ensureSocialLife(),available=s.friends.filter(n=>n?.alive&&n.rel>=55&&(n.bonds?.trust||0)>=45&&!x.groups.some(g=>g.memberIds.includes(n.id))).slice(0,6);
+ if(available.length<3)return null;
+ const g={id:'circle_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2),name:'Yakın Dost Çevresi',memberIds:available.map(n=>n.id),cohesion:58,tension:5,gatherings:0,createdYear:s.year+s.age,history:[]};
+ x.groups.push(g);for(let i=0;i<available.length;i++)for(let j=i+1;j<available.length;j++)adjustSocialLink(available[i],available[j],{score:12,trust:5,tag:'friend'},'Aynı dost çevresinde daha sık görüşmeye başladılar.');
+ x.history.unshift({year:s.year+s.age,type:'circle_created',groupId:g.id,members:[...g.memberIds]});return g;
+}
+function friendCareerReferralBonus(r){
+ if(!r)return 0;const year=s.year+s.age;ensureSocialLife().referrals=ensureSocialLife().referrals.filter(x=>x.expiresYear>=year&&s.friends.some(n=>n.id===x.friendId&&n.alive));
+ return ensureSocialLife().referrals.some(x=>x.path===r.path&&x.expiresYear>=year)?.08:0;
+}
+function friendReconnectionCandidates(){return s.friends.filter(n=>n?.alive&&ensureFriendProfile(n).status==='distant');}
+function friendInteractionStamp(n,kind='time'){
+ const p=ensureFriendProfile(n);p.lastInteractionYear=s.year+s.age;p.lastInteractionMonth=currentMonth();p.monthsDistant=0;p.status='active';p.sharedExperiences++;if(kind==='secret')p.secrets++;p.history.unshift({year:s.year+s.age,age:s.age,kind});p.history=p.history.slice(0,25);
+}
+function friendshipAction(index,id){
+ const n=s.friends[index];if(!n?.alive)return false;const p=ensureFriendProfile(n);
+ return performAction({kind:'friendship',index,id},()=>{
+  if(id==='deepen'){friendInteractionStamp(n,'time');adjustNPC(n,{rel:7,trust:6,respect:2,grudge:-3},'Dostluğunuzu özellikle güçlendirmek için birlikte zaman geçirdiniz.');apply({happiness:3});}
+  else if(id==='confidant'){if(n.rel<72||(n.bonds?.trust||0)<72){notice('Sırdaşlık için ilişki ve güven en az 72 olmalı.');return;}for(const fp of Object.values(ensureSocialLife().profiles))if(fp.friendId!==n.id&&fp.chosenConfidant&&Math.random()<.5)fp.chosenConfidant=false;p.chosenConfidant=true;friendInteractionStamp(n,'secret');adjustNPC(n,{rel:4,trust:7},'Birbirinizi sırdaş kabul ettiniz.');rememberNPC(n,'confidant','Aranızdaki dostluk sırdaşlığa dönüştü.',7);}
+  else if(id==='reconnect'){const before=p.monthsDistant,chance=Math.min(.92,.28+n.rel/190+(n.bonds?.trust||0)/220+(p.childhood?.12:0)-Math.min(.25,before/120));if(Math.random()<chance){p.status='active';p.monthsDistant=0;friendInteractionStamp(n,'reconnect');ensureSocialLife().reconnections++;adjustNPC(n,{rel:8,trust:6,grudge:-5},'Uzun aradan sonra yeniden görüştünüz.');apply({happiness:4});log(safeText(n.name)+' ile eski dostluğunuzu yeniden canlandırdın.','good');}else{adjustNPC(n,{rel:-1},'Yıllar sonra yeniden yakınlaşmak kolay olmadı.');log(safeText(n.name)+' ile yeniden yakınlaşma bu kez istediğin gibi olmadı.');}}
+  else if(id==='referral'){const path=friendRolePath(n);if(!path){notice('Bu dostun şu an seni bir görev çevresine sokabilecek konumda değil.');return;}const x=ensureSocialLife();x.referrals=x.referrals.filter(r=>!(r.friendId===n.id&&r.path===path));x.referrals.push({friendId:n.id,path,year:s.year+s.age,expiresYear:s.year+s.age+2});friendInteractionStamp(n,'referral');adjustNPC(n,{rel:3,trust:3,respect:2},'Seni kendi görev çevresinden insanlarla tanıştırdı.');log(safeText(n.name)+' '+pathName(path)+' çevresinde sana kefil oldu.','good');}
+  else if(id==='matchmake'){if(s.partner?.alive||s.age<16){notice('Şu anda eş adayı tanıştırmasına uygun değilsin.');return;}const gender=s.gender==='male'?'female':'male',age=s.age<18?s.age:Math.max(18,s.age+rng(-4,4));s.partner=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age,alive:true,rel:rng(58,70),type:'Eş adayı',realm:s.realm,place:s.place,tribe:pick(D.realms[s.realm].tribes)},'Eş adayı');s.partner.statusFlags.introducedByFriend=n.id;adjustNPC(s.partner,{trust:7,respect:4},safeText(n.name)+' aracılığıyla tanıştınız.');friendInteractionStamp(n,'matchmake');adjustNPC(n,{rel:3,trust:2},'Seni güvendiği biriyle tanıştırdı.');s.married=false;ensureRomance().current=null;ensureRomance();ensurePartnerFamily(true);log(safeText(n.name)+' seni '+safeText(s.partner.name)+' ile tanıştırdı.','major');}
+  else if(id==='comrade'){if(s.age<18||!['Alp','Akıncı','Tarkan'].includes(n.role)){notice('Bu dostun şu an sefer yoldaşı olmaya uygun değil.');return;}if(!s.military.comrades.some(x=>x.id===n.id))s.military.comrades.push(n);n.statusFlags=n.statusFlags||{};n.statusFlags.friendComrade=true;friendInteractionStamp(n,'comrade');adjustNPC(n,{trust:6,respect:6,rel:4},'Dostluğunuz sefer yoldaşlığına da dönüştü.');log(safeText(n.name)+' artık sefer yoldaşların arasında.','good');}
+ },id==='reconnect'?'Eski dostunun izini bulup görüşmekle bir ay geçti.':'Dostluğuna bir ay ayırdın.');
+}
+function friendCircleAction(groupId,id){
+ const x=ensureSocialLife(),g=x.groups.find(z=>z.id===groupId);if(!g)return false;
+ const members=g.memberIds.map(npcById).filter(n=>n?.alive);if(members.length<2)return false;
+ return performAction({kind:'friendCircle',groupId,id},()=>{
+  if(id==='gather'){g.gatherings++;x.totalGatherings++;g.cohesion=clamp(g.cohesion+8);g.tension=clamp(g.tension-5);for(const n of members){friendInteractionStamp(n,'group');adjustNPC(n,{rel:3,trust:2},'Dost çevreniz birlikte bir gün geçirdi.');}for(let i=0;i<members.length;i++)for(let j=i+1;j<members.length;j++)adjustSocialLink(members[i],members[j],{score:4,trust:2,grudge:-2,tag:'friend'},'Dost çevresi buluşmasında bağları güçlendi.');apply({happiness:5});}
+  else if(id==='mediate'){g.tension=clamp(g.tension-14);g.cohesion=clamp(g.cohesion+4);const links=[];for(let i=0;i<members.length;i++)for(let j=i+1;j<members.length;j++){const l=socialLinkBetween(members[i],members[j],true);if(l.grudge>0||l.score<20)links.push({a:members[i],b:members[j],l});}for(const q of links.slice(0,3))adjustSocialLink(q.a,q.b,{score:6,trust:2,grudge:-8,tag:'friend'},'Aralarını bulmaya çalıştın.');apply({prestige:1});}
+  g.history.unshift({year:s.year+s.age,id,cohesion:g.cohesion,tension:g.tension});g.history=g.history.slice(0,20);
+ },id==='gather'?'Dost çevrenle bir ayın önemli kısmını birlikte geçirdin.':'Dost çevrendeki gerilimi çözmeye bir ay ayırdın.');
+}
 
 function ensureGuardianship(){
  if(!s.guardianship||typeof s.guardianship!=='object'||Array.isArray(s.guardianship))s.guardianship={};
