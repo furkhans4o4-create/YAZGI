@@ -442,10 +442,10 @@ const EVENT_DECK=[
    ["At ve hayvan al",{wealth:7,prestige:2}],["Değerli eşya al",{wealth:10,happiness:2}]
  ]},
  {id:"captor_mercy",cat:"Tutsaklık",min:16,max:70,w:8,cool:10,req:"captive",text:"Seni gözeten kişi bugün daha yumuşak davranıyor.",choices:[
-   ["Kaçış için bilgi topla",{skill:4,happiness:2}],["Sessiz kal",{health:2}]
+   ["Kamp düzeni hakkında bilgi topla",{skill:2,happiness:1,displacement:{captivity:{escapePrep:12,guardPressure:-4}}}],["Erzak ve dinlenme iste",{health:2,displacement:{captivity:{rations:10,standing:3}}}]
  ]},
  {id:"exile_offer",cat:"Sürgün",min:16,max:70,w:7,cool:18,req:"exile",text:"Başka bir oba seni aralarına kabul edebileceğini bildirdi.",choices:[
-   ["Teklifi kabul et",{happiness:5,prestige:2,clearExile:true}],["Kendi boyuna dönmeyi bekle",{happiness:-1}]
+   ["Teklifi kabul et",{happiness:5,prestige:2,clearExile:true}],["Kendi boyuna dönmeyi bekle",{happiness:-1,displacement:{exile:{returnSupport:10,localStanding:3}}}]
  ]},
  {id:"elder_advice",cat:"Yaşlılık",min:50,max:85,w:6,cool:20,text:"Gençlerden biri senden hayat ve görev hakkında öğüt istedi.",choices:[
    ["Tecrübelerini paylaş",{prestige:5,happiness:4}],["Onu kendi yolunu bulmaya bırak",{prestige:2}]
@@ -653,7 +653,7 @@ function newCharacter(base={}, inherit=false){
   const realm=base.realm||pick(Object.keys(D.realms)), g=base.gender||$("gender").value, cfg=D.realms[realm];
   const year=base.year||rng(cfg.years[0],cfg.years[1]);
   return {
-    version:7,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
+    version:8,experience:{},careerMonths:{},careerProfiles:base.careerProfiles||{},careerContacts:base.careerContacts||[],stateCourt:base.stateCourt||null,healthProfile:base.healthProfile||null,succession:base.succession||null,economy:base.economy||null,displacement:base.displacement||null,deathRecord:base.deathRecord||null,ailments:base.ailments||[],pregnancy:null,will:base.will||"equal",pendingDecision:null,pendingEventContext:null,
     id:"c_"+Date.now()+"_"+Math.random().toString(16).slice(2),
     name:base.name||$("customName").value.trim()||pick(cfg[g]), gender:g, realm, year,
     place:base.place||pick(cfg.places), tribe:base.tribe||pick(cfg.tribes), age:base.age||0, alive:true,
@@ -899,7 +899,7 @@ function renderTore(){
    $("tab-tore").innerHTML=`<div class="card locked"><h3>🔒 Töre dışı eylemler kilitli</h3><p>Bu bölüm 18 yaşında açılır.</p></div>`;
    return;
  }
- $("tab-tore").innerHTML=`<div class="grid2">${D.crimes.map(c=>`<button class="card" onclick="commitCrime('${c.id}')"><h3>${safeText(c.name)}</h3><p>Yakalanma riski ${(c.risk*100)|0}%</p></button>`).join("")}</div>
+ $("tab-tore").innerHTML=`${(s.captive||s.exile)&&typeof displacementSummaryHtml==="function"?displacementSummaryHtml():""}<div class="grid2">${D.crimes.map(c=>`<button class="card" onclick="commitCrime('${c.id}')"><h3>${safeText(c.name)}</h3><p>Yakalanma riski ${(c.risk*100)|0}%</p></button>`).join("")}</div>
  <p class="note">Yakalanırsan tazminat, itibar kaybı, sürgün veya tutsaklık gibi sonuçlar doğabilir.</p>
  ${s.crimeRecord.length?`<h3>Kayıt</h3><div class="grid2">${s.crimeRecord.map(x=>`<div class="card"><h3>${safeText(x.name)}</h3><p>${x.result}</p></div>`).join("")}</div>`:""}`
 }
@@ -985,12 +985,19 @@ function renderLegacy(){
 }
 function renderSide(){
  const hp=typeof ensureHealthProfile==="function"?ensureHealthProfile():{scars:[],frailty:0};
- $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} savaş yarası • 🩹 ${hp.scars.length} kalıcı iz<br>🌿 ${s.ailments.length} aktif rahatsızlık • kırılganlık ${hp.frailty}<br>📜 ${(s.eventArchive||[]).length} seçimli olay<br>🧭 ${Object.keys(s.flags||{}).length} yaşam izi</p></div>`;
+ const disp=typeof ensureDisplacement==="function"?ensureDisplacement():null;
+ const forced=s.captive&&disp?`<br>⛓ ${disp.captivity.months} ay tutsak • hazırlık ${disp.captivity.escapePrep} • erzak ${disp.captivity.rations}`:s.exile&&disp?`<br>↗ ${disp.exile.months} ay sürgün • barınak ${disp.exile.shelter} • erzak ${disp.exile.foodSecurity}`:"";
+ $("sideStatus").innerHTML=`<div class="card"><h3>Durum</h3><p>${s.captive?"⛓ Tutsak":s.exile?"↗ Sürgünde":"✓ Özgür"}${forced}<br>${s.military.served?`⚔ ${s.military.campaigns} sefer`:"⚔ Sefer yok"}<br>🩸 ${s.military.wounds} savaş yarası • 🩹 ${hp.scars.length} kalıcı iz<br>🌿 ${s.ailments.length} aktif rahatsızlık • kırılganlık ${hp.frailty}<br>📜 ${(s.eventArchive||[]).length} seçimli olay<br>🧭 ${Object.keys(s.flags||{}).length} yaşam izi</p></div>`;
  const closest=[...s.parents,...s.siblings,...s.children,...s.friends,...(s.partner?[s.partner]:[]),...(s.relatives||[])].filter(x=>x?.alive).sort((a,b)=>(b.rel||0)-(a.rel||0)).slice(0,5);
  $("sideRel").innerHTML=closest.map(r=>`<div class="card relation"><span>${safeText(r.name)}<small style="display:block;color:#7b6d52">${safeText(r.type||"Yakın")}</small></span><span class="badge">${r.rel}</span></div>`).join("");
- let acts=`${s.captive?`<button class="sidebtn" onclick="captivityMonth()">⛓ Tutsaklıkta eylem yap</button>${s.age>=12?`<button class="sidebtn" onclick="attemptEscape()">↗ Kaçmayı dene</button>`:""}`:""}`;
- if(s.age>=6)acts+=`<button class="sidebtn" onclick="addFriend()">🤝 Dost edin</button>`;
- if(s.age>=10)acts+=`<button class="sidebtn" onclick="makeRival()">⚔ Rakip edin</button>`;
+ let acts="";
+ if(s.captive){
+   acts+=`<button class="sidebtn" onclick="captivityAction('observe')">👁 Kampı gözle</button><button class="sidebtn" onclick="captivityAction('labor')">🪵 İş gör, erzak kazan</button><button class="sidebtn" onclick="captivityAction('ransom')">📨 Yakınlara haber gönder</button>${s.age>=12?`<button class="sidebtn" onclick="attemptEscape()">↗ Kaçmayı dene</button>`:""}`;
+ }else if(s.exile){
+   acts+=`<button class="sidebtn" onclick="exileAction('shelter')">⛺ Barınağı güçlendir</button><button class="sidebtn" onclick="exileAction('food')">🧺 Erzak ağı kur</button><button class="sidebtn" onclick="exileAction('return')">📜 Dönüş için arabulucu ara</button>`;
+ }
+ if(!s.captive&&s.age>=6)acts+=`<button class="sidebtn" onclick="addFriend()">🤝 Dost edin</button>`;
+ if(!s.captive&&s.age>=10)acts+=`<button class="sidebtn" onclick="makeRival()">⚔ Rakip edin</button>`;
  if(s.age<6)acts+=`<div class="card"><p class="note">Bu yaşta sosyal çevreni çoğunlukla ailen şekillendiriyor.</p></div>`;
  $("sideActions").innerHTML=acts;
 }
