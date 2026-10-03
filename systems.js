@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=25,ADULT_AGE=18;
+const SAVE_VERSION=26,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -900,6 +900,13 @@ function careerWorkOutcome(r){
  }
  p.failures++;p.streak=0;p.reputation=clamp(p.reputation-rng(1,3));p.mastery=clamp(p.mastery+1);if(s.role){const w=ensureWorkplaceForRole();w.standing=clamp(w.standing-2);w.conflict=clamp(w.conflict+2);}skillGain(key,1);apply({happiness:-1});p.history.push({year:s.year+s.age,ok:false,gain:0});return {success:false,gain:0};
 }
+const STATE_PROPOSALS={
+ winter_share:{name:'Kışlık Erzak Paylaşımı',desc:'Zor kışta ortak erzak payını artır; erzak baskısını ve hane sıkıntısını azaltır.',duration:3,bias:{patron:1,rival:-1,elder:2},tags:['relief'],pass:{support:6,trust:3,rival:1,obligations:2,economy:{food:-10,shortage:-1}}},
+ caravan_guard:{name:'Kervan Yolu Koruması',desc:'Kervan yollarına nöbet ve refakat ayır; ticaret talebini ve kervan güvenliğini yükseltir.',duration:4,bias:{patron:1,rival:0,elder:0},tags:['trade'],pass:{support:3,trust:2,rival:2,obligations:2,economy:{trade:12}}},
+ craft_patronage:{name:'Usta ve Ocak Desteği',desc:'Demirci ve zanaatkârlara boy desteği ver; zanaat talebini ve üretimi güçlendirir.',duration:4,bias:{patron:1,rival:-1,elder:1},tags:['craft'],pass:{support:4,trust:3,rival:1,obligations:2,economy:{craft:12}}},
+ feud_peace:{name:'Boylar Arası Barış Sözü',desc:'Eski husumetlerde arabuluculuk düzeni kur; töre kavgalarını ve rakip baskısını azaltır.',duration:4,bias:{patron:1,rival:-2,elder:2},tags:['peace'],pass:{support:5,trust:5,rival:-10,obligations:2}},
+ muster_order:{name:'Sefer Hazırlık Düzeni',desc:'Birlik çağrısı öncesi at, ok ve erzak hazırlığını düzenle; sefer riskini azaltır.',duration:3,bias:{patron:1,rival:2,elder:-1},tags:['military'],pass:{support:-1,trust:2,rival:3,obligations:3}}
+};
 function ensureStateCourt(){
  ensureCareerSystems();
  if(!s.stateCourt||typeof s.stateCourt!=='object'||Array.isArray(s.stateCourt)){
@@ -907,7 +914,13 @@ function ensureStateCourt(){
  }
  const q=s.stateCourt;
  for(const k of ['influence','councilTrust','tribeSupport','rivalPressure'])q[k]=clamp(Number.isFinite(q[k])?q[k]:0);
- q.obligations=Math.max(0,Math.round(q.obligations||0));q.decisions=Array.isArray(q.decisions)?q.decisions.slice(-30):[];
+ q.obligations=Math.max(0,Math.round(q.obligations||0));q.decisions=Array.isArray(q.decisions)?q.decisions.slice(-60):[];
+ q.activePolicies=Array.isArray(q.activePolicies)?q.activePolicies.filter(Boolean):[];
+ q.proposalHistory=Array.isArray(q.proposalHistory)?q.proposalHistory.slice(0,60):[];
+ q.currentProposal=q.currentProposal&&typeof q.currentProposal==='object'?q.currentProposal:null;
+ q.proposalCooldowns=q.proposalCooldowns&&typeof q.proposalCooldowns==='object'&&!Array.isArray(q.proposalCooldowns)?q.proposalCooldowns:{};
+ q.sessions=Math.max(0,Math.round(q.sessions||0));q.passed=Math.max(0,Math.round(q.passed||0));q.failed=Math.max(0,Math.round(q.failed||0));
+ q.activePolicies=q.activePolicies.filter(p=>p&&STATE_PROPOSALS[p.id]).map(p=>({...p,startedYear:Number.isFinite(p.startedYear)?p.startedYear:s.year+s.age,expiresYear:Number.isFinite(p.expiresYear)?p.expiresYear:s.year+s.age+1}));
  return q;
 }
 function stateContactSpec(kind){
@@ -931,6 +944,106 @@ function ensureStateCircle(){
  const q=ensureStateCourt();const patron=stateContact('patron'),rival=stateContact('rival'),elder=stateContact('elder');
  if(!q.started){q.started=true;q.initialized=true;q.influence=clamp(Math.max(q.influence,Math.round(s.prestige*.35+(s.skills?.speech||0)*.12)));q.councilTrust=clamp(Math.max(q.councilTrust,32));q.tribeSupport=clamp(Math.max(q.tribeSupport,42));q.rivalPressure=clamp(Math.max(q.rivalPressure,28));}
  return {patron,rival,elder};
+}
+
+function stateCouncilEligible(){
+ const q=ensureStateCourt();return s.age>=18&&q.initialized&&(['Boy Beyi','Elçi','Bitigçi'].includes(s.role)||q.influence>=50);
+}
+function statePolicyActive(id,year=s.year+s.age){return ensureStateCourt().activePolicies.some(p=>p.id===id&&p.startedYear<=year&&p.expiresYear>=year);}
+function activeStatePolicies(year=s.year+s.age){return ensureStateCourt().activePolicies.filter(p=>p.startedYear<=year&&p.expiresYear>=year);}
+function stateProposalDef(id){return STATE_PROPOSALS[id]||null;}
+function stateCouncilMembers(){
+ const {patron,rival,elder}=ensureStateCircle();return [patron,rival,elder].filter(n=>n?.alive);
+}
+function stateProposalStance(n,def){
+ if(!n||!def)return 0;normalizeBonds(n);const kind=n.statusFlags?.stateKind||'',bias=def.bias?.[kind]||0;let score=bias;
+ if((n.bonds?.trust||0)>=70)score++;else if((n.bonds?.trust||0)<35)score--;
+ if((n.rel||0)>=72)score++;else if((n.rel||0)<35)score--;
+ if(n.traits?.includes('sadik')&&kind==='patron')score++;
+ if(n.traits?.includes('hirsli')&&def.tags?.includes('military'))score++;
+ if(n.goal==='wealth'&&def.tags?.includes('trade'))score++;
+ if(n.goal==='mastery'&&def.tags?.includes('craft'))score++;
+ if((n.traits?.includes('merhametli')||n.goal==='peace')&&(def.tags?.includes('relief')||def.tags?.includes('peace')))score++;
+ if(n.traits?.includes('kinci')&&def.tags?.includes('peace'))score--;
+ return Math.max(-2,Math.min(2,score));
+}
+function stateStanceLabel(v){return v>=2?'Güçlü destek':v===1?'Destek':v===0?'Kararsız':v===-1?'Karşı':'Sert karşı';}
+function stateOpenProposalIssue(id){
+ const q=ensureStateCourt(),d=stateProposalDef(id);if(!d)return 'Meclis teklifi bulunamadı.';if(!stateCouncilEligible())return 'Boy meclisine teklif taşımak için devlet görevi veya 50 nüfuz gerekiyor.';
+ if(q.currentProposal)return 'Önce açık meclis teklifini sonuçlandır.';if(statePolicyActive(id))return 'Bu düzen zaten yürürlükte.';
+ const cd=q.proposalCooldowns[id]||0;if(cd>s.year+s.age)return cd+' yılına kadar bu başlık yeniden açılamaz.';return '';
+}
+function stateOpenProposal(id){
+ const issue=stateOpenProposalIssue(id);if(issue){notice(issue);return false;}const d=stateProposalDef(id);
+ return performAction({kind:'stateCouncil',id:'open',proposalId:id},()=>{
+  const q=ensureStateCourt(),members=stateCouncilMembers(),stances={};for(const n of members)stances[n.id]=stateProposalStance(n,d);
+  q.currentProposal={id,openedYear:s.year+s.age,openedAge:s.age,openedMonth:currentMonth(),stances,lobbiedIds:[],supportSpent:0,notes:[]};q.sessions++;
+  adjustStateCourt({influence:1},d.name+' meclis gündemine taşındı.');log(d.name+' boy meclisinin gündemine girdi.','major');
+ },d.name+' için meclis gündemi hazırlamakla bir ay geçti.');
+}
+function currentStateProposal(){const q=ensureStateCourt();return q.currentProposal&&stateProposalDef(q.currentProposal.id)?q.currentProposal:null;}
+function stateLobbyIssue(npcId){
+ const p=currentStateProposal();if(!p)return 'Önce bir meclis teklifi aç.';const n=npcById(npcId);if(!n?.alive||!Object.prototype.hasOwnProperty.call(p.stances,npcId))return 'Bu kişi açık teklifin meclis taraflarından biri değil.';
+ if(p.lobbiedIds.includes(npcId))return 'Bu teklif için onunla zaten özel görüştün.';return '';
+}
+function lobbyStateMember(npcId){
+ const issue=stateLobbyIssue(npcId);if(issue){notice(issue);return false;}const p=currentStateProposal(),n=npcById(npcId),d=stateProposalDef(p.id);
+ return performAction({kind:'stateCouncil',id:'lobby',npcId,proposalId:p.id},()=>{
+  const q=ensureStateCourt(),old=p.stances[npcId]||0,skill=(s.skills.speech||0),base=.28+skill/220+(s.prestige||0)/350+q.influence/450+(n.bonds?.trust||0)/500-(n.bonds?.grudge||0)/350;
+  const success=Math.random()<Math.max(.12,Math.min(.92,base));
+  if(success){p.stances[npcId]=Math.min(2,old+(old<0?2:1));adjustNPC(n,{rel:3,trust:4,respect:3,grudge:-2},d.name+' konusunda gerekçelerini dinledi.');p.notes.push(n.name+' görüşmede yumuşadı.');log(safeText(n.name)+' teklif konusunda sözünü daha olumlu dinledi.','good');}
+  else{p.stances[npcId]=Math.max(-2,old-1);adjustNPC(n,{rel:-2,trust:-2,grudge:3},d.name+' için yaptığın baskıyı hoş karşılamadı.');p.notes.push(n.name+' görüşmede sertleşti.');log(safeText(n.name)+' teklif konusunda ikna olmadı.','bad');}
+  p.lobbiedIds.push(npcId);q.currentProposal=p;
+ },safeText(n.name)+' ile meclis teklifi üzerine bir ay görüştün.');
+}
+function stateVoteTally(p=currentStateProposal()){
+ if(!p)return {yes:0,no:0,abstain:0,total:0,rows:[],councilSeat:false,tribeSeat:false};const q=ensureStateCourt(),rows=[];
+ for(const [id,stance] of Object.entries(p.stances||{})){const n=npcById(id);if(!n?.alive)continue;const vote=stance>0?'yes':stance<0?'no':'abstain';rows.push({id,name:n.name,kind:n.statusFlags?.stateKind||'',stance,vote});}
+ const councilScore=q.councilTrust+q.influence*.35-q.rivalPressure*.25+(s.skills.speech||0)*.08,councilSeat=councilScore>=55;
+ const tribeScore=q.tribeSupport+(s.prestige||0)*.22-q.obligations*.7,tribeSeat=tribeScore>=55;
+ let yes=rows.filter(x=>x.vote==='yes').length+(councilSeat?1:0)+(tribeSeat?1:0),no=rows.filter(x=>x.vote==='no').length+(councilSeat?0:1)+(tribeSeat?0:1),abstain=rows.filter(x=>x.vote==='abstain').length;
+ return {yes,no,abstain,total:yes+no+abstain,rows,councilSeat,tribeSeat,councilScore:Math.round(councilScore),tribeScore:Math.round(tribeScore)};
+}
+function applyStatePolicyPass(id){
+ const q=ensureStateCourt(),d=stateProposalDef(id),year=s.year+s.age;if(!d)return null;
+ const old=q.activePolicies.find(p=>p.id===id),rec={id,name:d.name,startedYear:year,expiresYear:year+d.duration-1,source:'meclis'};
+ if(old)Object.assign(old,rec);else q.activePolicies.push(rec);
+ const fx=d.pass||{};adjustStateCourt({support:fx.support||0,trust:fx.trust||0,rival:fx.rival||0,obligations:fx.obligations||0,influence:3},d.name+' kabul edildi ve yürürlüğe girdi.');
+ if(fx.economy)applyEconomyEffect(fx.economy);
+ if(id==='feud_peace'){const j=ensureJustice();for(const feud of j.feuds.filter(x=>x.status==='active'))feud.heat=clamp(feud.heat-12);}
+ return rec;
+}
+function stateVoteIssue(){return currentStateProposal()?'':'Açık bir meclis teklifi yok.';}
+function callStateVote(){
+ const issue=stateVoteIssue();if(issue){notice(issue);return false;}const p=currentStateProposal(),d=stateProposalDef(p.id);
+ return performAction({kind:'stateCouncil',id:'vote',proposalId:p.id},()=>{
+  const q=ensureStateCourt(),t=stateVoteTally(p),passed=t.yes>=3,year=s.year+s.age;
+  q.proposalHistory.unshift({id:p.id,name:d.name,year,age:s.age,passed,yes:t.yes,no:t.no,abstain:t.abstain,stances:{...p.stances},lobbiedIds:[...p.lobbiedIds]});q.proposalHistory=q.proposalHistory.slice(0,60);
+  if(passed){q.passed++;applyStatePolicyPass(p.id);q.proposalCooldowns[p.id]=year+d.duration;apply({prestige:2});log(d.name+' mecliste '+t.yes+' destekle kabul edildi.','good');}
+  else{q.failed++;q.proposalCooldowns[p.id]=year+2;adjustStateCourt({influence:-3,trust:-2,rival:4},d.name+' mecliste yeterli destek bulamadı.');apply({prestige:-1});log(d.name+' mecliste reddedildi: '+t.yes+' destek, '+t.no+' karşı.','bad');}
+  for(const row of t.rows){const n=npcById(row.id);if(!n)continue;if((row.vote==='yes')===passed)adjustNPC(n,{rel:2,trust:2,respect:2},d.name+' oylamasında aynı sonuç tarafında kaldınız.');else if(row.vote!=='abstain')adjustNPC(n,{rel:-1,grudge:2},d.name+' oylamasında karşı taraflarda kaldınız.');}
+  q.currentProposal=null;
+ },d.name+' için meclis oylamasıyla bir ay geçti.');
+}
+function withdrawStateProposal(){
+ const p=currentStateProposal();if(!p)return false;const q=ensureStateCourt(),d=stateProposalDef(p.id);q.proposalHistory.unshift({id:p.id,name:d.name,year:s.year+s.age,age:s.age,passed:false,withdrawn:true,stances:{...p.stances}});q.proposalCooldowns[p.id]=s.year+s.age+1;q.currentProposal=null;adjustStateCourt({influence:-1},d.name+' oylamaya gitmeden geri çekildi.');render();save();return true;
+}
+function statePolicyQuarterTick(month){
+ const e=ensureEconomy();
+ if(statePolicyActive('winter_share')){e.foodPressure=clamp(e.foodPressure-3);if(e.shortageMonths>0&&month%6===0)e.shortageMonths=Math.max(0,e.shortageMonths-1);}
+ if(statePolicyActive('caravan_guard'))e.tradeDemand=clamp(e.tradeDemand+4);
+ if(statePolicyActive('craft_patronage'))e.craftDemand=clamp(e.craftDemand+4);
+}
+function stateCampaignSafetyBonus(){return statePolicyActive('muster_order')?.06:0;}
+function statePolicyYearTick(){
+ const q=ensureStateCourt(),year=s.year+s.age,expired=q.activePolicies.filter(p=>p.expiresYear<year);q.activePolicies=q.activePolicies.filter(p=>p.expiresYear>=year);
+ if(statePolicyActive('feud_peace',year)){q.rivalPressure=clamp(q.rivalPressure-3);const j=ensureJustice();for(const feud of j.feuds.filter(x=>x.status==='active'))feud.heat=clamp(feud.heat-8);}
+ if(statePolicyActive('winter_share',year)&&ensureEconomy().foodPressure<=55)q.tribeSupport=clamp(q.tribeSupport+1);
+ for(const p of expired)q.decisions.unshift({year,text:p.name+' düzeninin süresi doldu.',influence:q.influence,trust:q.councilTrust,support:q.tribeSupport,rival:q.rivalPressure});
+}
+function statePolicySummaryHtml(){
+ const q=ensureStateCourt(),active=activeStatePolicies();if(!active.length)return '';
+ return '<div class="memoryline"><b>Yürürlükte:</b> '+active.map(p=>safeText(p.name)+' ('+p.expiresYear+' yılına kadar)').join(' • ')+'</div>';
 }
 function adjustStateCourt(delta={},memory=''){
  const q=ensureStateCourt();if(delta.influence)q.influence=clamp(q.influence+delta.influence);if(delta.trust)q.councilTrust=clamp(q.councilTrust+delta.trust);if(delta.support)q.tribeSupport=clamp(q.tribeSupport+delta.support);if(delta.rival)q.rivalPressure=clamp(q.rivalPressure+delta.rival);if(delta.obligations)q.obligations=Math.max(0,q.obligations+delta.obligations);
