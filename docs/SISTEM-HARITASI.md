@@ -163,7 +163,7 @@ Her kart iki seçenekle sınırlı olmak zorunda değildir: üç veya daha fazla
 | Hafıza | eventHistory, eventCooldowns, eventArchive, flags, timeline, crimeRecord |
 | Miras | will, legacy.generation/familyName/past, gerçek ebeveyn ve kardeş ilişkileri |
 
-`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 12’dir. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v12` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
+`yazgi_full_v1` anahtarı korunur; güncel kayıt sürümü 13’tür. Eski kaydın ilk sürüm-6 göçünde `yazgi_before_v13` yedeği alınır. Eski kayıt NPC, varlık, başarı ve olay geçmişlerini korur; eksik yeni alanlar tamamlanır. Yaşı uygun olmayan eski görev `deferredRole`, evlilik `deferredMarriage` olarak ayrılır; partner silinmez. Uygun yaşa gelince oyuncu yeniden karar verir. Bozuk kayıt sessizce yeni oyunla değiştirilmez.
 
 Referans modellerinin alan envanteri [reference-models.json](reference-models.json), TC paket yolları [reference-tc-paths.json](reference-tc-paths.json), bütün çözümlenmiş tablo şemaları ve koşul satırları [reference-conditions.json](reference-conditions.json) içindedir. JSON satır numaraları ilgili tablonun veri satırını belirtir. Boş koşul değeri çalışma zamanında sınırsız erişim kanıtı değildir.
 
@@ -207,3 +207,12 @@ Her yolun gerçek bir usta NPC'si ve beraber yetişilen akranları vardır. Güv
 v12 ile profil emojisi katmanlı CSS portresine dönüştürüldü. Oyuncu yüz yapısını, ten tonunu, saç biçimini, temel saç rengini, yetişkin erkek karakterlerde sakal/bıyığı ve uygun başlığı değiştirebilir. Görünüş seçimi eylem hakkı tüketmez; günlük bakım ise bir aylık eylemdir.
 
 Portre yalnız kozmetik değildir. Saç ağarması 35 yaş sonrasında kademeli ilerler; yüksek kırılganlık ve düşük sağlık ağarmayı hızlandırabilir. 45 yaş sonrasında yüz çizgileri aşamalı belirir. Sağlık sistemindeki kalıcı yara izlerinden ilk üçü portrede görünür. Tutsaklık doygunluk/parlaklık değişimiyle yorgun görünüm bırakır. Görünüş bakım değeri zaman içinde azalır, hastalık ve zor koşullar bunu hızlandırır; saç/sakal bakımı değeri yeniden yükseltir. Savaş başlığı gibi bazı seçenekler yaşam durumuna bağlıdır.
+
+
+### İlişki, evlilik ve eski eş geçmişi
+
+v13 ile romantik ilişki tek ilişki çubuğundan ayrı bir yaşam sistemine dönüştürüldü. Her mevcut ilişki için uyum, ahenk, bağlılık, aile onayı, gerilim, kıskançlık, birlikte geçirilen ay, ortak çalışma, tartışma/barışma sayısı ve önemli ortak anılar saklanır. Evlilik kabul olasılığı artık yalnız ilişki puanına değil; güven, bağlılık, ahenk, aile onayı, uyum ve gerilime de bağlıdır.
+
+Oyuncu eş/eş adayıyla vakit geçirebilir, ortak geleceği konuşabilir, ailelerle görüşebilir, birlikte iş yapabilir, gerilimi çözebilir ve kıskançlık/kuşku durumunda güven verebilir. Ailelerle görüşmek partner ile ebeveyn/kardeşler arasında gerçek sosyal bağlantılar oluşturur. Uzak yaşamak ve uzun süre ilişkiye zaman ayırmamak gerilimi şeffaf biçimde artırır; yakın arkadaşlarla yoğun etkileşim kuşkucu partnerlerde kıskançlığı yükseltebilir.
+
+Ayrılıkta NPC silinmez. Eski eş/eş adayı ayrı listede kalır, ilişkinin kapanış nedeni ve eski profil arşivlenir. Oyuncunun mevcut ilişkisi yoksa eski partnerle yeniden görüşme denenebilir. Aile onayı, kıskançlık, ev içi gerilim ve ortak gelecek artık seçimli hayat olaylarına da bağlanmıştır.
