@@ -375,7 +375,7 @@ function npcLifeStatusDetail(n){
 function npcWorldRelevant(n){
  if(!n?.alive)return false;
  if(s.age<18&&s.guardianship?.active&&s.guardianship.guardianId===n.id)return false;
- const pools=[...s.parents,...s.siblings,...s.children,...(s.relatives||[]),...s.friends,...s.rivals,...(s.careerContacts||[]),...(s.military?.comrades||[]),...(s.workplace?.contacts||[]),...(s.partner?[s.partner]:[])];
+ const pools=[...s.parents,...s.siblings,...s.children,...(s.relatives||[]),...(s.familyBranches?.childInLaws||[]),...s.friends,...s.rivals,...(s.careerContacts||[]),...(s.military?.comrades||[]),...(s.workplace?.contacts||[]),...(s.partner?[s.partner]:[])];
  return pools.some(x=>x?.id===n.id)&&!n.statusFlags?.crimeVictim&&!n.statusFlags?.crimeWitness;
 }
 function npcWorldIsClose(n){
@@ -1331,12 +1331,9 @@ function adultChildMatchSource(id){
 }
 function syncAdultChildPartner(child){
  if(!child?.partner)return null;const f=ensureFamilyBranches(),rec=ensureAdultChildPartnerRecord(child,f),srcId=child.partner.statusFlags?.sourceNPCId,src=srcId?adultChildMatchSource(srcId):null;
- if(src){
-  for(const k of ['alive','age','health','role','place','realm','tribe','wealth','prestige'])child.partner[k]=src[k];
-  if(rec)for(const k of ['alive','age','health','role','place','realm','tribe','wealth','prestige'])rec[k]=src[k];
- }else if(rec){
-  for(const k of ['alive','age','health','role','place','realm','tribe','wealth','prestige'])rec[k]=child.partner[k];
- }
+ const copy=(from,to)=>{if(!from||!to)return;for(const k of ['alive','age','health','role','place','realm','tribe','wealth','prestige'])to[k]=from[k];to.lifeState=from.lifeState?JSON.parse(JSON.stringify(from.lifeState)):to.lifeState;};
+ if(src){copy(src,child.partner);if(rec)copy(src,rec);}
+ else if(rec)copy(rec,child.partner);
  return rec;
 }
 function adultChildMatchCandidates(child){
@@ -2941,17 +2938,19 @@ function familyTick(){
   if(!npcLifeBlocksNormalInteraction(n)){if(n.goal==='wealth')n.wealth+=rng(0,3);if(n.goal==='prestige')n.prestige=clamp(n.prestige+rng(0,2));if(n.goal==='mastery')n.skills.mastery=clamp((n.skills.mastery||0)+rng(1,3));}
   if(n.age>=18&&!npcLifeBlocksNormalInteraction(n)&&!n.statusFlags?.familyMatchedTo&&Math.random()<(n.traits.includes('hirsli')?.22:.07)){const old=n.role,next=npcCareerFor(n);if(old!==next){n.role=next;n.roleHistory.push({year,role:n.role});rememberNPC(n,'career','Görevini değiştirip '+n.role+' oldu.',2);if(closeIds.has(n.id))log(safeText(n.name)+' artık '+safeText(n.role)+'.','good');}}
   if(n.partner){
-   const linked=isAdultPlayerChild(n)&&n.partner.statusFlags?.sourceNPCId?adultChildMatchSource(n.partner.statusFlags.sourceNPCId):null;
-   if(linked){n.partner.age=linked.age;n.partner.alive=linked.alive;n.partner.health=linked.health;n.partner.role=linked.role;n.partner.place=linked.place;n.partner.realm=linked.realm;}
-   else{n.partner.age=(n.partner.age??Math.max(18,n.age-1))+1;if(n.partner.alive!==false&&Math.random()<npcDeathRisk(n.partner)){n.partner.alive=false;rememberNPC(n,'loss','Eşini kaybetti.',5);if(closeIds.has(n.id))log(safeText(n.name)+' eşini kaybetti.','bad');}}
-   if(isAdultPlayerChild(n))syncAdultChildPartner(n);
+   if(isAdultPlayerChild(n)){
+    const rec=ensureAdultChildPartnerRecord(n,ensureFamilyBranches()),linked=n.partner.statusFlags?.sourceNPCId?adultChildMatchSource(n.partner.statusFlags.sourceNPCId):null;
+    if(linked||rec)syncAdultChildPartner(n);
+   }else{
+    n.partner.age=(n.partner.age??Math.max(18,n.age-1))+1;if(n.partner.alive!==false&&Math.random()<npcDeathRisk(n.partner)){n.partner.alive=false;rememberNPC(n,'loss','Eşini kaybetti.',5);if(closeIds.has(n.id))log(safeText(n.name)+' eşini kaybetti.','bad');}
+   }
   }
-  if(n!==s.partner&&!npcLifeBlocksNormalInteraction(n)&&!n.statusFlags?.familyMatchedTo&&familyBranchCanGrow()&&n.age>=18&&!n.partner&&Math.random()<familyBranchPartnerChance(n)){
+  if(n!==s.partner&&!npcLifeBlocksNormalInteraction(n)&&!n.statusFlags?.familyMatchedTo&&!n.statusFlags?.childInLawFor&&familyBranchCanGrow()&&n.age>=18&&!n.partner&&Math.random()<familyBranchPartnerChance(n)){
    const pg=n.gender==='male'?'female':'male',pa=Math.max(18,n.age+rng(-4,4)),partner=normalizeNPC({id:npcId(),gender:pg,name:pick(cfg[pg]),age:pa,birthYear:year-pa,alive:true,health:rng(60,95),type:'Eş',rel:rng(55,75),realm:n.realm||s.realm,place:n.place||s.place,tribe:n.tribe||s.tribe},'Eş');
    if(isAdultPlayerChild(n))registerAdultChildPartner(n,partner,null,'autonomous');else n.partner=partner;
    rememberNPC(n,'family',partner.name+' ile ocak kurdu.',4);if(closeIds.has(n.id))log(safeText(n.name)+' '+safeText(partner.name)+' ile ocak kurdu.','good');
   }
-  const fertile=!npcLifeBlocksNormalInteraction(n)&&n.partner?.alive&&n.age>=18&&n.partner.age>=18&&(n.gender==='female'?n.age:n.partner.age)<45;
+  const fertile=!npcLifeBlocksNormalInteraction(n)&&n.partner?.alive&&!npcLifeBlocksNormalInteraction(n.partner)&&n.age>=18&&n.partner.age>=18&&(n.gender==='female'?n.age:n.partner.age)<45;
   if(n!==s.partner&&familyBranchCanGrow()&&fertile&&Math.random()<familyBranchBirthChance(n)){
    const g=pick(['male','female']),child=normalizeNPC({name:pick(cfg[g]),gender:g,age:0,type:'Çocuk',alive:true,birthYear:year,birthMonth:1,parentIds:[n.id,n.partner.id],rel:rng(65,85),realm:n.realm||s.realm,place:n.place||s.place,tribe:n.tribe||s.tribe},'Çocuk');
    n.descendants.push(child);n.children++;rememberNPC(n,'family',child.name+' dünyaya geldi.',5);
