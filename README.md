@@ -149,7 +149,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 30’a taşınır; sürüm değişiminde önce `yazgi_before_v30` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 31’e taşınır; sürüm değişiminde önce `yazgi_before_v31` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 
 ### v30 — Aile İçi Taraflaşma, Hısım Gerilimi ve Kalıcı Aile Meseleleri
@@ -164,6 +164,20 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Soy devamında iki taraf da yeni kuşağın aile ağında kaldığı sürece anlaşmazlık kaybolmaz. Tercihli miras sonrası yaşayan aile üyeleri arasında ayrıca gerçek bir miras gerilimi doğabilir.
 - Açık aile kavgası günlük hayat olaylarına hedefli iki-NPC kartı olarak da yansır; olay metni gerçek tarafları ve gerçek anlaşmazlık nedenini kullanır.
 - Kendiliğinden sönen bir aile meselesi oyuncuya bedava itibar yazmaz; toplumsal kazanç yalnızca oyuncunun gerçekten müdahale ettiği çözümde oluşur.
+
+
+### v31 — Çocuk Yetişimi, Eğitici NPC ve Gerçek İlerleme
+
+- Ebeveynlikteki eski “yön seç” sistemi artık tek başına sonuç üretmez; çocuk için ayrı bir **yetişme kaydı** tutulur.
+- Döneme uygun altı yol vardır: **ocak/oba terbiyesi, alp talimi, usta yanında zanaat, bitig ve söz, takas/kervan, ozan/anlatı**. Modern özel okul/kolej kopyalanmadı.
+- Her çocukta seçili yol, 0–100 ilerleme, 0–100 performans, eğitim ayı, ebeveyn desteği, yol değişiklikleri, tamamlanan yollar ve yıllık değerlendirmeler kalıcı saklanır.
+- Zanaat, alp, bitig, kervan ve ozan yollarında aynı kimlikle yaşayan gerçek bir **eğitici/usta NPC** oluşur. Eğiticiyle ilişkinin güveni çocuğun yıllık değerlendirmesine katkı verir.
+- “Çalışmasına destek ol” ve “Eğiticiyle görüş” bir ay harcar; çocuğun gerçek becerilerini, ilerlemesini, iyi oluşunu ve ilişkilerini değiştirir.
+- Çocuk kendi başına da aylar geçtikçe öğrenir. İyi oluş, ilgi, çalışkan kişilik ve ebeveyn katılımı ilerlemeyi hızlandırır; uzun ihmal performansı yavaşlatır.
+- Her yıl görünür bir değerlendirme puanı oluşur. Çok iyi sonuç ek ilerleme/beceri getirir; ciddi zorlanma çocuğun iyi oluşuna ve güvenine yansır.
+- Bir yol tamamlandığında yeterlilik çocuğun üzerinde kalır. Yetişkinliğe geçerken tamamlanmış veya ileri seviyedeki yetişim, rastgele ilgisiz meslek yerine **uygun başlangıç rolünü** etkiler.
+- Yol değiştirilebilir; eski yolun ne kadar ilerlediği silinmez, geçmişe kaydedilir.
+- Yeni bağlamsal değerlendirme olayı, ebeveyne eksikleri birlikte kapatma, daha sıkı çalışma isteme veya çocuğun kendi fikrini dinleme seçenekleri verir; sonuç aynı çocuğun kalıcı eğitim profiline yazılır.
 
 ### Dosyalar ve çalıştırma
 
