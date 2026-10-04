@@ -1948,7 +1948,7 @@ function applyChildTrainingReportEvent(c,index){
  if(index===0){t.progress=clamp(t.progress+9);t.performance=clamp(t.performance+6);p.wellbeing=clamp(p.wellbeing+3);p.attention=clamp(p.attention+4);adjustNPC(c,{rel:3,trust:4},'Eksiklerini birlikte kapatmaya çalıştınız.');}
  else if(index===1){t.performance=clamp(t.performance+4);p.expectation=clamp(p.expectation+7);p.wellbeing=clamp(p.wellbeing-3);adjustNPC(c,{respect:4,trust:-2},'Ustanın sözünü öne çıkarıp daha sıkı çalışmasını istedin.');}
  else{t.performance=clamp(t.performance+2);p.freedom=clamp(p.freedom+7);p.wellbeing=clamp(p.wellbeing+4);adjustNPC(c,{rel:4,trust:6},'Kendi istediği yolu ve zorlandığı tarafları dinledin.');}
- t.history.unshift({year:s.year+s.age,type:'report_event',choice:index,score:childTrainingScore(c,p)});t.history=t.history.slice(0,30);
+ const score=childTrainingScore(c,p);t.history.unshift({year:s.year+s.age,type:'report_event',choice:index,score});t.history=t.history.slice(0,30);
 }
 function childTrainingSummaryHtml(c,index){
  if(c.age<5||c.age>=18)return '';const p=ensureChildProfile(c),t=normalizeChildTraining(p,c),d=t.track?CHILD_TRAINING_TRACKS[t.track]:null,mentor=childTrainingMentor(c,false),last=t.evaluations[0];
