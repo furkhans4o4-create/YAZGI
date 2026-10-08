@@ -149,7 +149,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 33’e taşınır; sürüm değişiminde önce `yazgi_before_v33` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 34’e taşınır; sürüm değişiminde önce `yazgi_before_v34` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 
 ### v30 — Aile İçi Taraflaşma, Hısım Gerilimi ve Kalıcı Aile Meseleleri
@@ -202,6 +202,19 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Üç yıl yeni aşama gelmezse kararlılık azalır; ilgili yaşam olayı devam etme, yol gösterimi isteme veya vazgeçme seçeneklerini açar.
 - Aşamalar mutluluk/itibar kazanımı verir; tamamlanmış ülküler mevcut aile, meslek, siyasi nüfuz ve toplumsal güven sistemleri üzerinde sınırlı kalıcı etki bırakır.
 - Ölümde tamamlanmış ve yarım kalmış ülküler ölüm kaydına ve soy hatırasına yazılır. Yeni kuşak kendi yolunu seçer; eskisinin puanlarını devralıp bedelsiz ilerlemez.
+
+
+### v34 — NPC'lerin Kendi Ülküsü ve Bağımsız Yaşam Mücadelesi
+
+- Yakın NPC'lerin mevcut kişilik ve amaçları gerçek bir **kişisel yaşam yoluna** bağlandı. Çocuklar, kardeşler, ebeveynler, arkadaşlar ve aile çevresi 12 yaşından itibaren kendi ülküsü için yıllar boyunca emek verir.
+- **Savaş, zanaat, refah, obada söz sahibi olma, bilgelik, aile ve barış** olmak üzere yedi NPC hedefi var; her birinin üç özgün dönüm noktası ve 0–100 emek düzeyi bulunuyor.
+- NPC sağlık durumu, kişiliği, kendi özgür iradesi, oyuncudan gördüğü destek veya aile baskısı ilerlemeyi etkiliyor. Hastalık, sürgün ve tutsaklıkta normal ilerleme durur.
+- Her dönüm noktası gerçek sonuç üretir: becerileri, serveti, itibarı, güveni ve bazı hedeflerde gerçek NPC mesleği değişir. Kendi emeğiyle elde ettiği rol yıllık rastgele meslek değişiminde kaybolmaz.
+- NPC'ler hedeflerinden kendi başına vazgeçip başka bir yola dönebilir. Bu ve başarıları yıl, kişi kimliği ve açıklamasıyla yaşayan dünya/kişisel hatıralara kaydedilir.
+- Aile/ilişki kartlarında ilgili kişinin **aşaması, emeği, kararlılığı, özgür iradesi, aile baskısı ve son dönüm noktası** görünür.
+- Oyuncu bir ayını ayırarak **dinleyebilir, 3 servetle destek olabilir, baskı kurabilir veya geri çekilebilir**. Destek ve baskının etkileri gerçek NPC istatistiklerine, bağlarına ve sonraki yıllardaki performansına yansır.
+- Çocukla soy devamına geçince çocuğun önceki bağımsız çabaları soy hatırası olarak saklanır; yeni karakter oyuncunun kendi ömürlük ülküsünü seçmeye devam eder.
+- Eski kayıtlar otomatik v34'e taşınır, önce `yazgi_before_v34` yedeği alınır.
 
 ### Dosyalar ve çalıştırma
 
