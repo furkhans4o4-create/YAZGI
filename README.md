@@ -261,6 +261,16 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Kervan ticareti durumu, fiyatları ve yarım kalmış yolculukları **kaydet/yükle** sonrasında korunur. Mirasçılardan Kervan Payı'nı alan, mevcut yük ve sefer geçmişini de devralır; almayan varise kopya mallar verilmez. Ölüm kaydı sefer hesabını saklar.
 - v37 ve daha eski kayıtlar v38'e taşınır. İlk göçte `yazgi_before_v38` yedeği alınır; mevcut `yazgi_before_v37` silinmez.
 
+### v39 — Tüccar Ortaklıkları ve Ticaret Rekabeti
+
+- Kervan Payı sahibi 18 yaş üstü oyuncu, meslek çevresindeki gerçek bir tüccarla güven temelli ortaklık kurabilir. Tek aktif anlaşma mümkündür; yeni sözleşme ve ayrılık yalnız oba dönüşünde yapılır.
+- Ortakla sefere çıkıldığında satış fiyatları iyileşir, yol riski biraz azalır; satış gerçekten kârlıysa yük maliyeti ve geçiş ücretinden sonra kalan kârın %25'i aynı NPC'nin servetine aktarılır. Zarar edilen satıştan ortak payı çıkmaz.
+- Her ticaret yolu ilk kullanıldığında kalıcı kimlikli ayrı bir rakip tüccar oluşturur. Rakibin baskısı o yolun satış fiyatlarını etkiler; rekabet ve sonuçlar kayıtlıdır.
+- Rakiple 3 servet karşılığında görüşülerek rekabet baskısı azaltılır, 12 aylık uzlaşma sağlanır. Aynı rakiple görüşme bir yıl dolmadan tekrar edilemez.
+- Sefer başında fiyat, ortak kimliği ve rakip etkisi sabitlenir; sonradan fiyatı değiştirerek açık seferden haksız kazanç elde edilemez.
+- Ortaklık ve rakip kayıtları oyun kaydında korunur. Kervan Payı miras kaldığında yük ve ticari geçmiş korunur, fakat yeni kuşak ortaklığı yeniden kurmak zorundadır. Ölüm kaydı ticari ilişki özetini saklar.
+- v38 kayıtları v39'a geçerken `yazgi_before_v39` yedeği alınır; eski yedekler silinmez.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
