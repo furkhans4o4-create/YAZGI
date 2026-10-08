@@ -3550,7 +3550,7 @@ function purposeRecord(reason=''){
 }
 function abandonPurpose(reason='bıraktı'){
  const p=ensureLifePurpose();if(!p.active)return false;
- p.history.unshift(purposeRecord(reason));p.history=p.history.slice(0,50);
+ const record=purposeRecord(reason);p.history.unshift(record);p.history=p.history.slice(0,50);
  p.active=null;apply({happiness:-2});log('Uzun yıllar peşinden gittiğin ülküden ayrıldın.','major');return true;
 }
 function lifePurposeAction(mode,id=''){
@@ -3575,7 +3575,7 @@ function purposeProgressCheck(){
  if(a.stage===3){
   a.status='completed';
   p.completed.unshift({id:a.id,title:d.name,year:s.year+s.age,age:s.age,milestones:a.milestones.map(x=>({...x}))});p.completed=p.completed.slice(0,12);
-  p.history.unshift(purposeRecord('tamamlandı'));p.history=p.history.slice(0,50);
+  const record=purposeRecord('tamamlandı');p.history.unshift(record);p.history=p.history.slice(0,50);
   if(a.id==='kin')ensureSuccession().familyHarmony=clamp(ensureSuccession().familyHarmony+8);
   if(a.id==='peace')applyCommunityAxes({honor:4,reliability:4},'Barış için uzun yıllar çalışman iyi adını güçlendirdi.');
   if(a.id==='alp')ensureStateCourt().tribeSupport=clamp(ensureStateCourt().tribeSupport+4);
