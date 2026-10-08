@@ -301,6 +301,17 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Kervan payı açık sözleşme sürerken satılamaz. Oyuncunun ölümünde açık taahhüt cezasız kapanır; yeni kuşak yalnız geçmiş kayıtlara ve kendi yeni sözleşmelerine sahip olabilir.
 - Sözleşme geçmişi ve deadline kayıtlıdır. v41 kayıtları ilk yüklemede `yazgi_before_v42` yedeğiyle korunur. v42 için 20 yeni regresyon testi eklendi; toplam 491 test vardır.
 
+### v43 — Tüccar İtibarı ve Bölgesel Loncalar
+
+- Her gerçek teslimat sözleşmesi başarıyla sonuçlandığında tüccar itibarı 12 puan artar; süresi geçen sözleşmede 18 puan düşer. İtibar 0–100 arasında tutulur ve aynı sözleşmeden tekrar puan üretilemez. Alıcı ölümünde cezasız kapanan anlaşma itibarı değiştirmez.
+- İtibar unvanları: 0–23 Çırak Tüccar, 24–59 Güvenilir Tüccar, 60–100 Usta Tüccar. Ünvanlar gerçek tamamlanmış sözleşmelerle ilerler.
+- Kervan Payı bulunan 18 yaş üzeri karakter, en az iki başarılı teslimat ve 24 itibar kazandıktan sonra Irmak, Dağ Geçidi veya Bozkır pazarındaki loncaya katılabilir. Aynı anda yalnız bir lonca üyeliği vardır.
+- Üyelik için 8 servet doğrudan o pazardaki yaşayan tüccar NPC temsilcisinin mal varlığına aktarılır. Yetersiz nakit, ölü temsilci veya düşük güven üyeliğe engeldir; mükerrer üyelik ücreti alınmaz.
+- Aktif loncanın kendi bölgesinde sefer geçiş ücreti 1 servet azalır, risk 0,02 düşer. O bölgedeki sözleşmeler için daha yüksek yük miktarı ve itibar düzeyine göre ödül primi denenir; teklifler yalnız gerçek alıcı NPC'nin ödeyebileceği tutarda oluşur. Farklı pazarlar ve yolda önceden sabitlenen fiyatlar etkilenmez.
+- Loncadan ayrılmak için obada bir aylık eylem gerekir; eski üyelik kaydı ve kişisel itibar korunur, ancak üyelik bedeli iade edilmez. Üyelik ve temsilci NPC kimliği kayıt sisteminde kalır.
+- Kervan payı miras kalırsa ticari geçmiş korunur fakat yeni kuşak eski karakterin lonca üyeliği ve kişisel itibarını otomatik devralamaz.
+- Eski v42 kayıtları `yazgi_before_v43` ile yedeklenir. 22 yeni regresyon testi eklendi; tüm test paketi 513 senaryodan oluşur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
