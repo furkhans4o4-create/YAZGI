@@ -149,7 +149,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 35’e taşınır; sürüm değişiminde önce `yazgi_before_v35` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 36’ya taşınır; sürüm değişiminde önce `yazgi_before_v36` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 
 ### v30 — Aile İçi Taraflaşma, Hısım Gerilimi ve Kalıcı Aile Meseleleri
@@ -227,6 +227,17 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Yakından alınan emanet doğrudan o NPC’nin servetinden çıkar; taksit ve erken ödemeler tekrar aynı kişiye yazılır. Zamanında kapatma güveni, saygınlığı ve ilişkinin hatırasını güçlendirir.
 - Borçlu ölürse, varislere mal dağıtılmadan önce ölen kişinin **nakit mirasından** alacaklar ödenir; gerektiğinde rehinli mal değerlendirilir. Karşılanamayan alacak ölüm/miras hatırasında görünür, ancak yeni kuşağa gizli sınırsız kişisel borç dayatılmaz.
 - Ekonomi ve Varlıklar ekranında açık sözleşmeler, ödeme seçenekleri, teminat, güven cezası, kalan borç ve geçmiş görülebilir. Eski kayıtlar v35’e taşınır, `yazgi_before_v35` yedeği alınır.
+
+
+### v36 — Toy Turnuvaları ve Çok Aşamalı Müsabakalar
+
+- Geleneksel **Okçuluk Toyu, Güreş Toyu ve Ozanlar Toyu** eklendi. 12+ yaşta, farklı aylar içinde düzenlenir; at yarışlarıyla çakışmaz ve v32'nin at ocağına dokunmaz.
+- Her müsabakada **eleme, yarı final, final** olmak üzere üç ayrı ay / birer eylem vardır. Başlamak için iki servet katılım payı gerekir; sezonun sonuna kadar yetişilemeyecek geç başvuru yasaktır.
+- Rakipler oyuncunun mevcut dostları, rakipleri, aile çevresi ve meslek tanıdıkları arasından çıkar; yeterli kişi yoksa kimliği, kişiliği, becerileri ve rolü kalıcı olan yeni **toy rakibi NPC** oluşturulur. Her turda farklı rakiple karşılaşılır.
+- Kazanma hesabında oynanan alandaki gerçek oyuncu/NPC becerisi, ikinci beceri, sağlık, itibar, kişilik ve sınırlı şans etkilidir. İleri aşamalarda rakibin gücü de artabilir; sonuç garanti değildir.
+- Sonuçlar **rakip kimliği, adı, skorlar, yıl ve aşama** ile kaydedilir. Başarılı müsabakalar ilgili becerileri, itibarı ve bazı kariyer deneyimlerini artırır; güreşte hafif sakatlık riski bulunur. Rakipler de mücadeleyi ilişkilerinde hatırlar.
+- Üç galibiyetle **toy birincisi** olursun; servet ve ün ödülü, yıl/yol bazında kalıcı unvan arşivi kazanırsın. Mağlubiyet veya sezonun bitmesi eleme yolunu kapatır. Aynı yarışa aynı yıl tekrar girilemez.
+- Müsabaka geçmişi Faaliyetler ekranında; birincilikler, soy devamında ataların hatırası olarak görüntülenir. Oyun kayıtları v36'ya geçer ve `yazgi_before_v36` yedeği alınır.
 
 ### Dosyalar ve çalıştırma
 
