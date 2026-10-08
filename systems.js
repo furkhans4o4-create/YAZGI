@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=34,ADULT_AGE=18;
+const SAVE_VERSION=35,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -3937,6 +3937,207 @@ function displacementSummaryHtml(){
 }
 
 function ecoClamp(v,min,max){return Math.max(min,Math.min(max,v));}
+
+/* v35: period-appropriate obligations: loans are fixed-share pledges, not free wealth.
+   Existing household, kin trust, community word, property and inheritance all matter. */
+const CREDIT_OFFERS={
+ oba:{name:'Oba Emaneti',sum:16,fee:4,term:12,desc:'Oba büyüklerinden geçim desteği; 12 ayda 20 servet geri ödeme.'},
+ pazar:{name:'Kervan Sermayesi',sum:30,fee:8,term:24,desc:'Pazar ortaklığı için sermaye; 24 ayda 38 servet ve varlık rehni.'},
+ kin:{name:'Yakınından Emanet',sum:12,fee:0,term:12,desc:'Güvendiğin yakından 12 servet; 12 ayda aynı tutarı geri ödeme.'}
+};
+const CREDIT_COLLATERAL=['flock','smithy','caravan_share'];
+function ensureCredit(){
+ if(!s.credit||typeof s.credit!=='object'||Array.isArray(s.credit))s.credit={};
+ const q=s.credit;q.contracts=Array.isArray(q.contracts)?q.contracts.filter(x=>x&&typeof x==='object').slice(0,40):[];
+ q.history=Array.isArray(q.history)?q.history.slice(0,100):[];
+ for(const k of ['borrowed','repaid','defaults','extensions','foreclosures','estatePaid'])q[k]=Math.max(0,Math.round(q[k]||0));
+ q.lastBorrowAt=Number.isFinite(q.lastBorrowAt)?q.lastBorrowAt:null;
+ for(const x of q.contracts){
+  x.id=typeof x.id==='string'&&x.id.startsWith('credit_')?x.id:'credit_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);
+  x.type=CREDIT_OFFERS[x.type]?x.type:'oba';x.principal=Math.max(0,Math.round(x.principal||0));x.fee=Math.max(0,Math.round(x.fee||0));
+  x.balance=Math.max(0,Math.round(x.balance||0));x.duration=Math.max(1,Math.round(x.duration||12));
+  x.paid=Math.max(0,Math.round(x.paid||0));x.missed=Math.max(0,Math.round(x.missed||0));x.lateTotal=Math.max(0,Math.round(x.lateTotal||0));
+  x.startSerial=Number.isFinite(x.startSerial)?x.startSerial:lifeSerial();x.lastTick=Number.isFinite(x.lastTick)?x.lastTick:null;
+  x.status=['active','defaulted','repaid','estate'].includes(x.status)?x.status:'active';
+  x.lenderId=x.lenderId||null;x.pledge=CREDIT_COLLATERAL.includes(x.pledge)?x.pledge:null;x.extended=!!x.extended;
+  x.estateUnpaid=Math.max(0,Math.round(x.estateUnpaid||0));
+  x.timeline=Array.isArray(x.timeline)?x.timeline.slice(0,20):[];
+ }
+ return q;
+}
+function creditOpen(){return ensureCredit().contracts.filter(x=>x.status==='active'||x.status==='defaulted');}
+function creditById(id){return ensureCredit().contracts.find(x=>x.id===id)||null;}
+function creditPledgeInUse(asset){return !!asset&&creditOpen().some(x=>x.pledge===asset);}
+function creditTotal(){return creditOpen().reduce((sum,x)=>sum+x.balance,0);}
+function creditRecord(type,rec,detail='',amount=0){
+ const q=ensureCredit(),row={year:s.year+s.age,month:currentMonth(),type,contractId:rec?.id||null,
+  offer:rec?.type||null,lenderId:rec?.lenderId||null,amount:Math.round(amount||0),balance:rec?.balance??0,detail};
+ q.history.unshift(row);q.history=q.history.slice(0,100);
+ if(rec){rec.timeline.unshift(row);rec.timeline=rec.timeline.slice(0,20);}
+ return row;
+}
+function creditEligibleKin(){
+ return [...s.parents,...s.siblings,...s.friends,...(s.partner?[s.partner]:[])].filter((n,i,arr)=>
+  n?.alive&&n.age>=18&&n.wealth>=12&&(n.bonds?.trust||0)>=60&&n.rel>=55&&
+  arr.findIndex(x=>x?.id===n.id)===i);
+}
+function creditBorrowIssue(type,extra=null){
+ const offer=CREDIT_OFFERS[type],q=ensureCredit(),open=creditOpen();
+ if(!offer)return 'Emanet türü bulunamadı.';
+ if(open.some(x=>x.status==='defaulted'))return 'Önce ödenmemiş eski borcunu kapatmalısın.';
+ if(open.length>=2)return 'Aynı anda en fazla iki açık emanet tutabilirsin.';
+ if(creditTotal()+offer.sum+offer.fee>85)return 'Yeni sözleşmeyle toplam borç aşırı yükseliyor.';
+ if(q.lastBorrowAt!=null&&lifeSerial()-q.lastBorrowAt<3)return 'Yeni emanet istemeden önce üç ay geçmeli.';
+ if(type==='oba'){
+  if(ensureCommunityReputation().reliability<40||communityGoodName()<42)return 'Oba büyükleri sözünün güvenilir olmasını istiyor.';
+ }else if(type==='pazar'){
+  if((s.skills.trade||0)<15||s.prestige<15)return 'Kervan için 15 ticaret becerisi ve 15 itibar gerekiyor.';
+  if(!CREDIT_COLLATERAL.includes(extra)||!s.assets.includes(extra))return 'Önce sürü, demir ocağı veya kervan payı gibi bir rehin seç.';
+  if(creditPledgeInUse(extra))return 'Bu varlık başka bir borç için zaten rehinli.';
+  if(ensureCommunityReputation().reliability<45)return 'Tüccarlar güvenilir söz ister.';
+ }else if(type==='kin'){
+  if(!extra||!creditEligibleKin().some(n=>n.id===extra))return 'Sana güvenen ve emanet verebilecek yetişkin bir yakın gerekiyor.';
+ }
+ return '';
+}
+function creditIssue(mode,id,extra=null){
+ if(mode==='borrow')return creditBorrowIssue(id,extra);
+ const rec=creditById(id);if(!rec||!['active','defaulted'].includes(rec.status))return 'Bu borç artık açık değil.';
+ if(mode==='pay'){if(!['five','all'].includes(extra))return 'Ödeme seçeneği bulunamadı.';if(s.wealth<1)return 'Borç ödemek için servetin yok.';return '';}
+ if(mode==='extend'){
+  if(rec.status==='defaulted')return 'Önce temerrüde düşen borcu kapatmalısın.';
+  if(rec.extended)return 'Bu emanetin vadesi daha önce uzatıldı.';
+  if(s.wealth<2)return 'Yeni anlaşma için 2 servet gerekiyor.';
+  return '';
+ }
+ return 'Borç eylemi bulunamadı.';
+}
+function creditClose(rec,reason='paid'){
+ if(rec.balance>0)return false;
+ rec.balance=0;rec.status='repaid';rec.pledge=null;
+ const q=ensureCredit();q.repaid++;
+ creditRecord('closed',rec,'Emanet sözü tamamen yerine getirildi.',0);
+ if(rec.lenderId){const n=npcById(rec.lenderId);if(n?.alive)adjustNPC(n,{rel:5,trust:8,respect:5,grudge:-6},'Borç sözünü eksiksiz yerine getirdin.');}
+ applyCommunityAxes({reliability:3,honor:1},'Emanet sözünü tamamlayarak toplumsal güvenini güçlendirdin.');
+ return true;
+}
+function creditPay(rec,amount,mode='voluntary'){
+ const sum=Math.min(Math.max(0,Math.round(amount)),rec.balance,s.wealth);
+ if(sum<=0)return 0;
+ s.wealth-=sum;rec.balance-=sum;rec.paid+=sum;
+ if(rec.lenderId){const lender=npcById(rec.lenderId);if(lender?.alive)lender.wealth+=sum;}
+ if(mode==='voluntary'||sum>=1)rec.missed=0;
+ economyLedger('credit',-sum,'Emanet geri ödemesi');creditRecord('payment',rec,mode+' ödeme',sum);
+ if(rec.balance===0)creditClose(rec);
+ return sum;
+}
+function creditDefault(rec){
+ if(rec.status!=='active')return false;
+ rec.status='defaulted';const q=ensureCredit();q.defaults++;
+ recordPublicWord('credit','Üstlenilen '+CREDIT_OFFERS[rec.type].name.toLowerCase()+' vadesi tutulamadı.',{reliability:-12,honor:-4},{severity:24,polarity:-1});
+ if(rec.lenderId){const lender=npcById(rec.lenderId);if(lender?.alive)adjustNPC(lender,{rel:-16,trust:-22,grudge:18},'Emanet sözünü vaktinde tutmadın.');}
+ if(rec.pledge&&s.assets.includes(rec.pledge)){
+  const pledge=rec.pledge,value=assetSaleValue(pledge);
+  s.assets=s.assets.filter(x=>x!==pledge);
+  if(s.economy?.assetState)delete s.economy.assetState[pledge];
+  rec.balance=Math.max(0,rec.balance-value);q.foreclosures++;
+  creditRecord('foreclosure',rec,'Rehinli '+pledge+' elden çıktı, borçtan '+value+' servet düşüldü.',value);
+  rec.pledge=null;
+ }
+ creditRecord('default',rec,'Üç aylık ödeme aksadı; borç takibe düştü.',rec.balance);
+ if(rec.balance===0)creditClose(rec);
+ return true;
+}
+function creditAction(mode,id,extra=null){
+ const issue=creditIssue(mode,id,extra);if(issue){notice(issue);return false;}
+ return performAction({kind:'credit',id:mode,contractId:id,extra},()=>{
+  const q=ensureCredit();
+  if(mode==='borrow'){
+   const offer=CREDIT_OFFERS[id],lender=id==='kin'?npcById(extra):null;
+   if(lender){lender.wealth-=offer.sum;adjustNPC(lender,{rel:1,trust:2},'Yardım için geri ödeme sözü verdin.');}
+   const rec={id:'credit_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2),
+    type:id,principal:offer.sum,fee:offer.fee,balance:offer.sum+offer.fee,duration:offer.term,
+    paid:0,missed:0,lateTotal:0,startSerial:lifeSerial(),lastTick:null,status:'active',
+    lenderId:lender?.id||null,pledge:id==='pazar'?extra:null,extended:false,estateUnpaid:0,timeline:[]};
+   q.contracts.push(rec);q.borrowed++;q.lastBorrowAt=lifeSerial();
+   s.wealth+=offer.sum;economyLedger('credit',offer.sum,offer.name+' alındı');
+   creditRecord('borrow',rec,offer.name+' • '+offer.term+' aylık sözleşme',offer.sum);
+   log(safeText(offer.name)+' karşılığında '+offer.sum+' servet emanet aldın; '+rec.balance+' servet borçlandın.','major');
+  }else{
+   const rec=creditById(id);
+   if(mode==='pay')creditPay(rec,extra==='all'?rec.balance:5,'voluntary');
+   else if(mode==='extend'){
+    s.wealth-=2;rec.balance+=3;rec.duration+=6;rec.extended=true;rec.missed=0;q.extensions++;
+    economyLedger('credit',-2,'Emanet vade uzatma görüşmesi');
+    creditRecord('extension',rec,'Vade altı ay uzatıldı; geri ödeme 3 servet arttı.',2);
+   }
+  }
+ },'Emanet ve borç işleri için bir ay ayırdın.');
+}
+function creditMonthTick(month){
+ const q=ensureCredit(),serial=lifeSerial(s.year+s.age,month);
+ for(const rec of q.contracts.filter(x=>x.status==='active')){
+  if(serial<=rec.startSerial||rec.lastTick===serial)continue;
+  rec.lastTick=serial;
+  const elapsed=Math.max(1,serial-rec.startSerial),left=Math.max(1,rec.duration-elapsed+1);
+  const due=Math.min(rec.balance,Math.max(1,Math.ceil(rec.balance/left)));
+  const paid=creditPay(rec,due,'scheduled');
+  if(rec.status==='repaid')continue;
+  if(paid<due){
+   rec.missed++;rec.lateTotal++;
+   if(rec.missed===1){applyCommunityAxes({reliability:-1},'Emanet geri ödemesi bir ay aksadı.');creditRecord('late',rec,'Geri ödeme ayı kısmen veya tamamen aksadı.',due-paid);}
+   if(rec.missed>=3)creditDefault(rec);
+  }else rec.missed=0;
+ }
+}
+function creditEstateSettlement(old){
+ const q=ensureCredit(),debtors=creditOpen(),initial=debtors.reduce((sum,x)=>sum+x.balance,0);
+ let paid=0,foreclosed=0;
+ for(const rec of debtors){
+  const cash=Math.min(old.wealth,rec.balance);old.wealth-=cash;rec.balance-=cash;paid+=cash;
+  if(rec.lenderId){const n=npcById(rec.lenderId);if(n?.alive)n.wealth+=cash;}
+  if(rec.balance>0&&rec.pledge&&old.assets.includes(rec.pledge)){
+   const value=assetSaleValue(rec.pledge);old.assets=old.assets.filter(x=>x!==rec.pledge);
+   rec.balance=Math.max(0,rec.balance-value);paid+=Math.min(value,initial-paid);foreclosed++;
+  }
+  rec.estateUnpaid=rec.balance;rec.status='estate';rec.pledge=null;
+  creditRecord('estate',rec,'Vefat sonrası miras malından borç ayrıldı; kalan '+rec.balance+' servet.',cash);
+ }
+ q.estatePaid+=paid;q.foreclosures+=foreclosed;
+ return {original:initial,paid,unpaid:debtors.reduce((sum,x)=>sum+x.balance,0),foreclosed};
+}
+function creditLegacySnapshot(){
+ const q=ensureCredit();return {borrowed:q.borrowed,repaid:q.repaid,defaults:q.defaults,
+  open:creditOpen().map(x=>({type:x.type,balance:x.balance,pledge:x.pledge,lenderId:x.lenderId})),
+  totalOutstanding:creditTotal()};
+}
+function creditSummaryHtml(){
+ const q=ensureCredit(),open=creditOpen(),debt=creditTotal();
+ let html='<div class="card"><h3>📜 Emanet, Borç ve Söz</h3><p>Toplam geri ödeme: '+debt+' servet • tutulan söz '+q.repaid+' • temerrüt '+q.defaults+
+  ' • rehin kaybı '+q.foreclosures+'<br>Her ay vade payı kendiliğinden ödenir. Üç kez üst üste aksarsa söz bozulur; teminat ve itibar tehlikeye girer.</p>';
+ html+='<div class="grid2">'+actionButton('Oba Emaneti',{kind:'credit',id:'borrow',contractId:'oba'},"creditAction('borrow','oba')",CREDIT_OFFERS.oba.desc);
+ const kin=creditEligibleKin();
+ for(const n of kin.slice(0,5))html+=actionButton(safeText(n.name)+' • Emanet iste',{kind:'credit',id:'borrow',contractId:'kin',extra:n.id},
+  "creditAction('borrow','kin',"+JSON.stringify(n.id)+")",CREDIT_OFFERS.kin.desc+' • Güven: '+n.bonds.trust);
+ for(const pledge of CREDIT_COLLATERAL.filter(id=>s.assets.includes(id)))html+=actionButton('Kervan Sermayesi • '+safeText(npcEstateAssetName(pledge))+' rehin',
+  {kind:'credit',id:'borrow',contractId:'pazar',extra:pledge},
+  "creditAction('borrow','pazar','"+pledge+"')",CREDIT_OFFERS.pazar.desc);
+ html+='</div></div>';
+ for(const rec of open){
+  const name=CREDIT_OFFERS[rec.type].name;
+  html+='<div class="card"><h3>'+safeText(name)+' • '+(rec.status==='defaulted'?'Takipte':'Ödeniyor')+'</h3><p>'+
+   'Kalan '+rec.balance+' servet • '+rec.paid+' ödendi • '+rec.missed+' arka arkaya aksama'+
+   (rec.pledge?' • Rehin: '+safeText(npcEstateAssetName(rec.pledge)):'')+
+   (rec.lenderId?' • Veren: '+safeText(npcById(rec.lenderId)?.name||'eski tanıdık'):'')+'</p><div class="grid2">'+
+   actionButton('5 servet öde',{kind:'credit',id:'pay',contractId:rec.id,extra:'five'},"creditAction('pay','"+rec.id+"','five')",'Bir ay ayırıp erken ödeme yap.')+
+   actionButton('Kalanı öde',{kind:'credit',id:'pay',contractId:rec.id,extra:'all'},"creditAction('pay','"+rec.id+"','all')",'Servetin yettiği kadarını öde.')+
+   actionButton('Vadeyi uzat',{kind:'credit',id:'extend',contractId:rec.id},"creditAction('extend','"+rec.id+"')",'2 servet anlaşma masrafı • toplam 3 servet artış')+
+   '</div></div>';
+ }
+ if(q.history.length)html+='<div class="card"><h3>Emanet Defteri</h3><div class="memoryline">'+q.history.slice(0,6).map(x=>safeText(x.year+' • '+x.detail)).join('<br>')+'</div></div>';
+ return html;
+}
+
 function ensureEconomy(){
  if(!s.economy||typeof s.economy!=='object'||Array.isArray(s.economy))s.economy={};
  const e=s.economy;
@@ -4235,11 +4436,13 @@ function accessIssue(a){
  else if(a.kind==='asset'){
   const r=D.assets.find(x=>x.id===a.id);if(!r)return 'Varlık bulunamadı.';min=ASSET_AGES[a.id]||18;
   if(a.sell&&!s.assets.includes(a.id))return 'Bu varlık sende yok.';
+  if(a.sell&&creditPledgeInUse(a.id))return 'Bu varlık emanet için rehinli; önce borcunu kapat.';
   if(a.sell&&a.id==='yurt'&&ensureHousing().mode==='own_yurt')return 'Yaşadığın yurdu satmadan önce başka barınma düzenine geçmelisin.';
   if(!a.sell&&s.assets.includes(a.id))return 'Zaten sahipsin.';
   if(!a.sell&&s.wealth<assetBuyPrice(a.id))return `${assetBuyPrice(a.id)} servet gerekiyor.`;
   if(!a.sell&&a.id==='smithy'&&(s.skills.craft<40||(s.experience.craft||0)<12))return 'Zanaat 40 ve 12 ay zanaat tecrübesi gerekiyor.';
- }else if(a.kind==='maintenance'){min=18;if(!s.assets.includes(a.id))return 'Bu varlık sende yok.';if(s.wealth<maintenanceCost(a.id))return `${maintenanceCost(a.id)} servet bakım gideri gerekiyor.`;
+  }else if(a.kind==='credit'){min=18;const issue=creditIssue(a.id,a.contractId,a.extra);if(issue)return issue;}
+ else if(a.kind==='maintenance'){min=18;if(!s.assets.includes(a.id))return 'Bu varlık sende yok.';if(s.wealth<maintenanceCost(a.id))return `${maintenanceCost(a.id)} servet bakım gideri gerekiyor.`;
  }else if(a.kind==='npc'){
   if(!['spend','gift','advice','reconcile','confide','help','work'].includes(a.id))return 'Etkileşim bulunamadı.';
   min=a.id==='gift'||a.id==='help'||a.id==='work'?10:a.id==='confide'?8:a.id==='advice'?6:5;const n=getFamilyGroup(a.group)[a.index];if(!n?.alive)return 'Bu kişiyle görüşemezsin.';const lifeIssue=npcNormalInteractionIssue(n);if(lifeIssue)return lifeIssue;
@@ -4304,7 +4507,7 @@ function monthlyTick(month,action,allowEvent=true){
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
  tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);tickGuardianshipMonth(action);tickFriendshipMonth(action);tickWorkplaceMonth(action);horseMonthTick(month);bereavementMonthTick(month,action);tickCommunityReputationMonth(month);
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
- if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();
+ if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
   if(s.married&&s.partner?.alive&&s.age>=18&&s.partner.age>=18){const gender=pick(['male','female']);const c=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age:0,type:'Çocuk',birthYear:s.year+s.age,birthMonth:month,alive:true,rel:80,realm:s.realm,place:s.place,tribe:s.tribe,parentIds:[s.id,s.partner.id]},'Çocuk');s.children.push(c);ensureChildProfile(c);unlock('parent');log(safeText(c.name)+' dünyaya geldi.','major');}s.pregnancy=null;
  }
@@ -4469,11 +4672,11 @@ function familyTick(){
 }
 function ageUp(){if(!s?.alive)return;if(s.pendingEventId||s.pendingDecision){notice('Önce son karar kartını çöz.');return;}if(s.monthsRemaining>0){notice('Yeni yıla geçmeden önce kalan haklar atlanmalı.');return;}s.age++;s.monthsRemaining=12;s.lastAction=null;if(s.age>40)apply({health:-rng(0,2)});familyTick();horseYearTick();housingYearTick();lifePurposeYearTick();healthAgeTick();elderYearTick();ensureLifeVariety();checkAchievements();mortality();if(s.alive){log(animalYearName(s.year+s.age)+' Yılı başladı; bu yıl 12 eylem hakkın var.','major');if(s.age>=18&&!s.captive&&!s.exile&&!s.military.called)militaryCall();else if(s.age>=18&&!s.captive&&!s.exile&&!s.military.active&&s.military.served&&Math.random()<.08){s.military.called=false;militaryCall();}}render();save();}
 function die(){if(!s?.alive)return;const q=ensureSuccession(),cause=deathCauseLabel(),heirs=livingHeirs();s.alive=false;s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;clearTransient();
- const elder=s.age>=50?ensureElderLife():null;s.deathRecord={name:s.name,age:s.age,year:s.year+s.age,role:s.role,retiredRole:s.retiredRole||null,prestige:s.prestige,wealth:s.wealth,cause,will:s.will,prepared:q.prepared,chosenHeirId:q.chosenHeirId,familyHarmony:q.familyHarmony,lastWish:q.lastWish,assets:[...s.assets],lifePurpose:purposeLegacySnapshot(),reputation:communityReputationSnapshot(),heirs:heirs.map(n=>({id:n.id,name:n.name,age:n.age})),elder:elder?{standing:elder.standing,purpose:elder.purpose,careSupport:elder.careSupport,councils:elder.councils,lessons:elder.lessons,reconciliations:elder.reconciliations,delegations:elder.delegations,memoriesShared:elder.memoriesShared}:null};
+ const elder=s.age>=50?ensureElderLife():null;s.deathRecord={name:s.name,age:s.age,year:s.year+s.age,role:s.role,retiredRole:s.retiredRole||null,prestige:s.prestige,wealth:s.wealth,cause,will:s.will,prepared:q.prepared,chosenHeirId:q.chosenHeirId,familyHarmony:q.familyHarmony,lastWish:q.lastWish,assets:[...s.assets],credit:creditLegacySnapshot(),lifePurpose:purposeLegacySnapshot(),reputation:communityReputationSnapshot(),heirs:heirs.map(n=>({id:n.id,name:n.name,age:n.age})),elder:elder?{standing:elder.standing,purpose:elder.purpose,careSupport:elder.careSupport,councils:elder.councils,lessons:elder.lessons,reconciliations:elder.reconciliations,delegations:elder.delegations,memoriesShared:elder.memoriesShared}:null};
  log(`${s.age} yaşında, ${s.year+s.age} yılında yaşamın sona erdi. Neden: ${cause}.`,'bad');s.legacy.past.push({...s.deathRecord});s.legacy.purposes=Array.isArray(s.legacy.purposes)?s.legacy.purposes:[];s.legacy.purposes.unshift({name:s.name,year:s.year+s.age,purpose:s.deathRecord.lifePurpose});s.legacy.purposes=s.legacy.purposes.slice(0,30);render();save();showHeirModal();}
 function setWill(id){if(id!=='equal'&&!s.children.some(x=>x.id===id&&x.alive))return;performAction({kind:'will'},()=>{const q=ensureSuccession();s.will=id;q.prepared=true;q.chosenHeirId=id==='equal'?null:id;q.lastCouncilYear=s.year+s.age;q.familyHarmony=clamp(q.familyHarmony+(id==='equal'?2:-2));q.history.unshift({year:s.year+s.age,age:s.age,mode:id==='equal'?'equal':'chosen',targetId:q.chosenHeirId,note:'Mal paylaşımı doğrudan konuşuldu.',harmony:q.familyHarmony});q.history=q.history.slice(0,24);},'Mal paylaşımı isteğini yakınlarınla konuştun.');}
 function continueAsHeir(i){
- if(!s||s.alive)return;const heirs=s.children.filter(x=>x.alive),c=heirs[i];if(!c)return;const old=s,heirOwnJourney=npcAspirationLegacyRecord(c),oldCommunity=JSON.parse(JSON.stringify(ensureCommunityReputation())),oldSuccession=JSON.parse(JSON.stringify(ensureSuccession())),equal=old.will==='equal'||!heirs.some(x=>x.id===old.will),share=inheritanceShareFor(c,heirs),deathRecord=old.deathRecord||null;clearTransient();
+ if(!s||s.alive)return;const heirs=s.children.filter(x=>x.alive),c=heirs[i];if(!c)return;const old=s,heirOwnJourney=npcAspirationLegacyRecord(c),oldCommunity=JSON.parse(JSON.stringify(ensureCommunityReputation())),oldSuccession=JSON.parse(JSON.stringify(ensureSuccession())),creditEstate=creditEstateSettlement(old),equal=old.will==='equal'||!heirs.some(x=>x.id===old.will),share=inheritanceShareFor(c,heirs),deathRecord=old.deathRecord||null;clearTransient();
  s=newCharacter({name:c.name,gender:c.gender,realm:old.realm,year:old.year+old.age-c.age,place:c.place||old.place,tribe:c.tribe||old.tribe,age:c.age,monthsRemaining:old.monthsRemaining,wealth:share.wealth,health:c.health,happiness:65,skill:Math.min(60,c.age*2),skills:c.skills||{},prestige:clamp(old.prestige*.35),achievements:[...old.achievements],familyDynamics:JSON.parse(JSON.stringify(old.familyDynamics||null)),horseStable:horseStableInheritance(old,share),legacy:{generation:old.legacy.generation+1,familyName:old.legacy.familyName,past:old.legacy.past,purposes:old.legacy.purposes||[],heirJourneys:[...(old.legacy.heirJourneys||[]),...(heirOwnJourney?[heirOwnJourney]:[])].slice(-30)}});
  s.id=c.id;
  s.parents=[normalizeNPC({id:old.id,name:old.name,age:old.age,gender:old.gender,alive:false,rel:c.rel,type:old.gender==='male'?'Ata':'Ana',role:old.role})];if(old.partner)s.parents.push({...old.partner,type:old.partner.gender==='female'?'Ana':'Ata'});
@@ -4487,7 +4690,7 @@ function continueAsHeir(i){
  s.friends=friendPool.filter(n=>n.alive&&!seenFriend.has(n.id)&&seenFriend.add(n.id)).map(n=>{const x=normalizeNPC({...n,type:'Aile dostu',rel:clamp(Math.round((n.rel||60)*.65))},'Aile dostu');x.statusFlags.familyFriend=true;x.statusFlags.legacySource=old.name;normalizeBonds(x);x.bonds.trust=clamp(Math.round(x.bonds.trust*.75));rememberNPC(x,'legacy',old.name+' ile olan eski dostluğunu sürdürüyor.',5);return x;});
  const seenEnemy=new Set();s.rivals=(old.rivals||[]).filter(n=>n.alive&&!seenEnemy.has(n.id)&&seenEnemy.add(n.id)).map(n=>{const x=normalizeNPC({...n,type:'Aile hasmı',rel:Math.min(40,n.rel??30)},'Aile hasmı');x.statusFlags.familyEnemy=true;x.statusFlags.legacySource=old.name;normalizeBonds(x);x.bonds.grudge=clamp(Math.max(25,Math.round(x.bonds.grudge*.8)));rememberNPC(x,'legacy',old.name+' ile yaşanan eski husumeti hatırlıyor.',6);return x;});
  s.socialLinks=(old.socialLinks||[]).map(x=>({...x,tags:[...(x.tags||[]),'legacy']}));
- s.assets=share.assets;s=migrateState(s);if(s.assets.includes('horse')&&!horses().length)horses().push(createHorse());s.communityReputation=inheritCommunityReputation(oldCommunity,old.name);ensureCommunityReputation();s.lastInheritance={from:old.name,year:old.year+old.age,equal,wealth:share.wealth,assets:[...share.assets],prepared:oldSuccession.prepared,familyHarmony:oldSuccession.familyHarmony,lastWish:oldSuccession.lastWish,deathRecord};
+ s.assets=share.assets;s=migrateState(s);if(s.assets.includes('horse')&&!horses().length)horses().push(createHorse());s.communityReputation=inheritCommunityReputation(oldCommunity,old.name);ensureCommunityReputation();s.lastInheritance={from:old.name,year:old.year+old.age,equal,wealth:share.wealth,creditEstate,assets:[...share.assets],prepared:oldSuccession.prepared,familyHarmony:oldSuccession.familyHarmony,lastWish:oldSuccession.lastWish,deathRecord};
  const favored=!equal&&old.will===c.id;for(const sib of s.siblings.filter(n=>n.alive)){if(favored)adjustNPC(sib,{rel:-8,trust:-7,grudge:12},old.name+' ardından mirasın tek elde kalmasını kolay unutmadı.');else if(oldSuccession.prepared&&oldSuccession.familyHarmony>=60)adjustNPC(sib,{rel:4,trust:5,grudge:-5},old.name+' hayattayken paylaşımı açıkça konuşmuştu.');}
  if(favored&&s.siblings.some(n=>n.alive))recordPublicWord('inheritance',old.name+' ardından mirasın büyük kısmının sana kaldığı aile içinde konuşuluyor.',{honor:-2,reliability:-1},{severity:18,polarity:-1,truth:true,knownIds:s.siblings.filter(n=>n.alive).map(n=>n.id),sourceId:s.siblings.find(n=>n.alive)?.id||null});
  const inheritanceSibling=s.siblings.find(n=>n.alive);if(inheritanceSibling)scheduleDelayedEvent({id:'inheritance_aftershock',years:[1,2],payload:{detail:(favored?'Mirasın büyük kısmı sana kaldı. ':'Miras paylaştırıldı. ')+(oldSuccession.lastWish?'Son dileği: '+oldSuccession.lastWish:'Aile şimdi yeni düzene alışıyor.'),favored,parentName:old.name}},{targetId:inheritanceSibling.id,sourceEventId:'heir_succession'});if(favored){const inheritanceParties=[...s.siblings.filter(n=>n.alive),...s.parents.filter(n=>n.alive)].filter((n,i,a)=>a.findIndex(x=>x.id===n.id)===i);if(inheritanceParties.length>=2&&!familyConflictForPair(inheritanceParties[0],inheritanceParties[1]))createFamilyConflict(inheritanceParties[0],inheritanceParties[1],'inheritance',{heat:58,reason:old.name+' ardından kalan malın ve sözün adil olup olmadığı konusunda anlaşamıyorlar.'});}
@@ -4696,7 +4899,7 @@ function renderActivities(){
 }
 function renderAssets(){
  ensureEconomy();ensureHousing();
- $('tab-varlik').innerHTML=housingSummaryHtml()+economySummaryHtml()+horseSummaryHtml()+`<h3 class="sectionTitle">Pazar</h3><div class="grid2">${D.assets.filter(a=>!s.assets.includes(a.id)).map(a=>actionButton(a.icon+' '+a.name,{kind:'asset',id:a.id},`buyAsset('${a.id}')`,assetBuyPrice(a.id)+' servet • '+ASSET_AGES[a.id]+' yaş • fiyat pazara göre değişir')).join('')}</div><h3>Sahip oldukların</h3><div class="grid2">${s.assets.map(id=>{if(id==='horse')return '';const a=D.assets.find(x=>x.id===id);if(!a)return '';const st=assetState(id);return '<div class="card"><h3>'+a.icon+' '+a.name+'</h3><p>Durum '+st.condition+'/100 • Satış '+assetSaleValue(id)+' servet</p><div class="grid2">'+actionButton('Bakım yap',{kind:'maintenance',id},`maintainAsset('${id}')`,maintenanceCost(id)+' servet')+actionButton('Takas et',{kind:'asset',id,sell:true},`sellAsset('${id}')`,'Pazar değeri '+assetSaleValue(id))+'</div></div>';}).join('')}</div><h3>Üretim</h3><div class="grid2">${[['herd','Sürüyü yönet','flock'],['forge','Ocakta üret','smithy'],['caravan','Kervan payını yönet','caravan_share']].map(([id,n,a])=>actionButton(n,{kind:'venture',id},`manageVenture('${id}')`,s.assets.includes(a)?'Durum '+assetState(a).condition+'/100 • sonuç garanti değil':'İlgili varlık gerekli')).join('')}</div>`;
+ $('tab-varlik').innerHTML=housingSummaryHtml()+economySummaryHtml()+creditSummaryHtml()+horseSummaryHtml()+`<h3 class="sectionTitle">Pazar</h3><div class="grid2">${D.assets.filter(a=>!s.assets.includes(a.id)).map(a=>actionButton(a.icon+' '+a.name,{kind:'asset',id:a.id},`buyAsset('${a.id}')`,assetBuyPrice(a.id)+' servet • '+ASSET_AGES[a.id]+' yaş • fiyat pazara göre değişir')).join('')}</div><h3>Sahip oldukların</h3><div class="grid2">${s.assets.map(id=>{if(id==='horse')return '';const a=D.assets.find(x=>x.id===id);if(!a)return '';const st=assetState(id);return '<div class="card"><h3>'+a.icon+' '+a.name+'</h3><p>Durum '+st.condition+'/100 • Satış '+assetSaleValue(id)+' servet</p><div class="grid2">'+actionButton('Bakım yap',{kind:'maintenance',id},`maintainAsset('${id}')`,maintenanceCost(id)+' servet')+actionButton('Takas et',{kind:'asset',id,sell:true},`sellAsset('${id}')`,'Pazar değeri '+assetSaleValue(id))+'</div></div>';}).join('')}</div><h3>Üretim</h3><div class="grid2">${[['herd','Sürüyü yönet','flock'],['forge','Ocakta üret','smithy'],['caravan','Kervan payını yönet','caravan_share']].map(([id,n,a])=>actionButton(n,{kind:'venture',id},`manageVenture('${id}')`,s.assets.includes(a)?'Durum '+assetState(a).condition+'/100 • sonuç garanti değil':'İlgili varlık gerekli')).join('')}</div>`;
 }
 function familyCard(n,group,index){
  normalizeNPC(n,n.type);
@@ -4723,7 +4926,7 @@ function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');const sourceVersion=x.version||0;x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
  for(const k of ['parents','siblings','relatives','friends','rivals','children','careerContacts','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments','exPartners'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureWorkplace();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureElderLife();ensureEconomy();ensureHorseStable();ensureDisplacement();ensureLifeVariety();ensureLifePurpose();ensureMobility();ensureEducation();ensureAppearance();ensureRomance();ensureJustice();ensureHousing();ensureExtendedFamily();ensureFamilyDynamics();ensureParenting();ensureFamilyBranches();ensureGuardianship();ensureSocialLife();ensureNPCWorld();ensureBereavement();ensureNPCEstates();ensureCommunityReputation();if(s.role)ensureWorkplaceForRole();if(s.partner?.alive)ensurePartnerFamily();refreshKinRoles();if(s.age<18)ensureMinorGuardianship('kayıt göçü');
+ for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureWorkplace();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureElderLife();ensureEconomy();ensureCredit();ensureHorseStable();ensureDisplacement();ensureLifeVariety();ensureLifePurpose();ensureMobility();ensureEducation();ensureAppearance();ensureRomance();ensureJustice();ensureHousing();ensureExtendedFamily();ensureFamilyDynamics();ensureParenting();ensureFamilyBranches();ensureGuardianship();ensureSocialLife();ensureNPCWorld();ensureBereavement();ensureNPCEstates();ensureCommunityReputation();if(s.role)ensureWorkplaceForRole();if(s.partner?.alive)ensurePartnerFamily();refreshKinRoles();if(s.age<18)ensureMinorGuardianship('kayıt göçü');
  if(sourceVersion<5&&x.military?.wounds>0&&!x.healthProfile.scars.length){
   const count=Math.min(3,x.military.wounds);for(let i=0;i<count;i++)x.healthProfile.scars.push({id:'legacy_scar_'+i,kind:'battle',severity:i===0&&x.military.wounds>=3?2:1,source:'eski sefer kaydı',location:['omuzda','kolda','bacakta'][i%3],year:x.year+Math.max(18,x.age-5-i),age:Math.max(18,x.age-5-i),lastFlareYear:null});
  }
@@ -4741,7 +4944,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v34'))localStorage.setItem('yazgi_before_v34',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION&&!localStorage.getItem('yazgi_before_v35'))localStorage.setItem('yazgi_before_v35',raw);clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);

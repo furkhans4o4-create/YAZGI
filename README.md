@@ -149,7 +149,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 34’e taşınır; sürüm değişiminde önce `yazgi_before_v34` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 35’e taşınır; sürüm değişiminde önce `yazgi_before_v35` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 
 ### v30 — Aile İçi Taraflaşma, Hısım Gerilimi ve Kalıcı Aile Meseleleri
@@ -215,6 +215,18 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Oyuncu bir ayını ayırarak **dinleyebilir, 3 servetle destek olabilir, baskı kurabilir veya geri çekilebilir**. Destek ve baskının etkileri gerçek NPC istatistiklerine, bağlarına ve sonraki yıllardaki performansına yansır.
 - Çocukla soy devamına geçince çocuğun önceki bağımsız çabaları soy hatırası olarak saklanır; yeni karakter oyuncunun kendi ömürlük ülküsünü seçmeye devam eder.
 - Eski kayıtlar otomatik v34'e taşınır, önce `yazgi_before_v34` yedeği alınır.
+
+
+### v35 — Emanet, Borç ve Söz: Gerçek Ekonomik Risk
+
+- TC Sim oyuncularının “para çok kolay” eleştirisi ve BitLife için talep edilen işletme/sermaye kredilerinden esinlenerek, dönemsel **Oba Emaneti, Kervan Sermayesi ve Yakınından Emanet** sözleşmeleri eklendi.
+- **Oba Emaneti** 16 servet verir, 12 aylık sözde 20 geri ödeme ister. **Kervan Sermayesi** 30 verir, 24 ayda 38 ödenir; sürü, demir ocağı veya kervan payı **rehin** gerekir. **Yakınından Emanet** güvenilen ve malı olan gerçek NPC’den 12 servet alır, ek pay istemez.
+- Aynı anda en fazla iki borç; güvenilirlik, beceri, itibar ve önceki temerrüt koşulları kontrol edilir. Her borç kimlik, veren kişi, miktar, başlangıç, süre, kalan borç, ödeme ve aksama geçmişiyle saklanır.
+- İlk borç alımını izleyen aydan itibaren gerçek aylık ödeme, mevcut servetten otomatik yapılır; her ay ikinci kez işlem yapılamaz. Oyuncu isterse 5 servet veya tamamına kadar **erken ödeme** yapar; bir kez 2 servet görüşme payı ve 3 servet ek borçla altı ay vade uzatabilir.
+- **Üç ardışık aksama** temerrüt sayılır. Toplumda güven ve nam zarar görür; yakından alınan emanette gerçek NPC ilişkisi bozulur. Rehinli mal elden alınarak değeri borçtan mahsup edilir. Sözleşmenin açık bakiyesi takipte kalır; ödeyince kapanır, gizlice silinmez.
+- Yakından alınan emanet doğrudan o NPC’nin servetinden çıkar; taksit ve erken ödemeler tekrar aynı kişiye yazılır. Zamanında kapatma güveni, saygınlığı ve ilişkinin hatırasını güçlendirir.
+- Borçlu ölürse, varislere mal dağıtılmadan önce ölen kişinin **nakit mirasından** alacaklar ödenir; gerektiğinde rehinli mal değerlendirilir. Karşılanamayan alacak ölüm/miras hatırasında görünür, ancak yeni kuşağa gizli sınırsız kişisel borç dayatılmaz.
+- Ekonomi ve Varlıklar ekranında açık sözleşmeler, ödeme seçenekleri, teminat, güven cezası, kalan borç ve geçmiş görülebilir. Eski kayıtlar v35’e taşınır, `yazgi_before_v35` yedeği alınır.
 
 ### Dosyalar ve çalıştırma
 
