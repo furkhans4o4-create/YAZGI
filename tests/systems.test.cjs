@@ -448,7 +448,7 @@ test('v32 initial state has no horses and no phantom horse asset',()=>{
  const {run}=game();assert.equal(run('horses().length'),0);assert.equal(run('s.assets.includes("horse")'),false);
 });
 test('v32 legacy horse asset migrates into one named persistent horse without duplication',()=>{
- const {run,storage}=game();run(setup+'s.assets=["horse"];s.horseStable=null;s.version=31;save();load();window.__id=horses()[0].id;ensureHorseStable();ensureHorseStable()');
+ const {run,storage}=game();run(setup+'s.assets=["horse"];s.horseStable=null;s.horseStable=null;s.version=31;save();load();window.__id=horses()[0].id;ensureHorseStable();ensureHorseStable()');
  assert.equal(run('s.version'),32);assert.equal(run('horses().length'),1);assert.equal(run('horses()[0].id===__id'),true);assert.ok(storage.has('yazgi_before_v32'));
 });
 test('v32 normal asset purchase makes exactly one living horse',()=>{
@@ -456,58 +456,58 @@ test('v32 normal asset purchase makes exactly one living horse',()=>{
  assert.equal(run('__n'),1);assert.equal(run('horses().length'),1);assert.equal(run('s.assets.filter(x=>x==="horse").length'),1);
 });
 test('v32 buying another individual horse keeps only one legacy asset marker',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__first=horses()[0].id;s.pendingEventId=null;s.pendingDecision=null;horseAction("buy")');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__first=horses()[0].id;s.pendingEventId=null;s.pendingDecision=null;horseAction("buy")');
  assert.equal(run('horses().length'),2);assert.equal(run('s.assets.filter(x=>x==="horse").length'),1);assert.equal(run('horses()[0].id===__first'),true);
 });
 test('v32 horse training changes its actual statistics and consumes one month',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];__h.age=5;window.__v=__h.training;window.__m=s.monthsRemaining;horseAction("train",__h.id)');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.age=5;window.__v=__h.training;window.__m=s.monthsRemaining;horseAction("train",__h.id)');
  assert.ok(run('__h.training>__v'));assert.equal(run('__m-s.monthsRemaining'),1);assert.ok(run('__h.bond>32'));
 });
 test('v32 race has real entry cost, records an attempt and enforces three month interval',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];__h.age=5;__h.health=95;__h.condition=95;s.wealth=30;horseAction("race",__h.id);window.__r=__h.races;window.__why=horseActionIssue("race",__h.id);');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.age=5;__h.health=95;__h.condition=95;s.wealth=30;horseAction("race",__h.id);window.__r=__h.races;window.__why=horseActionIssue("race",__h.id);');
  assert.equal(run('__r'),1);assert.equal(run('ensureHorseStable().races'),1);assert.ok(run('__why.includes("üç ay")'));assert.equal(run('__h.lastRaceAt!==null'),true);
 });
 test('v32 horse breeding costs, pregnancy and valid father id are persistent',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__mare=horses()[0];__mare.age=6;__mare.sex="mare";__mare.health=90;__mare.condition=90;window.__before=s.wealth;horseAction("breed",__mare.id,"outside")');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__mare=horses()[0];__mare.age=6;__mare.sex="mare";__mare.health=90;__mare.condition=90;window.__before=s.wealth;horseAction("breed",__mare.id,"outside")');
  assert.equal(run('__before-s.wealth'),4);assert.equal(run('__mare.pregnancy.months'),10);assert.ok(run('__mare.pregnancy.sireId.startsWith("h_")'));
 });
 test('v32 eleven month gestation produces offspring with real mother and father linkage',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__mare=horses()[0];__mare.age=5;__mare.sex="mare";__mare.health=90;__mare.condition=90;horseAction("breed",__mare.id,"outside");s.pendingEventId=null;s.pendingDecision=null;for(let k=0;k<10;k++)horseMonthTick(8);window.__foal=horses().find(x=>x.motherId===__mare.id)');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__mare=horses()[0];__mare.age=5;__mare.sex="mare";__mare.health=90;__mare.condition=90;horseAction("breed",__mare.id,"outside");s.pendingEventId=null;s.pendingDecision=null;for(let k=0;k<10;k++)horseMonthTick(8);window.__foal=horses().find(x=>x.motherId===__mare.id)');
  assert.ok(run('__foal&&__foal.age===0'));assert.equal(run('horses().length'),2);assert.equal(run('ensureHorseStable().foals'),1);
  assert.equal(run('__foal.fatherId!==null'),true);assert.equal(run('__foal.generation'),2);
 });
 test('v32 inbreeding is rejected between parent and offspring',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__m=horses()[0];__m.sex="mare";__m.age=5;window.__s=createHorse({sex:"stallion",age:5,motherId:__m.id});horses().push(__s);window.__why=horsePairIssue(__m,__s.id)');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__m=horses()[0];__m.sex="mare";__m.age=5;window.__s=createHorse({sex:"stallion",age:5,motherId:__m.id});horses().push(__s);window.__why=horsePairIssue(__m,__s.id)');
  assert.ok(run('__why.includes("Yakın akraba")'));
 });
 test('v32 underage and unwell horses cannot enter toy races',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];__h.age=1;window.__young=horseActionIssue("race",__h.id);__h.age=5;__h.health=30;window.__sick=horseActionIssue("race",__h.id)');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.age=1;window.__young=horseActionIssue("race",__h.id);__h.age=5;__h.health=30;window.__sick=horseActionIssue("race",__h.id)');
  assert.ok(run('__young.includes("3–18")'));assert.ok(run('__sick.includes("sağlığı")'));
 });
 test('v32 removal of the final horse archives pedigree and removes ownership marker',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];window.__id=__h.id;removeHorse(__h,"ölüm")');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];window.__id=__h.id;removeHorse(__h,"ölüm")');
  assert.equal(run('horses().length'),0);assert.equal(run('s.assets.includes("horse")'),false);
  assert.ok(run('ensureHorseStable().pedigree.some(x=>x.id===__id&&x.reason==="ölüm")'));
 });
 test('v32 horse upkeep shortage has a real welfare consequence',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];__h.health=90;__h.condition=90;horses().push(createHorse());s.wealth=0;horseQuarterTick()');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.health=90;__h.condition=90;horses().push(createHorse());s.wealth=0;horseQuarterTick()');
  assert.ok(run('__h.health<90'));assert.ok(run('__h.condition<90'));assert.equal(run('s.wealth'),0);
 });
 test('v32 heirs inherit real horses only if they receive the horse ownership asset',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];window.__old=s;window.__yes=horseStableInheritance(__old,{assets:["horse"]});window.__no=horseStableInheritance(__old,{assets:[]})');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];window.__old=s;window.__yes=horseStableInheritance(__old,{assets:["horse"]});window.__no=horseStableInheritance(__old,{assets:[]})');
  assert.equal(run('__yes.horses.length'),1);assert.equal(run('__no.horses.length'),0);
  assert.ok(run('__no.pedigree.some(x=>x.id===__h.id)'));
 });
 test('v32 horse illness event targets actual unwell horses and treats them',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];__h.health=40;window.__event=EVENT_DECK.find(x=>x.id==="horse_sick_v32");window.__before=__h.health;horseSickEvent(0)');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.health=40;window.__event=EVENT_DECK.find(x=>x.id==="horse_sick_v32");window.__before=__h.health;horseSickEvent(0)');
  assert.equal(run('eventRequirementOK(__event)'),true);assert.ok(run('__h.health>__before'));
  assert.ok(run('eventDisplayText(__event,{}).includes(__h.name)')===false || run('__h.health>=60')); 
 });
 test('v32 stable data survives JSON serialization and load without making duplicate horses',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];__h.name="Bozkır";window.__id=__h.id;save();load()');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.name="Bozkır";window.__id=__h.id;save();load()');
  assert.equal(run('horses()[0].name'),'Bozkır');assert.equal(run('horses().length'),1);assert.equal(run('horses()[0].id===__id'),true);
 });
 test('v32 horse stable renders horse buttons and meaningful lineage display',()=>{
- const {run}=game();run(setup+'s.assets=["horse"];window.__h=horses()[0];__h.motherId="h_ana";__h.fatherId="h_ata";window.__html=horseSummaryHtml()');
+ const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.motherId="h_ana";__h.fatherId="h_ata";window.__html=horseSummaryHtml()');
  assert.ok(run('__html.includes("Toyda yarıştır")'));assert.ok(run('__html.includes("h_ana")'));
 });
