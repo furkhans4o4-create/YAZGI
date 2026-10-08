@@ -886,3 +886,120 @@ test('v36 migrating a v35 save preserves achievements and makes a versioned back
  assert.equal(run('s.version'),37);assert.ok(storage.has('yazgi_before_v37'));
  assert.equal(run('ensureToyFestival().titles.length'),0);
 });
+
+
+const workshopFixture="s.age=30;s.health=100;s.skill=100;s.prestige=85;s.wealth=120;s.monthsRemaining=12;s.pendingEventId=null;s.pendingDecision=null;s.military.active=false;s.captive=false;s.exile=false;s.workshop=null;Object.keys(s.skills).forEach(k=>s.skills[k]=90);s.assets.push('smithy');ensureEconomy();assetState('smithy').condition=95;";
+
+test('v37 new life has version 37 and safely normalized empty workshop',()=>{
+ const {run}=game();assert.equal(run('s.version'),37);
+ assert.equal(run('ensureWorkshop().delivered'),0);assert.equal(run('ensureWorkshop().orders.length'),0);
+ assert.equal(run('ensureWorkshop().materials.iron'),0);
+});
+test('v37 workshop actions require actual ownership and adult age',()=>{
+ const {run}=game();run(setup+"window.__no=workshopIssue('stock','iron');s.assets.push('smithy');s.age=16;window.__young=accessIssue({kind:'workshop',id:'stock',targetId:'iron'});");
+ assert.ok(run('__no.includes("Demir Ocağı")'));assert.ok(run('__young.includes("18")'));
+});
+test('v37 material supply is paid, consumes one month and increases specific stock',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__cash=s.wealth;window.__months=s.monthsRemaining;window.__ok=workshopAction('stock','iron');");
+ assert.equal(run('__ok'),true);assert.equal(run('ensureWorkshop().materials.iron'),4);
+ assert.ok(run('__cash-s.wealth>=6'));assert.equal(run('__months-s.monthsRemaining'),1);
+ assert.ok(run('ensureEconomy().ledger.some(x=>x.kind==="workshop"&&x.amount===-6)'));
+});
+test('v37 buying one material does not conjure unrelated inputs',()=>{
+ const {run}=game();run(setup+workshopFixture+"workshopAction('stock','iron');");
+ assert.equal(run('ensureWorkshop().materials.charcoal'),0);assert.equal(run('ensureWorkshop().materials.leather'),0);
+});
+test('v37 each recipe requires actual materials before forging',()=>{
+ const {run}=game();run(setup+workshopFixture+"workshopAction('take','nal');window.__o=ensureWorkshop().orders[0];window.__why=workshopIssue('forge',__o.id);");
+ assert.ok(run('__why.includes("malzeme")'));
+});
+test('v37 real customer contract stores identity, deadline, prepayment and explicit status',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__cash=s.wealth;workshopAction('take','nal');window.__o=ensureWorkshop().orders[0];");
+ assert.equal(run('__o.status'),'active');assert.equal(run('__o.price>__o.deposit'),true);
+ assert.equal(run('__o.deadline-__o.createdSerial'),6);
+ assert.ok(run('npcById(__o.clientId)!==null'));
+});
+test('v37 open order limit prevents infinite prepayment spam',()=>{
+ const {run}=game();run(setup+workshopFixture+"workshopAction('take','nal');s.pendingEventId=null;s.pendingDecision=null;workshopAction('take','mizrak');window.__why=workshopIssue('take','kilic');");
+ assert.equal(run('ensureWorkshop().orders.filter(x=>x.status==="active").length'),2);
+ assert.ok(run('__why.includes("en fazla iki")'));
+});
+test('v37 forging consumes the real recipe and produces a unique quality-graded item',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=5;__w.materials.charcoal=3;workshopAction('take','nal');s.pendingEventId=null;s.pendingDecision=null;window.__o=__w.orders[0];workshopAction('forge',__o.id);");
+ assert.equal(run('__w.materials.iron'),3);assert.equal(run('__w.materials.charcoal'),2);
+ assert.equal(run('__w.items.length'),1);assert.equal(run('__w.items[0].recipe'),'nal');
+ assert.ok(run('__w.items[0].quality>=0&&__w.items[0].quality<=100'));
+});
+test('v37 forging once cannot produce duplicate items for the same order',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=8;__w.materials.charcoal=4;workshopAction('take','nal');s.pendingEventId=null;s.pendingDecision=null;window.__o=__w.orders[0];workshopAction('forge',__o.id);window.__why=workshopIssue('forge',__o.id);");
+ assert.ok(run('__why.includes("zaten")'));assert.equal(run('__w.items.length'),1);
+});
+test('v37 delivery pays the remainder and closes order only once',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=4;__w.materials.charcoal=2;workshopAction('take','nal');s.pendingEventId=null;s.pendingDecision=null;window.__o=__w.orders[0];workshopAction('forge',__o.id);s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=12;window.__before=s.wealth;window.__pay=__o.price-__o.deposit;workshopAction('deliver',__o.id);window.__why=workshopIssue('deliver',__o.id);");
+ assert.equal(run('__o.status'),'delivered');assert.equal(run('__w.delivered'),1);
+ assert.equal(run('__w.items.length'),0);assert.ok(run('s.wealth>=__before+__pay-4'));
+ assert.ok(run('__why.includes("açık değil")'));
+});
+test('v37 low skill creates a defective product and rework consumes additional stock',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=7;__w.materials.charcoal=5;s.skills.craft=0;assetState('smithy').condition=28;workshopAction('take','kilic');s.pendingEventId=null;s.pendingDecision=null;window.__o=__w.orders[0];workshopAction('forge',__o.id);window.__old=__w.items[0].quality;window.__stock=__w.materials.iron;s.pendingEventId=null;s.pendingDecision=null;workshopAction('rework',__o.id);");
+ assert.ok(run('__old<__o.minQuality'));assert.equal(run('__w.materials.iron'),run('__stock-1'));
+ assert.ok(run('__w.items[0].quality>__old'));assert.equal(run('__w.items.length'),1);
+});
+test('v37 missing delivery deadline cancels outstanding orders and damages client trust',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();workshopAction('take','nal');window.__o=__w.orders[0];window.__n=npcById(__o.clientId);window.__before=__n.bonds.trust;workshopMonthTick(currentMonth()+7);");
+ assert.equal(run('__o.status'),'failed');assert.equal(run('__w.failed'),1);
+ assert.ok(run('__n.bonds.trust<__before'));assert.equal(run('workshopIssue("deliver",__o.id).includes("açık değil")'),true);
+});
+test('v37 workshop with unfinished orders cannot be sold for exploit',()=>{
+ const {run}=game();run(setup+workshopFixture+"workshopAction('take','nal');s.pendingEventId=null;s.pendingDecision=null;window.__why=accessIssue({kind:'asset',id:'smithy',sell:true});");
+ assert.ok(run('__why.includes("siparişlerini")'));
+});
+test('v37 blacksmithy sale clears material stocks but preserves the completed ledger',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=9;__w.history.push({year:1,note:'önceki iş'});sellAsset('smithy');");
+ assert.equal(run('s.assets.includes("smithy")'),false);assert.equal(run('ensureWorkshop().materials.iron'),0);
+ assert.ok(run('ensureWorkshop().history.some(x=>x.note==="önceki iş")'));
+});
+test('v37 hiring a real NPC apprentice spends wealth and puts them in an actual workshop role',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__n=s.siblings[0];__n.alive=true;__n.age=18;__n.rel=80;__n.lifeState.status='normal';window.__cash=s.wealth;workshopAction('hire',__n.id);");
+ assert.equal(run('ensureWorkshop().apprenticeId'),run('__n.id'));
+ assert.equal(run('__n.role'),'Demirci Çırağı');assert.ok(run('__cash-s.wealth>=3'));
+});
+test('v37 apprentice work improves their craft skill and quarter pays wages',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__n=s.siblings[0];__n.alive=true;__n.age=18;__n.rel=80;__n.skills.craft=12;workshopAction('hire',__n.id);window.__oldSkill=__n.skills.craft;window.__before=__n.wealth;workshopMonthTick(2);workshopMonthTick(3);");
+ assert.ok(run('__n.skills.craft>__oldSkill'));
+ assert.ok(run('__n.wealth>=__before+1'));
+ assert.equal(run('ensureWorkshop().apprentices.at(-1).months>=2'),true);
+});
+test('v37 apprenticeship graduation creates a skilled NPC Demirci with lasting record',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__n=s.siblings[0];__n.alive=true;__n.age=18;__n.rel=80;__n.skills.craft=40;workshopAction('hire',__n.id);window.__rec=ensureWorkshop().apprentices.at(-1);__rec.months=11;workshopMonthTick(2);");
+ assert.equal(run('__n.role'),'Demirci');assert.equal(run('ensureWorkshop().apprenticeId'),null);
+ assert.equal(run('__rec.status'),'graduated');assert.ok(run('__n.roleHistory.some(x=>x.source==="workshop-graduation")'));
+});
+test('v37 unpaid apprentice chooses to leave and records the relationship consequence',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__n=s.siblings[0];__n.alive=true;__n.age=18;__n.rel=80;workshopAction('hire',__n.id);window.__rec=ensureWorkshop().apprentices.at(-1);__rec.months=2;s.wealth=0;workshopMonthTick(2);");
+ assert.equal(run('__rec.status'),'left');assert.equal(run('ensureWorkshop().apprenticeId'),null);
+ assert.ok(run('ensureWorkshop().history.some(x=>x.type==="unpaid")'));
+});
+test('v37 inherited smithy retains materials and live customer obligations, not its apprentice',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=6;workshopAction('take','nal');window.__order=__w.orders[0];window.__child=normalizeNPC({name:'Varis',gender:'male',age:21,alive:true,type:'Çocuk',birthYear:s.year+s.age-21,rel:88},'Çocuk');s.children=[__child];s.pendingEventId=null;s.pendingDecision=null;die();continueAsHeir(0);");
+ assert.equal(run('s.lastInheritance.workshopInherited'),true);
+ assert.equal(run('s.workshop.materials.iron'),6);
+ assert.equal(run('s.workshop.orders[0].id'),run('__order.id'));
+ assert.equal(run('s.workshop.apprenticeId'),null);
+});
+test('v37 non inheritor never receives free smithy equipment and stock',()=>{
+ const {run}=game();run(setup+workshopFixture+"ensureWorkshop().materials.iron=6;window.__first=normalizeNPC({name:'Heir',gender:'male',age:22,alive:true,type:'Çocuk',birthYear:s.year+s.age-22,rel:80},'Çocuk');window.__second=normalizeNPC({name:'Other',gender:'female',age:20,alive:true,type:'Çocuk',birthYear:s.year+s.age-20,rel:80},'Çocuk');s.children=[__first,__second];s.will=__first.id;s.pendingEventId=null;s.pendingDecision=null;die();continueAsHeir(1);");
+ assert.equal(run('s.lastInheritance.workshopInherited'),false);
+ assert.equal(run('ensureWorkshop().materials.iron'),0);
+});
+test('v37 completed order and materials survive save/load without an extra payment',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=5;workshopAction('take','nal');window.__id=__w.orders[0].id;window.__money=s.wealth;save();load();");
+ assert.equal(run('workshopOrderById(__id).status'),'active');
+ assert.equal(run('ensureWorkshop().materials.iron'),5);
+ assert.equal(run('s.wealth'),run('__money'));
+});
+test('v37 v36 saves migrate without losing old economic assets',()=>{
+ const {run,storage}=game();run(setup+"s.age=30;s.assets.push('smithy');s.version=36;delete s.workshop;save();load();");
+ assert.equal(run('s.version'),37);assert.ok(storage.has('yazgi_before_v37'));
+ assert.equal(run('s.assets.includes("smithy")'),true);assert.equal(run('ensureWorkshop().orders.length'),0);
+});
