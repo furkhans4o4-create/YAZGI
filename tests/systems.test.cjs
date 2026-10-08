@@ -1064,7 +1064,7 @@ test('v38 road losses remove real stock, record costs and do not create negative
  assert.ok(run('ensureCaravanTrade().history.some(x=>x.type==="loss")'));
 });
 test('v38 caravan shares cannot be sold when cargo is on board or away',()=>{
- const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'iron',qty:1,unitCost:6}];window.__blocked=accessIssue({kind:'asset',id:'caravan_share',sell:true});caravanAction('depart','river');window.__away=accessIssue({kind:'asset',id:'caravan_share',sell:true});");
+ const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'iron',qty:1,unitCost:6}];window.__blocked=accessIssue({kind:'asset',id:'caravan_share',sell:true});caravanAction('depart','river');s.pendingEventId=null;s.pendingDecision=null;window.__away=accessIssue({kind:'asset',id:'caravan_share',sell:true});");
  assert.ok(run('__blocked.includes("kervanı")'));assert.ok(run('__away.includes("kervanı")'));
 });
 test('v38 save/load preserves goods, original costs, journey status and locked prices',()=>{
