@@ -4615,6 +4615,7 @@ function ensureCaravanTrade(){
  t.routeId=CARAVAN_ROUTES[t.routeId]?t.routeId:null;
  if(t.stage!=='home'&&!t.routeId)t.stage='home';
  t.arrivalSerial=Math.max(0,Math.floor(t.arrivalSerial||0));
+ t.lastTravelSerial=Number.isFinite(t.lastTravelSerial)?t.lastTravelSerial:null;
  t.guard=!!t.guard;
  t.prices=t.prices&&typeof t.prices==='object'&&!Array.isArray(t.prices)?t.prices:{};
  for(const key of Object.keys(CARAVAN_GOODS))t.prices[key]=Math.max(1,Math.floor(t.prices[key]||CARAVAN_GOODS[key].cost));
@@ -4700,8 +4701,9 @@ function caravanAction(mode,id=null,extra=null){
 }
 function caravanMonthTick(){
  const t=ensureCaravanTrade();
- if(!['outbound','returning'].includes(t.stage))return;
+ if(!['outbound','returning'].includes(t.stage)||t.lastTravelSerial===lifeSerial())return;
  const route=CARAVAN_ROUTES[t.routeId];if(!route)return;
+ t.lastTravelSerial=lifeSerial();
  // Tek ayda bir kez uygulanan risk; sefer kaydı ve tükenen gerçek stok kalıcıdır.
  const risk=Math.max(.015,route.risk-(t.guard?.085:0)-(statePolicyActive('caravan_guard')?.025:0)-(s.skills.trade||0)/1000);
  if(t.cargo.length&&Math.random()<risk){
@@ -4813,6 +4815,7 @@ function passiveAssetQuarter(id,month){
  }else if(id==='smithy'&&s.skills.craft>=40){
   if(Math.random()<.1){gain=-1;st.losses++;}else gain=Math.max(0,Math.round(rng(1,4)*(.65+e.craftDemand/100))+(statePolicyActive('craft_patronage')?1:0));
  }else if(id==='caravan_share'){
+  if(ensureCaravanTrade().stage!=='home')return 0;
   const guard=statePolicyActive('caravan_guard')?0.08:0;if(Math.random()<Math.max(.06,.22-guard)){gain=-rng(1,5);st.losses++;}else gain=Math.max(0,Math.round(rng(1,5)*(.6+e.tradeDemand/100)));
  }
  if(gain){s.wealth=Math.max(0,s.wealth+gain);if(gain>0)st.profits+=gain;economyLedger('asset',gain,id+' dönem getirisi');}
@@ -5117,7 +5120,7 @@ function accessIssue(a){
  else if(a.kind==='will'){min=18;if(!s.children.some(x=>x.alive))return 'Yaşayan çocuğun yok.';}
  else if(a.kind==='familyConflict'){min=10;const issue=familyConflictActionIssue(a.id,a.mode);if(issue)return issue;}
  else if(a.kind==='lifePurpose'){min=16;const issue=lifePurposeIssue(a.id,a.goal);if(issue)return issue;}
- else if(a.kind==='venture'){min=18;const asset={herd:'flock',forge:'smithy',caravan:'caravan_share'}[a.id];if(!asset||!s.assets.includes(asset))return 'Önce ilgili varlığı edinmelisin.';if(assetState(asset).condition<20)return 'Önce bu varlığın bakımını yapmalısın.';}
+ else if(a.kind==='venture'){min=18;if(a.id==='caravan')return 'Kervan yönetimi artık Kervan Ticareti bölümünden yapılır.';const asset={herd:'flock',forge:'smithy',caravan:'caravan_share'}[a.id];if(!asset||!s.assets.includes(asset))return 'Önce ilgili varlığı edinmelisin.';if(assetState(asset).condition<20)return 'Önce bu varlığın bakımını yapmalısın.';}
  else if(a.kind!=='wait')return 'Eylem bulunamadı.';
  return s.age<min?`${min} yaşında açılır.`:'';
 }
@@ -5528,7 +5531,7 @@ function renderActivities(){
 }
 function renderAssets(){
  ensureEconomy();ensureHousing();
- $('tab-varlik').innerHTML=housingSummaryHtml()+economySummaryHtml()+creditSummaryHtml()+workshopSummaryHtml()+caravanTradeSummaryHtml()+horseSummaryHtml()+`<h3 class="sectionTitle">Pazar</h3><div class="grid2">${D.assets.filter(a=>!s.assets.includes(a.id)).map(a=>actionButton(a.icon+' '+a.name,{kind:'asset',id:a.id},`buyAsset('${a.id}')`,assetBuyPrice(a.id)+' servet • '+ASSET_AGES[a.id]+' yaş • fiyat pazara göre değişir')).join('')}</div><h3>Sahip oldukların</h3><div class="grid2">${s.assets.map(id=>{if(id==='horse')return '';const a=D.assets.find(x=>x.id===id);if(!a)return '';const st=assetState(id);return '<div class="card"><h3>'+a.icon+' '+a.name+'</h3><p>Durum '+st.condition+'/100 • Satış '+assetSaleValue(id)+' servet</p><div class="grid2">'+actionButton('Bakım yap',{kind:'maintenance',id},`maintainAsset('${id}')`,maintenanceCost(id)+' servet')+actionButton('Takas et',{kind:'asset',id,sell:true},`sellAsset('${id}')`,'Pazar değeri '+assetSaleValue(id))+'</div></div>';}).join('')}</div><h3>Üretim</h3><div class="grid2">${[['herd','Sürüyü yönet','flock'],['forge','Ocakta üret','smithy'],['caravan','Kervan payını yönet','caravan_share']].map(([id,n,a])=>actionButton(n,{kind:'venture',id},`manageVenture('${id}')`,s.assets.includes(a)?'Durum '+assetState(a).condition+'/100 • sonuç garanti değil':'İlgili varlık gerekli')).join('')}</div>`;
+ $('tab-varlik').innerHTML=housingSummaryHtml()+economySummaryHtml()+creditSummaryHtml()+workshopSummaryHtml()+caravanTradeSummaryHtml()+horseSummaryHtml()+`<h3 class="sectionTitle">Pazar</h3><div class="grid2">${D.assets.filter(a=>!s.assets.includes(a.id)).map(a=>actionButton(a.icon+' '+a.name,{kind:'asset',id:a.id},`buyAsset('${a.id}')`,assetBuyPrice(a.id)+' servet • '+ASSET_AGES[a.id]+' yaş • fiyat pazara göre değişir')).join('')}</div><h3>Sahip oldukların</h3><div class="grid2">${s.assets.map(id=>{if(id==='horse')return '';const a=D.assets.find(x=>x.id===id);if(!a)return '';const st=assetState(id);return '<div class="card"><h3>'+a.icon+' '+a.name+'</h3><p>Durum '+st.condition+'/100 • Satış '+assetSaleValue(id)+' servet</p><div class="grid2">'+actionButton('Bakım yap',{kind:'maintenance',id},`maintainAsset('${id}')`,maintenanceCost(id)+' servet')+actionButton('Takas et',{kind:'asset',id,sell:true},`sellAsset('${id}')`,'Pazar değeri '+assetSaleValue(id))+'</div></div>';}).join('')}</div><h3>Üretim</h3><div class="grid2">${[['herd','Sürüyü yönet','flock'],['forge','Ocakta üret','smithy']].map(([id,n,a])=>actionButton(n,{kind:'venture',id},`manageVenture('${id}')`,s.assets.includes(a)?'Durum '+assetState(a).condition+'/100 • sonuç garanti değil':'İlgili varlık gerekli')).join('')}</div>`;
 }
 function familyCard(n,group,index){
  normalizeNPC(n,n.type);
