@@ -685,3 +685,101 @@ test('v34 repeated year updates cannot change already completed individual achie
  const {run}=game();run(setup+npcAspFixture+"__a.stage=3;__a.status='completed';__a.effort=99;window.__history=__a.milestones.length;npcAspirationYearTick(__n,s.year+s.age);");
  assert.equal(run('__a.stage'),3);assert.equal(run('__a.milestones.length'),run('__history'));
 });
+
+
+const creditFixture="s.age=30;s.health=100;s.prestige=80;s.wealth=90;s.monthsRemaining=12;s.pendingEventId=null;s.pendingDecision=null;Object.keys(s.skills).forEach(k=>s.skills[k]=80);s.credit=null;";
+
+test('v35 fresh life has a normalized zero-debt register separate from ordinary wealth',()=>{
+ const {run}=game();assert.equal(run('s.version'),35);
+ assert.equal(run('creditTotal()'),0);assert.equal(run('creditOpen().length'),0);
+ assert.ok(run('creditSummaryHtml().includes("Oba Emaneti")'));
+});
+test('v35 oba emanet gives principal and records the larger fixed repayment obligation',()=>{
+ const {run}=game();run(setup+creditFixture+"window.__before=s.wealth;window.__rights=s.monthsRemaining;window.__ok=creditAction('borrow','oba');window.__rec=creditOpen()[0];");
+ assert.equal(run('__ok'),true);assert.equal(run('__rec.principal'),16);assert.equal(run('__rec.fee'),4);
+ assert.equal(run('__rec.balance'),20);assert.equal(run('s.wealth-__before'),16);assert.equal(run('__rights-s.monthsRemaining'),1);
+});
+test('v35 repeated borrowing in the same season is prevented by a three-month cooldown',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');s.pendingEventId=null;s.pendingDecision=null;window.__why=creditBorrowIssue('oba');");
+ assert.ok(run('__why.includes("üç ay")'));
+});
+test('v35 loans have an active contract limit of two and cannot be spammed for free wealth',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=12;ensureCredit().lastBorrowAt-=4;creditAction('borrow','oba');window.__why=creditBorrowIssue('oba');");
+ assert.equal(run('creditOpen().length'),2);assert.ok(run('__why.includes("en fazla iki")'));
+});
+test('v35 monthly repayment is triggered only from the following month and only once per month',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');window.__rec=creditOpen()[0];window.__old=__rec.balance;window.__cash=s.wealth;creditMonthTick(1);window.__borrowMonth=__rec.balance;creditMonthTick(2);window.__after=__rec.balance;creditMonthTick(2);");
+ assert.equal(run('__borrowMonth'),run('__old'));assert.ok(run('__after<__old'));
+ assert.equal(run('__rec.balance'),run('__after'));assert.ok(run('s.wealth<__cash'));
+});
+test('v35 scheduled part payment is insufficient and counts as a late month',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');window.__rec=creditOpen()[0];s.wealth=1;creditMonthTick(2);window.__after=__rec.balance;");
+ assert.equal(run('__rec.missed'),1);assert.equal(run('s.wealth'),0);
+ assert.ok(run('__after>0'));
+});
+test('v35 three consecutive missed monthly payments cause default and a real trust penalty',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');window.__rec=creditOpen()[0];window.__rel=ensureCommunityReputation().reliability;s.wealth=0;for(let m=2;m<=4;m++)creditMonthTick(m);");
+ assert.equal(run('__rec.status'),'defaulted');assert.equal(run('__rec.missed'),3);assert.equal(run('ensureCredit().defaults'),1);
+ assert.ok(run('ensureCommunityReputation().reliability<__rel'));
+});
+test('v35 defaulted contracts remain collectible instead of silently disappearing',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');window.__rec=creditOpen()[0];s.wealth=0;for(let m=2;m<=4;m++)creditMonthTick(m);window.__balance=__rec.balance;s.wealth=5;s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=12;creditAction('pay',__rec.id,'five');");
+ assert.equal(run('__rec.status'),'defaulted');assert.ok(run('__rec.balance<__balance'));assert.equal(run('creditOpen().length'),1);
+});
+test('v35 pazar capital requires collateral and increases obligations without granting the asset for free',()=>{
+ const {run}=game();run(setup+creditFixture+"window.__bad=creditBorrowIssue('pazar','flock');s.assets.push('flock');ensureEconomy();creditAction('borrow','pazar','flock');window.__rec=creditOpen()[0];");
+ assert.ok(run('__bad.includes("rehin")'));assert.equal(run('__rec.pledge'),'flock');
+ assert.equal(run('__rec.principal'),30);assert.equal(run('__rec.balance'),38);
+ assert.equal(run('s.assets.includes("flock")'),true);
+});
+test('v35 pledged property cannot be sold before clearing its agreement',()=>{
+ const {run}=game();run(setup+creditFixture+"s.assets.push('flock');ensureEconomy();creditAction('borrow','pazar','flock');window.__why=accessIssue({kind:'asset',id:'flock',sell:true});");
+ assert.ok(run('__why.includes("rehinli")'));
+});
+test('v35 foreclosing collateral removes the property, reduces outstanding balance and preserves a default record',()=>{
+ const {run}=game();run(setup+creditFixture+"s.assets.push('flock');ensureEconomy();creditAction('borrow','pazar','flock');window.__rec=creditOpen()[0];window.__before=__rec.balance;s.wealth=0;for(let m=2;m<=4;m++)creditMonthTick(m);");
+ assert.equal(run('s.assets.includes("flock")'),false);assert.ok(run('__rec.balance<__before'));
+ assert.equal(run('ensureCredit().foreclosures'),1);
+ assert.ok(run('ensureCredit().history.some(x=>x.type==="foreclosure")'));
+});
+test('v35 kin credit transfers actual money from a real trusted NPC and repays that NPC',()=>{
+ const {run}=game();run(setup+creditFixture+"window.__kin=s.parents[0];__kin.age=48;__kin.alive=true;__kin.wealth=80;__kin.rel=80;normalizeBonds(__kin);__kin.bonds.trust=85;window.__oldKin=__kin.wealth;creditAction('borrow','kin',__kin.id);window.__rec=creditOpen()[0];window.__afterKin=__kin.wealth;s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=12;creditAction('pay',__rec.id,'five');");
+ assert.equal(run('__oldKin-__afterKin'),12);assert.equal(run('__rec.lenderId'),run('__kin.id'));
+ assert.equal(run('__kin.wealth'),run('__afterKin+5'));
+});
+test('v35 a completely repaid debt closes the promise and releases collateral',()=>{
+ const {run}=game();run(setup+creditFixture+"s.assets.push('flock');ensureEconomy();creditAction('borrow','pazar','flock');window.__rec=creditOpen()[0];s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=12;creditAction('pay',__rec.id,'all');");
+ assert.equal(run('__rec.balance'),0);assert.equal(run('__rec.status'),'repaid');assert.equal(run('__rec.pledge'),null);
+ assert.equal(run('ensureCredit().repaid'),1);assert.equal(run('creditPledgeInUse("flock")'),false);
+});
+test('v35 debt payment cannot take an extra action month without available wealth',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');window.__rec=creditOpen()[0];s.wealth=0;s.pendingEventId=null;s.pendingDecision=null;window.__rights=s.monthsRemaining;window.__ok=creditAction('pay',__rec.id,'five');");
+ assert.equal(run('__ok'),false);assert.equal(run('__rights'),run('s.monthsRemaining'));
+});
+test('v35 extension is a one-time agreement with a fee and a longer duration',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');window.__rec=creditOpen()[0];s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=12;window.__prior=__rec.balance;creditAction('extend',__rec.id);window.__second=creditIssue('extend',__rec.id);");
+ assert.equal(run('__rec.balance'),run('__prior+3'));assert.equal(run('__rec.duration'),18);
+ assert.ok(run('__second.includes("daha önce")'));assert.equal(run('ensureCredit().extensions'),1);
+});
+test('v35 inherited estate settles existing obligations before dividing remaining wealth',()=>{
+ const {run}=game();run(setup+creditFixture+"creditAction('borrow','oba');s.wealth=10;window.__child=normalizeNPC({name:'Varis',gender:'male',age:20,alive:true,type:'Çocuk',birthYear:s.year+s.age-20,rel:80},'Çocuk');s.children=[__child];s.pendingEventId=null;s.pendingDecision=null;s.military.active=false;die();window.__outstanding=s.deathRecord.credit.totalOutstanding;continueAsHeir(0);");
+ assert.equal(run('__outstanding'),20);assert.equal(run('s.lastInheritance.creditEstate.original'),20);
+ assert.equal(run('s.lastInheritance.creditEstate.paid'),10);
+ assert.equal(run('s.wealth'),0);
+ assert.equal(run('s.lastInheritance.creditEstate.unpaid'),10);
+});
+test('v35 credit debt survives saving/loading with exact remaining balance and lender links',()=>{
+ const {run}=game();run(setup+creditFixture+"window.__kin=s.parents[0];__kin.age=48;__kin.alive=true;__kin.wealth=80;__kin.rel=80;normalizeBonds(__kin);__kin.bonds.trust=85;creditAction('borrow','kin',__kin.id);window.__id=creditOpen()[0].id;save();load();");
+ assert.equal(run('creditById(__id).balance'),12);
+ assert.equal(run('creditById(__id).lenderId'),run('__kin.id'));
+});
+test('v35 migrating a v34 save initializes credit safely and creates dedicated backup',()=>{
+ const {run,storage}=game();run(setup+"s.version=34;delete s.credit;save();load();");
+ assert.equal(run('s.version'),35);assert.ok(storage.has('yazgi_before_v35'));
+ assert.equal(run('creditTotal()'),0);
+});
+test('v35 a seized debt is not counted as a voluntarily honored promise',()=>{
+ const {run}=game();run(setup+creditFixture+"s.assets.push('caravan_share');ensureEconomy();creditAction('borrow','pazar','caravan_share');window.__rec=creditOpen()[0];window.__prior=ensureCredit().repaid;__rec.balance=1;s.wealth=0;for(let m=2;m<=4;m++)creditMonthTick(m);");
+ assert.equal(run('creditOpen().length'),0);assert.equal(run('__rec.status'),'seized');
+ assert.equal(run('ensureCredit().repaid'),run('__prior'));
+});

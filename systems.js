@@ -3958,7 +3958,7 @@ function ensureCredit(){
   x.balance=Math.max(0,Math.round(x.balance||0));x.duration=Math.max(1,Math.round(x.duration||12));
   x.paid=Math.max(0,Math.round(x.paid||0));x.missed=Math.max(0,Math.round(x.missed||0));x.lateTotal=Math.max(0,Math.round(x.lateTotal||0));
   x.startSerial=Number.isFinite(x.startSerial)?x.startSerial:lifeSerial();x.lastTick=Number.isFinite(x.lastTick)?x.lastTick:null;
-  x.status=['active','defaulted','repaid','estate'].includes(x.status)?x.status:'active';
+  x.status=['active','defaulted','repaid','seized','estate'].includes(x.status)?x.status:'active';
   x.lenderId=x.lenderId||null;x.pledge=CREDIT_COLLATERAL.includes(x.pledge)?x.pledge:null;x.extended=!!x.extended;
   x.estateUnpaid=Math.max(0,Math.round(x.estateUnpaid||0));
   x.timeline=Array.isArray(x.timeline)?x.timeline.slice(0,20):[];
@@ -4026,7 +4026,7 @@ function creditPay(rec,amount,mode='voluntary'){
  if(sum<=0)return 0;
  s.wealth-=sum;rec.balance-=sum;rec.paid+=sum;
  if(rec.lenderId){const lender=npcById(rec.lenderId);if(lender?.alive)lender.wealth+=sum;}
- if(mode==='voluntary'||sum>=1)rec.missed=0;
+ if(mode==='voluntary')rec.missed=0;
  economyLedger('credit',-sum,'Emanet geri ödemesi');creditRecord('payment',rec,mode+' ödeme',sum);
  if(rec.balance===0)creditClose(rec);
  return sum;
@@ -4045,7 +4045,7 @@ function creditDefault(rec){
   rec.pledge=null;
  }
  creditRecord('default',rec,'Üç aylık ödeme aksadı; borç takibe düştü.',rec.balance);
- if(rec.balance===0)creditClose(rec);
+ if(rec.balance===0){rec.status='seized';creditRecord('seized',rec,'Rehin mahsup edildi; temerrütle kapandı, iyi ödeme olarak sayılmadı.',0);}
  return true;
 }
 function creditAction(mode,id,extra=null){
