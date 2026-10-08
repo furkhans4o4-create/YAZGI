@@ -149,7 +149,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 36’ya taşınır; sürüm değişiminde önce `yazgi_before_v36` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 37’ye taşınır; sürüm değişiminde önce `yazgi_before_v37` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 
 ### v30 — Aile İçi Taraflaşma, Hısım Gerilimi ve Kalıcı Aile Meseleleri
@@ -238,6 +238,18 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Sonuçlar **rakip kimliği, adı, skorlar, yıl ve aşama** ile kaydedilir. Başarılı müsabakalar ilgili becerileri, itibarı ve bazı kariyer deneyimlerini artırır; güreşte hafif sakatlık riski bulunur. Rakipler de mücadeleyi ilişkilerinde hatırlar.
 - Üç galibiyetle **toy birincisi** olursun; servet ve ün ödülü, yıl/yol bazında kalıcı unvan arşivi kazanırsın. Mağlubiyet veya sezonun bitmesi eleme yolunu kapatır. Aynı yarışa aynı yıl tekrar girilemez.
 - Müsabaka geçmişi Faaliyetler ekranında; birincilikler, soy devamında ataların hatırası olarak görüntülenir. Oyun kayıtları v36'ya geçer ve `yazgi_before_v36` yedeği alınır.
+
+
+### v37 — Demir Ocağı: Gerçek Atölye ve Siparişler
+
+- Oyuncu isteği ve BitLife işletme geri bildirimleri doğrultusunda, mevcut `smithy` Demir Ocağı artık yalnız rastgele “ocakta üret” tuşundan ibaret değil: **kalıcı malzeme stoğu, gerçek NPC müşteriler, ürün kalitesi, zamanlı sözleşmeler ve çırak yetiştirme** var.
+- Demir cevheri, ocak kömürü ve deri/kayış ayrı ayrı ve ücretli alınır. At nalı takımı, mızrak ucu, kılıç ve kabza ürünlerinin **ayrı reçeteleri, kalite sınırları, teslim fiyatları** vardır.
+- En fazla iki açık sipariş alınabilir. Sözleşme **müşteri kimliği**, ürün, ön ödeme, 6 aylık teslim süresi ve üretim asgari kalitesiyle kaydedilir. Üretim gerçek stoktan malzeme tüketir; beceri, ocak durumu ve çırağın yardımı kaliteyi etkiler.
+- Düşük kalite kusurlu ürün sayılır. Ek demir/kömürle **yeniden dövme**, veya ürünü kabul edilecek kaliteye ulaştırarak teslim seçeneği bulunur. Ürün teslimi müşterinin güvenini ve demirci itibarını etkiler. **Süre geçerse** sipariş açık kalıp sonsuz para kazandırmaz; kapanır, mümkünse ön ödeme iade edilir, müşteri ilişkisi ve itibar zarar görür.
+- Aileden ve yakın çevreden **kimlikli NPC çırak** alınabilir. Üç ayda bir ücret ödenir, aylık zanaat bilgisi birikir; yeterli ay ve beceriyi tamamlayınca gerçek Demirci olur. Ücret ödenmezse ayrılır, ilişki zedelenir.
+- Sipariş veya çırak varken Demir Ocağı satılamaz; satılan boş atölyenin kullanılmayan malzemeleri yeni satın almada bedelsiz geri gelmez. Diğer varlıklar, kredi rehni ve Demirci kariyeri bozulmadan çalışır.
+- Oyuncu öldüğünde atölyenin teslim/aksama geçmişi kayda girer. Demir Ocağı gerçek miras olarak çocuğa bırakılırsa **malzeme, açık müşteri siparişleri ve atölye kayıtları korunur**; çırak otomatik sahiplenilmez. Diğer varislere ücretsiz atölye kopyalanmaz.
+- v36 kayıtları v37'ye yükseltilir ve `yazgi_before_v37` adlı önceki sürüm yedeği korunur.
 
 ### Dosyalar ve çalıştırma
 
