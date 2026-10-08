@@ -291,6 +291,16 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Oyunun kervan varlığına sahip kişiler için bölgesel pazar panosu arz/talep ve güncel krizleri gösterir. Pazar durumu ve işlem geçmişi kayıtta, kervan mirasında da korunur.
 - v40 kayıtları ilk yüklemede `yazgi_before_v41` ile yedeklenir; mevcut eski yedeklere dokunulmaz. 18 yeni regresyon testi eklendi; tüm paket 471 testten oluşur.
 
+### v42 — Ticaret Sözleşmeleri ve Teslimat Görevleri
+
+- 18 yaşını geçmiş Kervan Payı sahibi, obada gerçek NPC tüccarlardan (her pazarın yerleşik rakibinden) finansmanı olan teslimat teklifleri alabilir. Her teklif gerçek mal cinsi, miktarı, varış pazarı, ödül, teklif süresi ve alıcı NPC kimliği içerir.
+- Teklif aramak bir ay sürer ve en fazla altı ayda bir yinelenir. Oyuncu aynı anda tek sözleşme kabul edebilir. Tüccar ödülün tamamını kabul anında kendi servetinden emanete ayırır; oyuncuya mal veya para peşinen oluşturulmaz.
+- Oyuncu gerçek kervan yükünü satın alıp belirtilen pazara ulaştığında, yük miktarı yeterliyse bir aylık eylemle teslimatı tamamlar. Mal kervandan FIFO maliyet sırasıyla eksilir, aynı NPC'nin gerçek ambarına eklenir, ayrılmış ödül oyuncuya aktarılır. Mevcut ticaret ortaklığı komisyonu kâr üzerinden uygulanır.
+- Alıcı NPC sözleşme için ambar kapasitesi ayırır; diğer toptan ve otonom ticari alımları bu yeri dolduramaz. Aynı yükün veya sözleşmenin iki defa satılması engellenir.
+- Son tarih geçince tek defalık başarısızlık ve itibar etkisi işlenir; emanet para alıcıya geri döner. Alıcının ölmesi durumunda sözleşme oyuncuya ceza uygulanmadan kapanır.
+- Kervan payı açık sözleşme sürerken satılamaz. Oyuncunun ölümünde açık taahhüt cezasız kapanır; yeni kuşak yalnız geçmiş kayıtlara ve kendi yeni sözleşmelerine sahip olabilir.
+- Sözleşme geçmişi ve deadline kayıtlıdır. v41 kayıtları ilk yüklemede `yazgi_before_v42` yedeğiyle korunur. v42 için 20 yeni regresyon testi eklendi; toplam 491 test vardır.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.

@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=41,ADULT_AGE=18;
+const SAVE_VERSION=42,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -4776,7 +4776,8 @@ function caravanRivalCycle(month){
     r.lastSaleSerial=serial;caravanRivalJournal(r,'sell',id,price);
    }
   }
-  if(caravanRivalUnits(r)<8){
+  const reserved=t.contracts.active?.issuerId===n.id?t.contracts.active.qty:0;
+  if(caravanRivalUnits(r)<8-reserved){
    const id=goods[(r.cycles+routes.indexOf(routeId))%goods.length],cost=caravanBuyPrice(id);
    if(n.wealth>=cost){n.wealth-=cost;r.expenses+=cost;r.bought++;caravanRivalStockAdd(r,id,cost);caravanRivalJournal(r,'buy',id,-cost);
     caravanMarketExchange(routeId,id,1,'npcBuy');}
@@ -4794,7 +4795,8 @@ function caravanWholesaleIssue(id){
  if(!CARAVAN_GOODS[id]||!t.cargo.some(x=>x.goodId===id&&x.qty>0))return 'Bu maldan kervanda stok yok.';
  const r=t.competition[t.routeId],n=r?.npcId?npcById(r.npcId):null;
  if(!n?.alive)return 'Bu pazarda alıcı rakip yok.';
- if(caravanRivalUnits(r)>=8)return 'Rakibin ambarı dolu.';
+ const reserved=t.contracts.active?.issuerId===n.id?t.contracts.active.qty:0;
+ if(caravanRivalUnits(r)+reserved>=8)return 'Rakibin ambarı sözleşme yüküyle dolu.';
  if(n.wealth<caravanWholesalePrice(id))return 'Rakip tüccarın bu mala yetecek nakdi yok.';
  return '';
 }
@@ -4870,6 +4872,17 @@ function ensureCaravanTrade(){
  t.trip=t.trip&&typeof t.trip==='object'?t.trip:null;
  t.partnerId=typeof t.partnerId==='string'&&t.partnerId?t.partnerId:null;
  t.partnerHistory=Array.isArray(t.partnerHistory)?t.partnerHistory.slice(0,40):[];
+ t.contracts=t.contracts&&typeof t.contracts==='object'&&!Array.isArray(t.contracts)?t.contracts:{};
+ const c=t.contracts;
+ c.offers=Array.isArray(c.offers)?c.offers.filter(x=>x&&CARAVAN_ROUTES[x.routeId]&&CARAVAN_GOODS[x.goodId]&&
+  typeof x.id==='string'&&typeof x.issuerId==='string'&&Number.isFinite(x.reward)&&x.reward>0&&
+  Number.isFinite(x.qty)&&x.qty>=1&&x.qty<=8&&Number.isFinite(x.validUntil)).slice(0,3):[];
+ c.history=Array.isArray(c.history)?c.history.slice(0,40):[];
+ c.active=c.active&&CARAVAN_ROUTES[c.active.routeId]&&CARAVAN_GOODS[c.active.goodId]&&
+  typeof c.active.id==='string'&&typeof c.active.issuerId==='string'&&Number.isFinite(c.active.reward)&&c.active.reward>0&&
+  Number.isFinite(c.active.qty)&&c.active.qty>=1&&c.active.qty<=8&&Number.isFinite(c.active.deadlineSerial)?c.active:null;
+ for(const k of ['fulfilled','failed','nextId'])c[k]=Math.max(0,Math.floor(Number.isFinite(c[k])?c[k]:0));
+ c.lastSeekSerial=Number.isFinite(c.lastSeekSerial)?c.lastSeekSerial:null;
  t.markets=t.markets&&typeof t.markets==='object'&&!Array.isArray(t.markets)?t.markets:{};
  for(const routeId of Object.keys(CARAVAN_ROUTES)){
   const m=t.markets[routeId]&&typeof t.markets[routeId]==='object'&&!Array.isArray(t.markets[routeId])?t.markets[routeId]:{};
@@ -5031,13 +5044,148 @@ function caravanInheritance(old,share){
  if(!share.assets.includes('caravan_share'))return null;
  const t=ensureCaravanTrade(),inherited=JSON.parse(JSON.stringify(t));
  inherited.partnerId=null;
+ inherited.contracts.active=null;inherited.contracts.offers=[];
  inherited.inheritedRivals=old.careerContacts.filter(n=>n.alive&&n.statusFlags?.tradeRivalRoute&&
   Object.values(t.competition).some(v=>v.npcId===n.id)).map(n=>JSON.parse(JSON.stringify(n)));
  return inherited;
 }
 function caravanLegacySnapshot(){
- const t=ensureCaravanTrade();return {completed:t.completed,earned:t.earned,spent:t.spent,lost:t.lost,partnerPaid:t.partnerPaid,partners:t.partnerHistory.length,rivals:Object.keys(t.competition).length,ongoing:t.stage!=='home'};
+ const t=ensureCaravanTrade();return {completed:t.completed,earned:t.earned,spent:t.spent,lost:t.lost,partnerPaid:t.partnerPaid,partners:t.partnerHistory.length,rivals:Object.keys(t.competition).length,fulfilledContracts:t.contracts.fulfilled,failedContracts:t.contracts.failed,ongoing:t.stage!=='home'};
 }
+
+/* v42: Emanet ödüllü, gerçek NPC alıcılı, son tarihli kervan sözleşmeleri. */
+function caravanContractIssue(mode,id=null){
+ const t=ensureCaravanTrade(),c=t.contracts,now=lifeSerial();
+ if(!s.assets.includes('caravan_share'))return 'Önce Kervan Payı edinmelisin.';
+ if(s.age<18)return 'Teslimat sözleşmeleri 18 yaşında açılır.';
+ if(mode==='seek'){
+  if(t.stage!=='home')return 'Yeni sözleşmeler obada aranır.';
+  if(c.active)return 'Önce devam eden sözleşmeyi bitirmelisin.';
+  if(c.lastSeekSerial!==null&&now-c.lastSeekSerial<6)return 'Yeni teklif için altı ay geçmeli.';
+ }else if(mode==='accept'){
+  if(t.stage!=='home')return 'Sözleşmeler obada kabul edilir.';
+  if(c.active)return 'Aynı anda yalnız bir teslimat sözleşmesi olabilir.';
+  const q=c.offers.find(x=>x.id===id);if(!q)return 'Böyle bir teklif bulunamadı.';
+  if(now>q.validUntil)return 'Sözleşmenin teklif süresi doldu.';
+  const n=npcById(q.issuerId),r=t.competition[q.routeId];
+  if(!n?.alive||r?.npcId!==q.issuerId)return 'Sözleşmenin tüccarı artık ticaret yapmıyor.';
+  if(n.wealth<q.reward)return 'Tüccarın ödülü karşılayacak serveti yok.';
+  if(caravanRivalUnits(r)+q.qty>8)return 'Tüccarın ambarında yeterli yer yok.';
+ }else if(mode==='deliver'){
+  const q=c.active;if(!q||q.id!==id)return 'Etkin bir teslimat sözleşmesi yok.';
+  if(now>q.deadlineSerial)return 'Sözleşmenin teslim süresi doldu.';
+  if(t.stage!=='market'||t.routeId!==q.routeId)return 'Yükü sözleşmedeki varış pazarına götürmelisin.';
+  const n=npcById(q.issuerId),r=t.competition[q.routeId];
+  if(!n?.alive||r?.npcId!==q.issuerId)return 'Alıcı tüccara teslimat yapılamıyor.';
+  if(caravanRivalUnits(r)+q.qty>8)return 'Alıcı tüccarın ambarı dolu.';
+  if(t.cargo.filter(x=>x.goodId===q.goodId).reduce((sum,x)=>sum+x.qty,0)<q.qty)return 'Teslimat için yeterli gerçek yükün yok.';
+ }else return 'Bilinmeyen sözleşme eylemi.';
+ return '';
+}
+function caravanContractFinish(status,note){
+ const t=ensureCaravanTrade(),c=t.contracts,q=c.active;if(!q)return false;
+ const n=npcById(q.issuerId);
+ if(status!=='fulfilled'&&n)n.wealth=Math.max(0,Math.round(n.wealth||0))+q.reward;
+ if(status==='expired'){
+  s.prestige=clamp(s.prestige-4);
+  const cost=Math.min(2,s.wealth);s.wealth-=cost;
+  if(cost)economyLedger('caravanTrade',-cost,'Geciken sözleşme itibar gideri');
+  if(n?.alive)adjustNPC(n,{rel:-7,trust:-9,respect:-5,grudge:5},'Verilen ticaret sözü zamanında yerine getirilmedi.');
+  c.failed++;
+ }else if(status==='fulfilled')c.fulfilled++;
+ c.history.unshift({...q,status,closedSerial:lifeSerial(),note});c.history=c.history.slice(0,40);
+ c.active=null;caravanRecord('contract_'+status,note,{issuerId:q.issuerId,contractId:q.id});
+ return true;
+}
+function caravanContractMonthTick(){
+ const c=ensureCaravanTrade().contracts,now=lifeSerial();
+ c.offers=c.offers.filter(x=>x.validUntil>=now).slice(0,3);
+ if(!c.active)return;
+ const n=npcById(c.active.issuerId);
+ if(!n?.alive){caravanContractFinish('void','Tüccar öldü; sözleşme cezasız iptal edildi.');return;}
+ if(now>c.active.deadlineSerial)caravanContractFinish('expired','Teslimat süresi doldu; ticaret sözleşmesi başarısız oldu.');
+}
+function caravanContractAction(mode,id=null){
+ const issue=caravanContractIssue(mode,id);if(issue){notice(issue);return false;}
+ return performAction({kind:'caravanContract',id:mode,offerId:id},()=>{
+  const t=ensureCaravanTrade(),c=t.contracts;
+  if(mode==='seek'){
+   c.lastSeekSerial=lifeSerial();c.offers=[];
+   const goods=Object.keys(CARAVAN_GOODS);
+   for(const [i,routeId] of Object.keys(CARAVAN_ROUTES).entries()){
+    const n=caravanEnsureRival(routeId),r=t.competition[routeId];if(!n?.alive||!r)continue;
+    const goodId=goods[(i+c.nextId)%goods.length],quote=caravanQuote(routeId)[goodId];
+    let qty=routeId==='mountain'?2:1,reward=qty*(quote+3);
+    if(n.wealth<reward||caravanRivalUnits(r)+qty>8){qty=1;reward=quote+3;}
+    if(n.wealth<reward||caravanRivalUnits(r)+qty>8)continue;
+    c.offers.push({id:'cv42_'+c.nextId++,issuerId:n.id,routeId,goodId,qty,reward,
+     offeredSerial:lifeSerial(),validUntil:lifeSerial()+6});
+   }
+   caravanRecord('contract_seek',c.offers.length+' teslimat teklifi bulundu.');
+  }else if(mode==='accept'){
+   const offer=c.offers.find(x=>x.id===id),n=npcById(offer.issuerId);
+   n.wealth-=offer.reward;
+   c.active={...offer,acceptedSerial:lifeSerial(),
+    deadlineSerial:lifeSerial()+CARAVAN_ROUTES[offer.routeId].months+8};
+   c.offers=[];
+   caravanRecord('contract_accept',n.name+' için '+offer.qty+' '+CARAVAN_GOODS[offer.goodId].name+
+    ' teslimatı kabul edildi. '+offer.reward+' servet emanete alındı.',{issuerId:n.id,contractId:offer.id});
+  }else if(mode==='deliver'){
+   const q=c.active,n=npcById(q.issuerId),r=t.competition[q.routeId];
+   let need=q.qty,cost=0;
+   for(const lot of t.cargo){
+    if(lot.goodId!==q.goodId||need<=0)continue;
+    const used=Math.min(need,lot.qty);lot.qty-=used;need-=used;cost+=used*lot.unitCost;
+   }
+   t.cargo=t.cargo.filter(x=>x.qty>0);
+   for(let i=0;i<q.qty;i++)caravanRivalStockAdd(r,q.goodId,Math.max(1,Math.floor(q.reward/q.qty)));
+   r.bought+=q.qty;r.expenses+=q.reward;
+   caravanRivalJournal(r,'contractDelivery',q.goodId,-q.reward);
+   const partner=t.trip?.partnerId?npcById(t.trip.partnerId):null;
+   const commission=partner?Math.floor(Math.max(0,q.reward-cost)*.25):0;
+   s.wealth+=q.reward-commission;t.earned+=q.reward-commission;t.partnerPaid+=commission;
+   if(t.trip){t.trip.earned+=q.reward-commission;t.trip.partnerPaid=(t.trip.partnerPaid||0)+commission;}
+   if(partner){partner.wealth=Math.max(0,partner.wealth||0)+commission;
+    if(partner.alive)adjustNPC(partner,{trust:2,rel:2},'Sözleşme ortaklık payı teslim edildi.');}
+   adjustNPC(n,{rel:5,trust:8,respect:5},'Sözleşmedeki mallar zamanında teslim edildi.');
+   skillGain('trade',2);addExperience('trade');
+   economyLedger('caravanTrade',q.reward-commission,CARAVAN_GOODS[q.goodId].name+' teslimat ödülü');
+   caravanContractFinish('fulfilled',CARAVAN_GOODS[q.goodId].name+' teslim edildi; '+(q.reward-commission)+' servet alındı.');
+  }
+ },'Ticaret sözleşmeleri için bir ay ayırdın.');
+}
+function caravanContractSummaryHtml(){
+ if(!s.assets.includes('caravan_share'))return '';
+ const t=ensureCaravanTrade(),c=t.contracts,q=c.active,now=lifeSerial();
+ let html='<div class="card"><h3>📜 Ticaret Sözleşmeleri</h3><p>Tamamlanan '+c.fulfilled+' • Başarısız '+c.failed+
+ ' • Tek aktif sözleşme. Ödül kabulde gerçek tüccar servetinden ayrılır.</p>';
+ if(q){
+  const n=npcById(q.issuerId),loaded=t.cargo.filter(x=>x.goodId===q.goodId).reduce((v,x)=>v+x.qty,0);
+  html+='<p><b>'+safeText(n?.name||'Tüccar')+'</b> • '+safeText(CARAVAN_ROUTES[q.routeId].name)+
+   ' • '+safeText(CARAVAN_GOODS[q.goodId].name)+' ×'+q.qty+' • Ödül '+q.reward+
+   ' servet • Kalan '+Math.max(0,q.deadlineSerial-now)+' ay • Yük '+loaded+'/'+q.qty+'</p>';
+  html+=actionButton('Teslimatı tamamla',{kind:'caravanContract',id:'deliver',offerId:q.id},
+   'caravanContractAction("deliver",'+JSON.stringify(q.id)+')','Yalnız sözleşmedeki pazarda');
+ }else{
+  if(t.stage==='home')html+=actionButton('Yeni sözleşme ara',{kind:'caravanContract',id:'seek'},
+   'caravanContractAction("seek")','Altı ayda bir • bir eylem');
+  for(const offer of c.offers){
+   if(offer.validUntil<now)continue;
+   const n=npcById(offer.issuerId);
+   html+='<div class="memoryline">'+safeText(n?.name||'Tüccar')+' • '+
+    safeText(CARAVAN_ROUTES[offer.routeId].name)+' • '+safeText(CARAVAN_GOODS[offer.goodId].name)+
+    ' ×'+offer.qty+' • '+offer.reward+' servet • Teklife '+Math.max(0,offer.validUntil-now)+' ay</div>';
+   html+=actionButton('Sözleşmeyi kabul et',{kind:'caravanContract',id:'accept',offerId:offer.id},
+    'caravanContractAction("accept",'+JSON.stringify(offer.id)+')','Ödül emanete ayrılır');
+  }
+ }
+ if(c.history.length)html+='<h3 class="sectionTitle">Sözleşme geçmişi</h3><div class="memoryline">'+
+  c.history.slice(0,5).map(x=>safeText(CARAVAN_ROUTES[x.routeId]?.name||'Pazar')+' • '+
+   safeText(CARAVAN_GOODS[x.goodId]?.name||'Mal')+' ×'+x.qty+' • '+
+   (x.status==='fulfilled'?'Tamamlandı':x.status==='expired'?'Süre aşıldı':'İptal')).join('<br>')+'</div>';
+ return html+'</div>';
+}
+
 function caravanTradeSummaryHtml(){
  const t=ensureCaravanTrade();if(!s.assets.includes('caravan_share'))return '';
  const route=t.routeId?CARAVAN_ROUTES[t.routeId]:null;
@@ -5076,7 +5224,7 @@ function caravanTradeSummaryHtml(){
  if(t.voyages.length)html+='<h3 class="sectionTitle">Sefer geçmişi</h3><div class="memoryline">'+
   t.voyages.slice(0,5).map(x=>safeText(CARAVAN_ROUTES[x.routeId]?.name||'Kervan')+' • gelir '+x.earned+' • maliyet '+x.spent+' • net '+x.profit).join('<br>')+'</div>';
  if(t.history.length)html+='<div class="memoryline">'+t.history.slice(0,3).map(x=>safeText(x.note)).join('<br>')+'</div>';
- return html+'</div>'+caravanNetworkSummaryHtml()+caravanMarketSummaryHtml();
+ return html+'</div>'+caravanNetworkSummaryHtml()+caravanMarketSummaryHtml()+caravanContractSummaryHtml();
 }
 
 function ensureEconomy(){
@@ -5378,6 +5526,7 @@ function accessIssue(a){
   else if(a.kind==='caravanTrade'){min=18;const issue=caravanIssue(a.id,a.goodId,a.extra);if(issue)return issue;}
   else if(a.kind==='caravanNetwork'){min=18;const issue=caravanNetworkIssue(a.id,a.targetId);if(issue)return issue;}
   else if(a.kind==='caravanWholesale'){min=18;const issue=caravanWholesaleIssue(a.id);if(issue)return issue;}
+  else if(a.kind==='caravanContract'){min=18;const issue=caravanContractIssue(a.id,a.offerId);if(issue)return issue;}
  else if(a.kind==='toyContest'){min=12;const issue=toyIssue(a.id,a.contestType);if(issue)return issue;}
  else if(a.kind==='horseStable'){min=12;const issue=horseActionIssue(a.id,a.horseId,a.other);if(issue)return issue;}
  else if(a.kind==='asset'){
@@ -5385,7 +5534,7 @@ function accessIssue(a){
   if(a.sell&&!s.assets.includes(a.id))return 'Bu varlık sende yok.';
   if(a.sell&&creditPledgeInUse(a.id))return 'Bu varlık emanet için rehinli; önce borcunu kapat.';
   if(a.sell&&a.id==='smithy'&&!workshopCanSellSmithy())return 'Atölyenin açık siparişlerini tamamla ve çırağını serbest bırak.';
-   if(a.sell&&a.id==='caravan_share'&&(ensureCaravanTrade().stage!=='home'||ensureCaravanTrade().cargo.length))return 'Önce kervanı geri getir ve kalan yükü sat veya tüket.';
+   if(a.sell&&a.id==='caravan_share'&&(ensureCaravanTrade().stage!=='home'||ensureCaravanTrade().cargo.length||ensureCaravanTrade().contracts.active))return 'Önce kervanı geri getir ve kalan yükü sat veya tüket.';
   if(a.sell&&a.id==='yurt'&&ensureHousing().mode==='own_yurt')return 'Yaşadığın yurdu satmadan önce başka barınma düzenine geçmelisin.';
   if(!a.sell&&s.assets.includes(a.id))return 'Zaten sahipsin.';
   if(!a.sell&&s.wealth<assetBuyPrice(a.id))return `${assetBuyPrice(a.id)} servet gerekiyor.`;
@@ -5456,7 +5605,7 @@ function monthlyTick(month,action,allowEvent=true){
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
  tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);tickGuardianshipMonth(action);tickFriendshipMonth(action);tickWorkplaceMonth(action);horseMonthTick(month);bereavementMonthTick(month,action);tickCommunityReputationMonth(month);
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
- if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);caravanMarketQuarterTick(month);
+ if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);caravanMarketQuarterTick(month);caravanContractMonthTick();
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
   if(s.married&&s.partner?.alive&&s.age>=18&&s.partner.age>=18){const gender=pick(['male','female']);const c=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age:0,type:'Çocuk',birthYear:s.year+s.age,birthMonth:month,alive:true,rel:80,realm:s.realm,place:s.place,tribe:s.tribe,parentIds:[s.id,s.partner.id]},'Çocuk');s.children.push(c);ensureChildProfile(c);unlock('parent');log(safeText(c.name)+' dünyaya geldi.','major');}s.pregnancy=null;
  }
@@ -5620,7 +5769,7 @@ function familyTick(){
  if(canHaveChild()&&Math.random()<.18){s.pregnancy={remaining:9};log('Ocağınızda bir çocuk bekleniyor.','major');}
 }
 function ageUp(){if(!s?.alive)return;if(s.pendingEventId||s.pendingDecision){notice('Önce son karar kartını çöz.');return;}if(s.monthsRemaining>0){notice('Yeni yıla geçmeden önce kalan haklar atlanmalı.');return;}s.age++;s.monthsRemaining=12;s.lastAction=null;if(s.age>40)apply({health:-rng(0,2)});familyTick();horseYearTick();toyYearTick();housingYearTick();lifePurposeYearTick();healthAgeTick();elderYearTick();ensureLifeVariety();checkAchievements();mortality();if(s.alive){log(animalYearName(s.year+s.age)+' Yılı başladı; bu yıl 12 eylem hakkın var.','major');if(s.age>=18&&!s.captive&&!s.exile&&!s.military.called)militaryCall();else if(s.age>=18&&!s.captive&&!s.exile&&!s.military.active&&s.military.served&&Math.random()<.08){s.military.called=false;militaryCall();}}render();save();}
-function die(){if(!s?.alive)return;const q=ensureSuccession(),cause=deathCauseLabel(),heirs=livingHeirs();s.alive=false;s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;clearTransient();
+function die(){if(!s?.alive)return;if(ensureCaravanTrade().contracts.active)caravanContractFinish('void','Sözleşme sahibinin vefatıyla yükümlülük kapatıldı.');const q=ensureSuccession(),cause=deathCauseLabel(),heirs=livingHeirs();s.alive=false;s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;clearTransient();
  const elder=s.age>=50?ensureElderLife():null;s.deathRecord={name:s.name,age:s.age,year:s.year+s.age,role:s.role,retiredRole:s.retiredRole||null,prestige:s.prestige,wealth:s.wealth,cause,will:s.will,prepared:q.prepared,chosenHeirId:q.chosenHeirId,familyHarmony:q.familyHarmony,lastWish:q.lastWish,assets:[...s.assets],workshop:workshopLegacySnapshot(),caravanTrade:caravanLegacySnapshot(),credit:creditLegacySnapshot(),toyFestival:toyLegacySnapshot(),lifePurpose:purposeLegacySnapshot(),reputation:communityReputationSnapshot(),heirs:heirs.map(n=>({id:n.id,name:n.name,age:n.age})),elder:elder?{standing:elder.standing,purpose:elder.purpose,careSupport:elder.careSupport,councils:elder.councils,lessons:elder.lessons,reconciliations:elder.reconciliations,delegations:elder.delegations,memoriesShared:elder.memoriesShared}:null};
  log(`${s.age} yaşında, ${s.year+s.age} yılında yaşamın sona erdi. Neden: ${cause}.`,'bad');s.legacy.past.push({...s.deathRecord});s.legacy.purposes=Array.isArray(s.legacy.purposes)?s.legacy.purposes:[];s.legacy.purposes.unshift({name:s.name,year:s.year+s.age,purpose:s.deathRecord.lifePurpose});s.legacy.purposes=s.legacy.purposes.slice(0,30);render();save();showHeirModal();}
 function setWill(id){if(id!=='equal'&&!s.children.some(x=>x.id===id&&x.alive))return;performAction({kind:'will'},()=>{const q=ensureSuccession();s.will=id;q.prepared=true;q.chosenHeirId=id==='equal'?null:id;q.lastCouncilYear=s.year+s.age;q.familyHarmony=clamp(q.familyHarmony+(id==='equal'?2:-2));q.history.unshift({year:s.year+s.age,age:s.age,mode:id==='equal'?'equal':'chosen',targetId:q.chosenHeirId,note:'Mal paylaşımı doğrudan konuşuldu.',harmony:q.familyHarmony});q.history=q.history.slice(0,24);},'Mal paylaşımı isteğini yakınlarınla konuştun.');}
@@ -5896,7 +6045,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
