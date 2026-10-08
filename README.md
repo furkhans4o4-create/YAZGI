@@ -251,6 +251,16 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Oyuncu öldüğünde atölyenin teslim/aksama geçmişi kayda girer. Demir Ocağı gerçek miras olarak çocuğa bırakılırsa **malzeme, açık müşteri siparişleri ve atölye kayıtları korunur**; çırak otomatik sahiplenilmez. Diğer varislere ücretsiz atölye kopyalanmaz.
 - v36 kayıtları v37'ye yükseltilir ve `yazgi_before_v37` adlı önceki sürüm yedeği korunur.
 
+### v38 — Kervan Ticareti ve Canlı Pazar
+
+- **Kervan Payı** sahibi yetişkin oyuncu artık ayrı bir ticaret yükü yönetir. Tuz, yün, demir eşya ve ipek gerçekten servet ödenerek alınır; her malın maliyeti, adet sayısı ve taşıma ağırlığı kalıcıdır. Yük kapasitesi 8 birimdir.
+- **Irmak Pazarı (2 ay), Dağ Geçidi Pazarı (3 ay) ve Bozkır Toy Pazarı (1 ay)** farklı geçiş bedelleri, riskleri ve mal fiyatları sunar. Satış fiyatı sefere çıkarken sabitlenir; sefer ortasında ekonomiyi değiştirerek ücretsiz fiyat avantajı elde edilmez.
+- Normal sefer ile 4 servet fazladan ödenen **muhafızlı sefer** seçilebilir. Yolda kaybedilen mallar gerçek stoktan silinir; malın alış maliyeti zarar kaydında görünür. Meclisin kervan koruması kararı ve ticaret becerisi kayıp riskini azaltır.
+- Yük yalnız **varış pazarında** satılır ve aynı mal ikinci kez satılamaz. Satış gelirleri, NPC tüccarla gerçek ilişki, sefer giderleri, net kazanç ve kayıplar günlüğe işlenir. Satılmayan mallar dönüşten sonra aynı maliyetle elde kalır.
+- Kervan yoldayken veya yük hâlâ araçtayken **Kervan Payı satılamaz**. Eski tek tıklamalı rastgele kervan geliri üretim düğmesinin yerini gerçek ticaret ekranı alır; kervan yolculuğu sürerken çeyreklik pasif kervan getirisi işlemez.
+- Kervan ticareti durumu, fiyatları ve yarım kalmış yolculukları **kaydet/yükle** sonrasında korunur. Mirasçılardan Kervan Payı'nı alan, mevcut yük ve sefer geçmişini de devralır; almayan varise kopya mallar verilmez. Ölüm kaydı sefer hesabını saklar.
+- v37 ve daha eski kayıtlar v38'e taşınır. İlk göçte `yazgi_before_v38` yedeği alınır; mevcut `yazgi_before_v37` silinmez.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
