@@ -323,6 +323,18 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Siyasi nüfuz ve kararlar kayıtta korunur; mirasla siyasi yetki, nüfuz veya aktif karar yeni karaktere geçmez. Eski v43 kaydı `yazgi_before_v44` anahtarıyla ayrıca yedeklenir.
 - v44 için 21 yeni test yazıldı; tüm bağımsız regresyon paketi 534 senaryodur.
 
+### v45 — Lonca İttifakları, Ticaret Anlaşmazlıkları ve Taraf Tutma
+
+- Irmak, Dağ Geçidi ve Bozkır loncalarının olası üç ikili ilişkisi ayrı birer kalıcı kayıttır. Her ilişki için gerçek iki NPC tüccar, aktif durum, süre, anlaşmazlık sayısı, ittifak sayısı, desteklenen taraf ve en son 30 karar saklanır.
+- Karşılıklı ilişkileri yeterli ve fiilen ticaret yapmış yaşayan NPC tüccarlar düşük olasılıkla **oyuncunun talimatı olmadan** iki lonca arasında 18 aylık ittifak kurabilir. Oyuncu da üye olduğu loncadan başka bir loncayla görüşebilir: 48 itibar, 30 bölgesel nüfuz ve 6 servet gerekir. Oyuncunun ödediği 6 servet iki gerçek NPC'ye üçer servet aktarılır ve 30 nüfuz düşülür.
+- İttifaklar, oyuncunun taraflardan birine üye olması koşuluyla iki pazarda geçiş ücretine 1 servet indirim ve yeni sefer satış tekliflerine %5 iyileşme sağlar. Diğer bölge etkilenmez ve yolculuk başında kilitlenmiş fiyatlar sonradan değişmez.
+- İki NPC'nin piyasa rekabeti canlıyken ittifak 9 ay süren bir **anlaşmazlığa** dönüşebilir. Anlaşmazlık iki ilişkili bölgedeki yeni satış tekliflerini %7 baskılar ve geçiş ücretini 1 artırır; temsilcilerin ilişkileri ve bölgesel rakip ağırlığı da olumsuz etkilenir.
+- Oyuncu, anlaşmazlıkta 10 nüfuz ve 5 servet kullanarak arabuluculuk yapabilir. Bu para gerçek iki NPC'ye (kendi temsilcisine 2, karşı tarafa 3) aktarılır; anlaşmazlık çözülür, ilişkiler toparlanır ve 9 aylık yeniden anlaşma bekleme süresi başlar.
+- Alternatif olarak oyuncu, bir anlaşmazlıkta **yalnızca bir kere** taraf tutabilir: 3 servet seçtiği gerçek NPC'ye aktarılır; o NPC'nin güveni ve dostluğu güçlenir, diğer NPC ile ilişkiler kötüleşir ve iki tarafın siyasi ağırlığı farklı yönde değişir.
+- İttifak ve anlaşmazlık süresi dolduğunda veya imzacı NPC ölünce ayrıcalıklar sona erer. Çeyreklik diplomasi akışı aynı dönem içinde iki kez çalışmaz. Lonca üyeliği olmayan oyuncu üyelik ayrıcalığından yararlanamaz; NPC anlaşmaları yine kendi aralarında sürebilir.
+- Kervan payı mirasında iki loncanın geçmişte yaptığı anlaşmalar görünmeye devam eder ancak yeni karakter eski oyuncunun aktif anlaşma veya taraf seçimi yetkisini devralmaz. v44 kayıtları `yazgi_before_v45` olarak yedeklenir.
+- 26 yeni v45 testi eklendi. Toplam regresyon paketi 560 senaryodur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
