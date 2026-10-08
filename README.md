@@ -149,7 +149,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 32’ye taşınır; sürüm değişiminde önce `yazgi_before_v32` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 33’e taşınır; sürüm değişiminde önce `yazgi_before_v33` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 
 ### v30 — Aile İçi Taraflaşma, Hısım Gerilimi ve Kalıcı Aile Meseleleri
@@ -190,6 +190,18 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Çok sayıda atın ek yem/bakım maliyeti üç aylık hane bütçesini etkiler. Bakımsızlık at sağlığını düşürür.
 - Atlar yaşlanır ve ölebilir. Satış/ölüm kayıtları soy arşivine girer; at varlığı miras olarak yeni kuşağa kalırsa canlı hayvan kayıtları da devredilir.
 - Sağlığı düşen bir at için otacı, dinlenme veya ilgilenmeme kararı bağlamsal olay olarak açılır.
+
+
+### v33 — Ömürlük Ülküler ve Kalıcı Yaşam Hedefleri
+
+- TC Sim oyuncularının “oyunun bir amacı yok, tekrara düşüyor” eleştirisine karşı, yıllık hedeflerden tamamen ayrı **oyuncunun seçtiği uzun vadeli ülkü** eklendi.
+- **Alplık, Ustalık, Kervan ve Refah, Soyu Yaşatma, Bilgelik ve Söz, Barış ve Töre** olmak üzere altı tarihsel yol bulunuyor.
+- Her yolun üç kilometre taşı var. Bunlar yalnızca görev sayacı değil; gerçek beceri, meslek, sefer, servet, malvarlığı, aile durumu, vasiyet, meclis, toplum itibarı ve çözülen aile meselelerini kontrol ediyor.
+- Yalnızca ülkü seçildikten sonra gerçekten yapılan ilgili eylemler sayılıyor. Bir yılda en fazla bir aşama tamamlanıyor. Böylece tek yıl içinde 16 eylem sayarak bütün hedefleri bitirmek mümkün değil.
+- Oyuncu ülkeyi değil kendi **ülküsünü** değiştirir: bırakılan yol geçmişte kaçıncı aşamada kalındığıyla saklanır. Aynı yıl tekrar tekrar ülkü seçip ödül almak mümkün değildir. Tamamlanmış ülkü tekrar ödüllendirilemez.
+- Üç yıl yeni aşama gelmezse kararlılık azalır; ilgili yaşam olayı devam etme, yol gösterimi isteme veya vazgeçme seçeneklerini açar.
+- Aşamalar mutluluk/itibar kazanımı verir; tamamlanmış ülküler mevcut aile, meslek, siyasi nüfuz ve toplumsal güven sistemleri üzerinde sınırlı kalıcı etki bırakır.
+- Ölümde tamamlanmış ve yarım kalmış ülküler ölüm kaydına ve soy hatırasına yazılır. Yeni kuşak kendi yolunu seçer; eskisinin puanlarını devralıp bedelsiz ilerlemez.
 
 ### Dosyalar ve çalıştırma
 
