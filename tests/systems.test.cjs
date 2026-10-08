@@ -783,3 +783,106 @@ test('v35 a seized debt is not counted as a voluntarily honored promise',()=>{
  assert.equal(run('creditOpen().length'),0);assert.equal(run('__rec.status'),'seized');
  assert.equal(run('ensureCredit().repaid'),run('__prior'));
 });
+
+
+const toyFixture="s.age=26;s.health=100;s.skill=100;s.prestige=100;s.wealth=100;s.monthsRemaining=10;s.pendingDecision=null;s.pendingEventId=null;s.captive=false;s.exile=false;s.military.active=false;Object.keys(s.skills).forEach(k=>s.skills[k]=100);s.toyFestival=null;";
+
+test('v36 fresh game normalizes a persistent empty toy competition book',()=>{
+ const {run}=game();assert.equal(run('s.version'),36);assert.equal(run('ensureToyFestival().titles.length'),0);
+ assert.equal(run('Object.keys(TOY_CONTESTS).length'),3);
+ assert.ok(run('toyContestSummaryHtml().includes("Toy Müsabakaları")'));
+});
+test('v36 entering spring archery tournament costs money and consumes a month',()=>{
+ const {run}=game();run(setup+toyFixture+"window.__money=s.wealth;window.__months=s.monthsRemaining;window.__ok=toyAction('enroll','ok');");
+ assert.equal(run('__ok'),true);assert.equal(run('__money-s.wealth'),2);assert.equal(run('__months-s.monthsRemaining'),1);
+ assert.equal(run('toyEntry("ok").status'),'active');assert.equal(run('toyEntry("ok").year'),run('s.year+s.age'));
+});
+test('v36 tournament enrollment requires proper season and enough rounds left',()=>{
+ const {run}=game();run(setup+toyFixture+"s.monthsRemaining=6;window.__late=toyIssue('enroll','ok');s.monthsRemaining=12;window.__early=toyIssue('enroll','ok');");
+ assert.ok(run('__late.includes("mevsim")'));assert.ok(run('__early.includes("mevsim")'));
+});
+test('v36 tournament entry age and health gates actually reject underage or sick player',()=>{
+ const {run}=game();run(setup+toyFixture+"s.age=11;window.__young=toyIssue('enroll','ok');s.age=23;s.health=24;window.__sick=toyIssue('enroll','ok');");
+ assert.ok(run('__young.includes("12")'));assert.ok(run('__sick.includes("sağlığın")'));
+});
+test('v36 player cannot enter the same discipline twice in one year',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');window.__issue=toyIssue('enroll','ok');");
+ assert.ok(run('__issue.includes("zaten katıldın")'));
+ assert.equal(run('ensureToyFestival().entered'),1);
+});
+test('v36 a real seeded rival and skill-weighted scores determine a round winner',()=>{
+ const {run}=game();run(setup+toyFixture+"window.__n=normalizeNPC({name:'Ulu',age:22,gender:'male',alive:true,health:80,type:'Rakip',skills:{archery:0,riding:0}},'Rakip');s.rivals=[__n];s.skills.archery=100;s.skills.riding=100;window.__e={type:'ok'};window.__score=toyRoundOutcome(__e,__n,{player:-9,npc:9});");
+ assert.equal(run('__score.won'),true);assert.ok(run('__score.player>__score.rival'));
+});
+test('v36 high-skilled opponent defeats untrained player with deterministic score rolls',()=>{
+ const {run}=game();run(setup+toyFixture+"window.__n=normalizeNPC({name:'Rakip',age:23,gender:'female',alive:true,health:100,type:'Rakip',skills:{archery:100,riding:100}},'Rakip');s.skills.archery=0;s.skills.riding=0;s.skill=0;s.prestige=0;window.__score=toyRoundOutcome({type:'ok'},__n,{player:10,npc:-10});");
+ assert.equal(run('__score.won'),false);
+});
+test('v36 winner advances once and records the individual NPC as opponent',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');s.pendingEventId=null;s.pendingDecision=null;window.__prev=toyEntry('ok').round;toyAction('round','ok');window.__entry=toyEntry('ok');");
+ assert.equal(run('__entry.round'),1);assert.equal(run('__entry.wins'),1);
+ assert.ok(run('__entry.results[0].opponentId.startsWith("n_")'));
+ assert.ok(run('npcById(__entry.results[0].opponentId)!==null'));
+});
+test('v36 the final round awards a title once and closes the event',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');s.pendingEventId=null;s.pendingDecision=null;window.__entry=toyEntry('ok');__entry.round=2;__entry.wins=2;window.__count=ensureToyFestival().titles.length;toyAction('round','ok');");
+ assert.equal(run('__entry.status'),'champion');assert.equal(run('__entry.wins'),3);
+ assert.equal(run('ensureToyFestival().titles.length'),run('__count+1'));
+ assert.equal(run('toyIssue("round","ok").includes("Devam eden")'),true);
+});
+test('v36 tournament title grants a bounded real reward and appropriate skill improvement',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');s.pendingEventId=null;s.pendingDecision=null;window.__entry=toyEntry('ok');__entry.round=2;__entry.wins=2;window.__cash=s.wealth;window.__archery=s.skills.archery;s.skills.archery=50;toyAction('round','ok');");
+ assert.equal(run('__entry.status'),'champion');
+ assert.ok(run('s.wealth>__cash'));assert.ok(run('s.skills.archery>50'));
+});
+test('v36 distinct rounds face distinct recorded opponents',()=>{
+ const {run}=game();run(setup+toyFixture+"window.__f=ensureToyFestival();window.__e={id:'toy_test',type:'ok',year:s.year+s.age,round:0,wins:0,status:'active',opponentIds:[],results:[]};__f.entries.push(__e);window.__a=toyContender('ok',[]);__e.opponentIds.push(__a.id);window.__b=toyContender('ok',__e.opponentIds);");
+ assert.ok(run('__a.id!==__b.id'));
+});
+test('v36 season expiry closes unfinished rounds without awarding a championship',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');window.__entry=toyEntry('ok');toyMonthTick(7);");
+ assert.equal(run('__entry.status'),'expired');
+ assert.equal(run('ensureToyFestival().titles.length'),0);
+});
+test('v36 year tick expires previous-year open competitions',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');window.__entry=toyEntry('ok');s.age++;toyYearTick();");
+ assert.equal(run('__entry.status'),'expired');
+ assert.equal(run('__entry.results.length'),0);
+});
+test('v36 losing the first round eliminates a player and cannot be replayed',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');window.__entry=toyEntry('ok');toyFinish(__entry,'eliminated');window.__issue=toyIssue('round','ok');");
+ assert.equal(run('__entry.status'),'eliminated');
+ assert.ok(run('__issue.includes("Devam eden")'));
+});
+test('v36 the separate horse race and toy records are not conflated',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');");
+ assert.equal(run('ensureHorseStable().races'),0);
+ assert.equal(run('ensureToyFestival().entered'),1);
+});
+test('v36 the three competitions have separate skills and valid seasonal schedules',()=>{
+ const {run}=game();run(setup+toyFixture+"window.__defs=Object.values(TOY_CONTESTS);");
+ assert.equal(run('__defs.length'),3);
+ assert.ok(run('__defs.every(x=>x.months.length===4&&x.minAge===12&&x.skill)'));
+ assert.equal(run('TOY_CONTESTS.ozan.skill'),'speech');
+});
+test('v36 new contenders are persistent NPCs visible through the real social world',()=>{
+ const {run}=game();run(setup+toyFixture+"s.friends=[];s.rivals=[];s.siblings=[];s.careerContacts=[];window.__n=toyContender('gures',[]);window.__id=__n.id;");
+ assert.ok(run('ensureToyFestival().contenders.some(x=>x.id===__id)'));
+ assert.ok(run('npcById(__id)!==null'));
+});
+test('v36 title snapshots survive save and load with year and winner identity',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');window.__entry=toyEntry('ok');toyFinish(__entry,'champion');save();load();");
+ assert.equal(run('ensureToyFestival().titles.length'),1);
+ assert.equal(run('ensureToyFestival().titles[0].type'),'ok');
+});
+test('v36 champions are remembered in death records and passed to next generation',()=>{
+ const {run}=game();run(setup+toyFixture+"toyAction('enroll','ok');window.__entry=toyEntry('ok');toyFinish(__entry,'champion');window.__child=normalizeNPC({name:'Varis',gender:'male',alive:true,age:20,type:'Çocuk',birthYear:s.year+s.age-20,rel:80},'Çocuk');s.children=[__child];s.pendingEventId=null;s.pendingDecision=null;die();continueAsHeir(0);");
+ assert.equal(run('s.legacy.toyTitles.length'),1);
+ assert.equal(run('s.legacy.toyTitles[0].type'),'ok');
+ assert.equal(run('s.toyFestival.titles.length'),0);
+});
+test('v36 migrating a v35 save preserves achievements and makes a versioned backup',()=>{
+ const {run,storage}=game();run(setup+toyFixture+"s.version=35;delete s.toyFestival;save();load();");
+ assert.equal(run('s.version'),36);assert.ok(storage.has('yazgi_before_v36'));
+ assert.equal(run('ensureToyFestival().titles.length'),0);
+});
