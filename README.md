@@ -149,7 +149,7 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Her eylem **bir ay** harcar. Karar kartı aynı ayda çözülür; çözülmeden başka eylem yapılamaz. 12 karar tamamlanınca yeni yaşa geçilir.
 - Kararlar sola/sağa sürüklenir; dokunma, ok tuşları ve yön düğmeleri desteklenir. Üçüncü seçenek kaybolmaz: sağ yön ile diğer alternatiflere geçilir.
 - Sağlık/dinlenme, süreli rahatsızlık, görev tecrübesi, üretim, mülk takası, dost/rakip etkileşimi ve mal paylaşımı eklenmiştir.
-- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 31’e taşınır; sürüm değişiminde önce `yazgi_before_v31` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
+- Kayıt bekleyen kartı, ayı ve hedef NPC’yi korur. Eski `yazgi_full_v1` kayıtları güncel sürüm 32’ye taşınır; sürüm değişiminde önce `yazgi_before_v32` yedeği alınır. Soy devamında gerçek aile, takvim yılı ve kalan aylar korunur.
 
 
 ### v30 — Aile İçi Taraflaşma, Hısım Gerilimi ve Kalıcı Aile Meseleleri
@@ -178,6 +178,18 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Bir yol tamamlandığında yeterlilik çocuğun üzerinde kalır. Yetişkinliğe geçerken tamamlanmış veya ileri seviyedeki yetişim, rastgele ilgisiz meslek yerine **uygun başlangıç rolünü** etkiler.
 - Yol değiştirilebilir; eski yolun ne kadar ilerlediği silinmez, geçmişe kaydedilir.
 - Yeni bağlamsal değerlendirme olayı, ebeveyne eksikleri birlikte kapatma, daha sıkı çalışma isteme veya çocuğun kendi fikrini dinleme seçenekleri verir; sonuç aynı çocuğun kalıcı eğitim profiline yazılır.
+
+
+### v32 — At Ocağı, Atların Hayatı ve Soy Kütüğü
+
+- Eski horse varlığı bir kez yaşayan at kimliğine çevrilir; eski kayıtlar korunur. Ayrı atlar alınabilir, en fazla sekiz at beslenir.
+- Atın adı, yaşı, cinsiyeti, sağlık/kondisyonu, hızı, dayanıklılığı, mizacı, sahibiyle bağı, eğitimi ve yarış geçmişi kalıcıdır.
+- Bakım, talim, toy yarışı ve takas birer aylık eylemdir. Antrenman fayda sağlarken kondisyon tüketir, yarışın giriş masrafı, ödül olasılığı ve en az üç aylık dinlenme aralığı vardır.
+- Uygun kısrak ve aygırlar eşleştirilebilir. Yakın akraba atlar eşleştirilemez; dışarıdan ücretli aygır getirilebilir. Yaklaşık on bir ay sonra tay doğar.
+- Tayın anne/baba kimlikleri ve kuşağı tutulur; hız ve dayanıklılık özellikleri ebeveynlerden kalıtılır. Toy başarıları ve soya ilişkin kayıtlar ölümden sonra da korunur.
+- Çok sayıda atın ek yem/bakım maliyeti üç aylık hane bütçesini etkiler. Bakımsızlık at sağlığını düşürür.
+- Atlar yaşlanır ve ölebilir. Satış/ölüm kayıtları soy arşivine girer; at varlığı miras olarak yeni kuşağa kalırsa canlı hayvan kayıtları da devredilir.
+- Sağlığı düşen bir at için otacı, dinlenme veya ilgilenmeme kararı bağlamsal olay olarak açılır.
 
 ### Dosyalar ve çalıştırma
 
