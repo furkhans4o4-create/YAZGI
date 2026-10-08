@@ -4716,7 +4716,8 @@ function caravanMonthTick(){
  if(lifeSerial()>=t.arrivalSerial){
   if(t.stage==='outbound'){t.stage='market';caravanRecord('arrive',route.name+' pazarına ulaşıldı.');}
   else{
-   const trip=t.trip?{...t.trip,returned:lifeSerial(),profit:t.trip.earned-t.trip.spent}:null;
+   const carryValue=t.cargo.reduce((sum,x)=>sum+x.qty*x.unitCost,0);
+   const trip=t.trip?{...t.trip,returned:lifeSerial(),inventoryRemaining:carryValue,profit:t.trip.earned+carryValue-t.trip.spent}:null;
    if(trip){t.voyages.unshift(trip);t.voyages=t.voyages.slice(0,40);}
    t.stage='home';t.routeId=null;t.arrivalSerial=0;t.guard=false;t.trip=null;t.completed++;
    caravanRecord('home','Kervan geri döndü.'+(trip?' Sefer hesabı '+trip.profit+' servet.':''));
