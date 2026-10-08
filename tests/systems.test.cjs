@@ -1056,6 +1056,7 @@ test('v38 returning with unsold cargo retains it and records trip profit',()=>{
  assert.equal(run('ensureCaravanTrade().stage'),'home');assert.equal(run('ensureCaravanTrade().cargo[0].qty'),1);
  assert.equal(run('ensureCaravanTrade().completed'),1);assert.equal(run('ensureCaravanTrade().voyages.length'),1);
  assert.equal(run('ensureCaravanTrade().voyages[0].earned'),0);
+ assert.equal(run('ensureCaravanTrade().voyages[0].profit'),-1);
 });
 test('v38 road losses remove real stock, record costs and do not create negative inventory',()=>{
  const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'salt',qty:1,unitCost:4}];Math.random=()=>.99;caravanAction('depart','mountain');s.monthsRemaining=10;Math.random=()=>0;caravanMonthTick();");
@@ -1084,4 +1085,10 @@ test('v38 migrates v37 saves and makes dedicated backup without deleting smithy'
  assert.equal(run('s.version'),38);assert.ok(storage.has('yazgi_before_v38'));
  assert.equal(run('ensureCaravanTrade().cargo.length'),0);
  assert.equal(run('s.assets.includes("smithy")'),true);
+});
+
+test('v38 travel hazard cannot fire twice in the same month',()=>{
+ const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'salt',qty:4,unitCost:4}];Math.random=()=>.99;caravanAction('depart','mountain');s.monthsRemaining=10;Math.random=()=>0;caravanMonthTick();window.__lost=ensureCaravanTrade().lost;caravanMonthTick();");
+ assert.equal(run('ensureCaravanTrade().lost'),run('__lost'));
+ assert.equal(run('ensureCaravanTrade().cargo[0].qty'),3);
 });
