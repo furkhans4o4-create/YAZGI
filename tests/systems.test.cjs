@@ -1046,19 +1046,19 @@ test('v38 route quotes are fixed on departure and selling before market arrival 
  assert.ok(run('__blocked.includes("pazarda")'));
 });
 test('v38 market sale settles only carried goods and cannot pay twice',()=>{
- const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'silk',qty:2,unitCost:10}];caravanAction('depart','steppe');s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=10;caravanMonthTick();window.__quote=ensureCaravanTrade().prices.silk;window.__prior=s.wealth;window.__sold=caravanAction('sell');window.__repeat=caravanIssue('sell');");
+ const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'silk',qty:2,unitCost:10}];Math.random=()=>.99;caravanAction('depart','steppe');s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=9;caravanMonthTick();window.__quote=ensureCaravanTrade().prices.silk;window.__prior=s.wealth;window.__sold=caravanAction('sell');window.__repeat=caravanIssue('sell');");
  assert.equal(run('ensureCaravanTrade().stage'),'market');assert.equal(run('__sold'),true);
  assert.equal(run('ensureCaravanTrade().cargo.length'),0);
  assert.equal(run('s.wealth'),run('__prior+2*__quote'));assert.ok(run('__repeat.includes("yük")'));
 });
 test('v38 returning with unsold cargo retains it and records trip profit',()=>{
- const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'wool',qty:1,unitCost:4}];caravanAction('depart','steppe');s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=10;caravanMonthTick();caravanAction('return');s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=8;caravanMonthTick();");
+ const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'wool',qty:1,unitCost:4}];Math.random=()=>.99;caravanAction('depart','steppe');s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=10;caravanMonthTick();caravanAction('return');s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=8;caravanMonthTick();");
  assert.equal(run('ensureCaravanTrade().stage'),'home');assert.equal(run('ensureCaravanTrade().cargo[0].qty'),1);
  assert.equal(run('ensureCaravanTrade().completed'),1);assert.equal(run('ensureCaravanTrade().voyages.length'),1);
  assert.equal(run('ensureCaravanTrade().voyages[0].earned'),0);
 });
 test('v38 road losses remove real stock, record costs and do not create negative inventory',()=>{
- const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'salt',qty:1,unitCost:4}];caravanAction('depart','mountain');Math.random=()=>0;caravanMonthTick();");
+ const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'salt',qty:1,unitCost:4}];Math.random=()=>.99;caravanAction('depart','mountain');s.monthsRemaining=10;Math.random=()=>0;caravanMonthTick();");
  assert.equal(run('ensureCaravanTrade().cargo.length'),0);
  assert.equal(run('ensureCaravanTrade().lost'),4);
  assert.ok(run('ensureCaravanTrade().history.some(x=>x.type==="loss")'));
@@ -1068,7 +1068,7 @@ test('v38 caravan shares cannot be sold when cargo is on board or away',()=>{
  assert.ok(run('__blocked.includes("kervanı")'));assert.ok(run('__away.includes("kervanı")'));
 });
 test('v38 save/load preserves goods, original costs, journey status and locked prices',()=>{
- const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'salt',qty:2,unitCost:4}];caravanAction('depart','mountain');s.pendingEventId=null;s.pendingDecision=null;window.__quote=ensureCaravanTrade().prices.salt;save();load();");
+ const {run}=game();run(setup+caravanFixture+"ensureCaravanTrade().cargo=[{goodId:'salt',qty:2,unitCost:4}];Math.random=()=>.99;caravanAction('depart','mountain');s.pendingEventId=null;s.pendingDecision=null;window.__quote=ensureCaravanTrade().prices.salt;save();load();");
  assert.equal(run('ensureCaravanTrade().stage'),'outbound');
  assert.equal(run('ensureCaravanTrade().prices.salt'),run('__quote'));
  assert.equal(run('ensureCaravanTrade().cargo[0].unitCost'),4);
