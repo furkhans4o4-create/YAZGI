@@ -511,3 +511,79 @@ test('v32 horse stable renders horse buttons and meaningful lineage display',()=
  const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.motherId="h_ana";__h.fatherId="h_ata";window.__html=horseSummaryHtml()');
  assert.ok(run('__html.includes("Toyda yarıştır")'));assert.ok(run('__html.includes("h_ana")'));
 });
+
+
+test('v33 fresh game normalizes a separately selectable lifetime purpose',()=>{
+ const {run}=game();assert.equal(run('s.version'),33);assert.equal(run('ensureLifePurpose().active'),null);
+ assert.equal(run('Object.keys(LIFE_PURPOSE_DEFS).length'),6);assert.ok(run('purposeSummaryHtml().includes("Ömürlük Ülkü")'));
+});
+test('v33 choosing a lifetime goal consumes a month and persists selection',()=>{
+ const {run}=game();run(setup+'s.age=25;window.__months=s.monthsRemaining;window.__ok=lifePurposeAction("choose","alp")');
+ assert.equal(run('__ok'),true);assert.equal(run('__months-s.monthsRemaining'),1);
+ assert.equal(run('ensureLifePurpose().active.id'),'alp');assert.equal(run('ensureLifePurpose().active.actions'),0);
+});
+test('v33 stage one cannot be won by existing high stats without post-selection actions',()=>{
+ const {run}=game();run(setup+'s.age=25;lifePurposeAction("choose","craft");window.__a=ensureLifePurpose().active;window.__result=purposeProgressCheck()');
+ assert.equal(run('__result'),false);assert.equal(run('__a.stage'),0);assert.equal(run('__a.actions'),0);
+});
+test('v33 only matching activity raises the chosen lifetime goal count',()=>{
+ const {run}=game();run(setup+'s.age=25;lifePurposeAction("choose","alp");window.__a=ensureLifePurpose().active;trackLifePurposeAction({kind:"npc",group:"friends",id:"spend"});trackLifePurposeAction({kind:"activity",id:"at"});');
+ assert.equal(run('__a.actions'),1);assert.equal(run('__a.stage'),0);
+});
+test('v33 regular game action tracking can advance a life goal',()=>{
+ const {run}=game();run(setup+'s.age=25;lifePurposeAction("choose","alp");s.pendingEventId=null;s.pendingDecision=null;window.__before=ensureLifePurpose().active.actions;activity("at");');
+ assert.equal(run('ensureLifePurpose().active.actions'),1);assert.equal(run('ensureLifePurpose().active.actions-__before'),1);
+});
+test('v33 milestones cannot be claimed twice in one calendar year',()=>{
+ const {run}=game();run(setup+'s.age=25;lifePurposeAction("choose","alp");window.__a=ensureLifePurpose().active;__a.actions=20;s.military.served=true;s.military.campaigns=3;window.__first=purposeProgressCheck();window.__second=purposeProgressCheck()');
+ assert.equal(run('__first'),true);assert.equal(run('__second'),false);assert.equal(run('__a.stage'),1);
+});
+test('v33 completing all three milestones grants exactly one final lifetime achievement',()=>{
+ const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","alp");window.__a=ensureLifePurpose().active;__a.actions=20;s.military.served=true;s.military.campaigns=3;s.prestige=80;purposeProgressCheck();s.age++;purposeProgressCheck();s.age++;purposeProgressCheck();window.__done=ensureLifePurpose().completed.length;window.__prestige=s.prestige;purposeProgressCheck();');
+ assert.equal(run('__done'),1);assert.equal(run('ensureLifePurpose().completed[0].milestones.length'),3);
+ assert.equal(run('ensureLifePurpose().active'),null);assert.equal(run('s.prestige===__prestige'),true);
+});
+test('v33 a completed goal cannot be chosen and rewarded again',()=>{
+ const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","alp");window.__a=ensureLifePurpose().active;__a.actions=30;s.military.served=true;s.military.campaigns=3;purposeProgressCheck();s.age++;purposeProgressCheck();s.age++;purposeProgressCheck();s.age++;window.__why=lifePurposeIssue("choose","alp")');
+ assert.ok(run('__why.includes("tamamlandı")'));assert.equal(run('ensureLifePurpose().completed.length'),1);
+});
+test('v33 abandoning a lifetime goal records its actual stage and forbids same-year reselect',()=>{
+ const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","craft");s.age++;window.__a=ensureLifePurpose().active;__a.stage=1;__a.actions=6;lifePurposeAction("abandon");window.__last=ensureLifePurpose().history[0];window.__why=lifePurposeIssue("choose","trade")');
+ assert.equal(run('__last.stage'),1);assert.equal(run('__last.status'),'active');
+ assert.ok(run('__why.includes("zaten bir ülkü")')===false);assert.equal(run('ensureLifePurpose().active'),null);
+});
+test('v33 a goal cannot be abandoned in its first selection year',()=>{
+ const {run}=game();run(setup+'s.age=24;lifePurposeAction("choose","craft");window.__why=lifePurposeIssue("abandon")');
+ assert.ok(run('__why.includes("Aynı yıl")'));
+});
+test('v33 three stalled years lower resolve and expose a targeted choice event',()=>{
+ const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","wisdom");window.__a=ensureLifePurpose().active;for(let j=0;j<3;j++){s.age++;lifePurposeYearTick();}window.__event=EVENT_DECK.find(e=>e.id==="purpose_doubt_v33");window.__res=__a.resolve;purposeDoubtChoice(0)');
+ assert.equal(run('eventRequirementOK(__event)'),false); // choice 0 resets stall
+ assert.equal(run('__a.stalledYears'),0);assert.ok(run('__a.resolve>__res'));
+});
+test('v33 stalled goal offers an event before the player chooses how to recover',()=>{
+ const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","wisdom");for(let j=0;j<3;j++){s.age++;lifePurposeYearTick();}window.__event=EVENT_DECK.find(e=>e.id==="purpose_doubt_v33");');
+ assert.equal(run('eventRequirementOK(__event)'),true);assert.equal(run('__event.choices.length'),3);
+});
+test('v33 a purpose is never confused with the existing annual ambition',()=>{
+ const {run}=game();run(setup+'s.age=25;lifePurposeAction("choose","trade");window.__annual=ensureLifeVariety().ambition.id;window.__lifetime=ensureLifePurpose().active.id;startAnnualAmbition(true)');
+ assert.equal(run('ensureLifePurpose().active.id'),'trade');assert.equal(run('__lifetime'),'trade');assert.equal(run('ensureLifeVariety().ambition.id===__annual'),false);
+});
+test('v33 saving and reloading preserves the life goal and action counter',()=>{
+ const {run}=game();run(setup+'s.age=25;lifePurposeAction("choose","trade");window.__a=ensureLifePurpose().active;__a.actions=7;save();load()');
+ assert.equal(run('ensureLifePurpose().active.actions'),7);assert.equal(run('ensureLifePurpose().active.id'),'trade');
+});
+test('v33 v32 save migrates with dedicated backup and no forced personal goal',()=>{
+ const {run,storage}=game();run(setup+'s.version=32;delete s.lifePurpose;save();load()');
+ assert.ok(storage.has('yazgi_before_v33'));assert.equal(run('s.version'),33);assert.equal(run('ensureLifePurpose().active'),null);
+});
+test('v33 lifetime goal state contributes to the final death record and ancestry archive',()=>{
+ const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","kin");window.__id=ensureLifePurpose().active.id;s.health=10;die()');
+ assert.equal(run('s.deathRecord.lifePurpose.active.id'),'kin');
+ assert.equal(run('s.legacy.purposes[0].purpose.active.id'),'kin');
+});
+test('v33 life purposes remain separate for the next heir with ancestry history',()=>{
+ const {run}=game();run(setup+'s.age=50;lifePurposeAction("choose","craft");s.children=[normalizeNPC({name:"Varis",gender:"male",alive:true,age:19,type:"Çocuk",birthYear:s.year+s.age-19,rel:85}, "Çocuk")];s.military.called=true;s.military.served=true;die();continueAsHeir(0)');
+ assert.equal(run('ensureLifePurpose().active'),null);
+ assert.ok(run('s.legacy.purposes.some(x=>x.purpose?.active?.id==="craft")'));
+});
