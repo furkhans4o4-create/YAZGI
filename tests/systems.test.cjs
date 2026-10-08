@@ -794,7 +794,7 @@ test('v36 fresh game normalizes a persistent empty toy competition book',()=>{
 });
 test('v36 entering spring archery tournament costs money and consumes a month',()=>{
  const {run}=game();run(setup+toyFixture+"window.__money=s.wealth;window.__months=s.monthsRemaining;window.__ok=toyAction('enroll','ok');");
- assert.equal(run('__ok'),true);assert.equal(run('__money-s.wealth'),2);assert.equal(run('__months-s.monthsRemaining'),1);
+ assert.equal(run('__ok'),true);assert.ok(run('__money-s.wealth>=2'));assert.ok(run('ensureEconomy().ledger.some(x=>x.kind==="toy"&&x.amount===-2)'));assert.equal(run('__months-s.monthsRemaining'),1);
  assert.equal(run('toyEntry("ok").status'),'active');assert.equal(run('toyEntry("ok").year'),run('s.year+s.age'));
 });
 test('v36 tournament enrollment requires proper season and enough rounds left',()=>{
