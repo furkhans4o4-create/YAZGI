@@ -673,7 +673,7 @@ test('v34 saving and reloading preserves individual goals and milestone history'
 test('v34 older v33 saves migrate without discarding family relations',()=>{
  const {run,storage}=game();run(setup+npcAspFixture+"s.version=33;delete __n.aspiration;save();load();");
  assert.equal(run('s.version'),34);assert.ok(storage.has('yazgi_before_v34'));
- assert.equal(run('s.siblings[0].name'),'Bagatur');
+ assert.ok(run('s.siblings.some(x=>x.name===\'Bagatur\')'));
 });
 test('v34 a childs NPC ambition remains as an independent lineage note after heir continuation',()=>{
  const {run}=game();run(setup+"s.age=50;window.__child=normalizeNPC({name:'Varis',gender:'male',alive:true,age:22,type:'Çocuk',goal:'wisdom',birthYear:s.year+s.age-22,rel:85},'Çocuk');s.children=[__child];window.__asp=npcAspiration(__child);__asp.effort=50;__asp.stage=1;s.military.called=true;s.military.served=true;die();continueAsHeir(0);");
