@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=43,ADULT_AGE=18;
+const SAVE_VERSION=44,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -4879,6 +4879,21 @@ function ensureCaravanTrade(){
  g.joinedSerial=Number.isFinite(g.joinedSerial)?g.joinedSerial:null;
  g.joins=Math.max(0,Math.floor(Number.isFinite(g.joins)?g.joins:0));
  g.history=Array.isArray(g.history)?g.history.slice(0,40):[];
+ g.politics=g.politics&&typeof g.politics==='object'&&!Array.isArray(g.politics)?g.politics:{};
+ for(const id of Object.keys(CARAVAN_ROUTES)){
+  const p=g.politics[id]&&typeof g.politics[id]==='object'&&!Array.isArray(g.politics[id])?g.politics[id]:{};
+  g.politics[id]=p;
+  p.influence=Math.max(0,Math.min(100,Math.floor(Number.isFinite(p.influence)?p.influence:0)));
+  p.rivalStrength=Math.max(0,Math.min(100,Math.floor(Number.isFinite(p.rivalStrength)?p.rivalStrength:12)));
+  for(const key of ['lastLobbySerial','lastDecreeSerial','lastQuarterSerial'])
+   p[key]=Number.isFinite(p[key])?p[key]:null;
+  const decree=p.policy;
+  p.policy=decree&&CARAVAN_POLICIES[decree.kind]&&
+   Number.isFinite(decree.until)&&decree.until>=0&&typeof decree.sponsorId==='string'?
+   {kind:decree.kind,until:Math.floor(decree.until),sponsorId:decree.sponsorId}:null;
+  p.history=Array.isArray(p.history)?p.history.slice(0,30):[];
+ }
+ for(const id of Object.keys(g.politics))if(!CARAVAN_ROUTES[id])delete g.politics[id];
  t.contracts=t.contracts&&typeof t.contracts==='object'&&!Array.isArray(t.contracts)?t.contracts:{};
  const c=t.contracts;
  c.offers=Array.isArray(c.offers)?c.offers.filter(x=>x&&CARAVAN_ROUTES[x.routeId]&&CARAVAN_GOODS[x.goodId]&&
@@ -4942,7 +4957,7 @@ function caravanQuote(routeId){
  const competition=Math.max(.67,1-rivalry-supply);
  const partner=caravanPartner(),bonus=partner?.alive?1.12:1;
  return Object.fromEntries(Object.keys(CARAVAN_GOODS).map(id=>[
-  id,Math.max(1,Math.round(CARAVAN_GOODS[id].cost*route.prices[id]*(.85+e.tradeDemand/500)*competition*bonus*caravanMarketMultiplier(routeId,id)))
+  id,Math.max(1,Math.round(CARAVAN_GOODS[id].cost*route.prices[id]*(.85+e.tradeDemand/500)*competition*bonus*caravanMarketMultiplier(routeId,id)*(caravanPoliticsPolicy(routeId)?.kind==='fair'?1.06:1)))
  ]));
 }
 function caravanIssue(mode,id=null,extra=null){
@@ -4959,7 +4974,8 @@ function caravanIssue(mode,id=null,extra=null){
   if(!CARAVAN_ROUTES[id])return 'Bu ticaret yolu bulunamadı.';
   if(!t.cargo.length)return 'Yola çıkmadan önce gerçek mal satın almalısın.';
   if(assetState('caravan_share').condition<30)return 'Kervan payının bakımını önce tamamla.';
-  const total=Math.max(0,CARAVAN_ROUTES[id].toll-(caravanGuildBenefit(id)?1:0))+(extra==='guarded'?4:0);
+  const total=Math.max(0,CARAVAN_ROUTES[id].toll-(caravanGuildBenefit(id)?1:0)-
+  (caravanPoliticsPolicy(id)?.kind==='toll'?1:0))+(extra==='guarded'?4:0);
   if(s.wealth<total)return total+' servet yol ve koruma payı gerekiyor.';
   if(extra!==null&&extra!=='guarded')return 'Koruma seçeneği bulunamadı.';
  }else if(mode==='sell'){
@@ -4987,7 +5003,8 @@ function caravanAction(mode,id=null,extra=null){
    economyLedger('caravanTrade',-price,CARAVAN_GOODS[id].name+' ticaret yükü');
    caravanRecord('buy',CARAVAN_GOODS[id].name+' alındı, bedel '+price+'.');
   }else if(mode==='depart'){
-   const route=CARAVAN_ROUTES[id],fee=Math.max(0,route.toll-(caravanGuildBenefit(id)?1:0))+(extra==='guarded'?4:0);
+   const route=CARAVAN_ROUTES[id],fee=Math.max(0,route.toll-(caravanGuildBenefit(id)?1:0)-
+    (caravanPoliticsPolicy(id)?.kind==='toll'?1:0))+(extra==='guarded'?4:0);
    caravanEnsureRival(id);
    s.wealth-=fee;t.spent+=fee;t.routeId=id;t.stage='outbound';t.guard=extra==='guarded';
    t.arrivalSerial=lifeSerial()+route.months;t.prices=caravanQuote(id);
@@ -5052,15 +5069,120 @@ function caravanInheritance(old,share){
  const t=ensureCaravanTrade(),inherited=JSON.parse(JSON.stringify(t));
  inherited.partnerId=null;
  inherited.guild.reputation=0;inherited.guild.routeId=null;inherited.guild.sponsorId=null;inherited.guild.joinedSerial=null;
+ for(const p of Object.values(inherited.guild.politics)){p.influence=0;p.policy=null;p.lastLobbySerial=null;p.lastDecreeSerial=null;}
  inherited.contracts.active=null;inherited.contracts.offers=[];
  inherited.inheritedRivals=old.careerContacts.filter(n=>n.alive&&n.statusFlags?.tradeRivalRoute&&
   Object.values(t.competition).some(v=>v.npcId===n.id)).map(n=>JSON.parse(JSON.stringify(n)));
  return inherited;
 }
 function caravanLegacySnapshot(){
- const t=ensureCaravanTrade();return {completed:t.completed,earned:t.earned,spent:t.spent,lost:t.lost,partnerPaid:t.partnerPaid,partners:t.partnerHistory.length,rivals:Object.keys(t.competition).length,fulfilledContracts:t.contracts.fulfilled,failedContracts:t.contracts.failed,guildReputation:t.guild.reputation,guild:t.guild.routeId,ongoing:t.stage!=='home'};
+ const t=ensureCaravanTrade();return {completed:t.completed,earned:t.earned,spent:t.spent,lost:t.lost,partnerPaid:t.partnerPaid,partners:t.partnerHistory.length,rivals:Object.keys(t.competition).length,fulfilledContracts:t.contracts.fulfilled,failedContracts:t.contracts.failed,guildReputation:t.guild.reputation,guild:t.guild.routeId,politics:Object.values(t.guild.politics).filter(p=>p.policy).length,ongoing:t.stage!=='home'};
 }
 
+
+
+/* v44 — Lonca rekabeti, nüfuz ve bölgesel ticaret meclisi. */
+const CARAVAN_POLICIES={
+ toll:{name:'Geçiş kolaylığı',desc:'Bölgesel yol giderini 1 servet daha azaltır.'},
+ fair:{name:'Adil pazar nizamı',desc:'Yeni seferlerde satış fiyatı için %6 ek pazar kolaylığı sağlar.'}
+};
+function caravanPoliticsRecord(routeId){
+ return CARAVAN_ROUTES[routeId]?ensureCaravanTrade().guild.politics[routeId]:null;
+}
+function caravanPoliticsPolicy(routeId){
+ const t=ensureCaravanTrade(),p=caravanPoliticsRecord(routeId);
+ if(!p||!caravanGuildBenefit(routeId)||!p.policy||p.policy.until<lifeSerial())return null;
+ const sponsor=p.policy.sponsorId?npcById(p.policy.sponsorId):null;
+ return sponsor?.alive&&t.competition[routeId]?.npcId===sponsor.id?p.policy:null;
+}
+function caravanPoliticsIssue(mode,routeId,choice=null){
+ const t=ensureCaravanTrade(),g=t.guild,p=caravanPoliticsRecord(routeId);
+ if(!s.assets.includes('caravan_share')||s.age<18)return 'Ticaret meclisi için yetişkin Kervan Payı sahibi olmalısın.';
+ if(!CARAVAN_ROUTES[routeId]||!p)return 'Böyle bir bölgesel meclis yok.';
+ if(g.routeId!==routeId)return 'Yalnız üyesi olduğun loncanın meclisine katılabilirsin.';
+ if(t.stage!=='home')return 'Meclis görüşmeleri obada yapılır.';
+ const n=g.sponsorId?npcById(g.sponsorId):null;
+ if(!n?.alive||t.competition[routeId]?.npcId!==n.id)return 'Lonca temsilcisi bu bölgede bulunamıyor.';
+ if(mode==='lobby'){
+  if(s.wealth<4)return 'Lonca desteği toplamak için 4 servet gerekiyor.';
+  if(p.lastLobbySerial!==null&&lifeSerial()-p.lastLobbySerial<6)return 'Yeni nüfuz görüşmesi için altı ay geçmeli.';
+ }else if(mode==='decree'){
+  if(!CARAVAN_POLICIES[choice])return 'Böyle bir ticaret kararı yok.';
+  if(p.policy&&p.policy.until>=lifeSerial())return 'Önce yürürlükteki ticaret kararı sona ermeli.';
+  if(p.influence<20||g.reputation<36)return 'Meclis için 20 nüfuz ve 36 ticaret itibarı gerekiyor.';
+  if(p.influence<=p.rivalStrength)return 'Rakip tüccarın meclisteki ağırlığı hâlâ daha fazla.';
+  if(s.wealth<8)return 'Karar görüşmesi için 8 servet gerekiyor.';
+  if(p.lastDecreeSerial!==null&&lifeSerial()-p.lastDecreeSerial<12)return 'Yeni karar için on iki ay geçmeli.';
+ }else return 'Bilinmeyen meclis eylemi.';
+ return '';
+}
+function caravanPoliticsAction(mode,routeId,choice=null){
+ const issue=caravanPoliticsIssue(mode,routeId,choice);if(issue){notice(issue);return false;}
+ return performAction({kind:'caravanPolitics',id:mode,routeId,choice},()=>{
+  const t=ensureCaravanTrade(),p=t.guild.politics[routeId],n=npcById(t.guild.sponsorId);
+  if(mode==='lobby'){
+   s.wealth-=4;n.wealth+=4;
+   p.influence=Math.min(100,p.influence+15);
+   p.lastLobbySerial=lifeSerial();
+   p.history.unshift({serial:lifeSerial(),kind:'lobby',amount:4,influence:p.influence,npcId:n.id});
+   economyLedger('caravanTrade',-4,CARAVAN_ROUTES[routeId].name+' meclis desteği');
+   adjustNPC(n,{trust:2,rel:2},'Bölgesel lonca kararları için destek toplandı.');
+   caravanRecord('politics_lobby',CARAVAN_ROUTES[routeId].name+' meclisinde destek topladın.',{npcId:n.id});
+  }else{
+   s.wealth-=8;n.wealth+=8;
+   p.influence=Math.max(0,p.influence-20);p.lastDecreeSerial=lifeSerial();
+   p.policy={kind:choice,until:lifeSerial()+12,sponsorId:n.id};
+   p.history.unshift({serial:lifeSerial(),kind:'decree',choice,amount:8,npcId:n.id,until:p.policy.until});
+   s.prestige=clamp(s.prestige+2);
+   economyLedger('caravanTrade',-8,CARAVAN_ROUTES[routeId].name+' meclis kararı');
+   adjustNPC(n,{trust:3,rel:2,respect:2},'Pazarda kabul gören bir lonca kararı alındı.');
+   caravanRecord('politics_decree',CARAVAN_ROUTES[routeId].name+' için '+CARAVAN_POLICIES[choice].name+' kararı yürürlüğe girdi.',{npcId:n.id});
+  }
+  p.history=p.history.slice(0,30);
+ },'Bölgesel ticaret meclisi işleri için bir ay geçirdin.');
+}
+function caravanPoliticsQuarterTick(month){
+ if(month%3!==0||!s.assets.includes('caravan_share'))return;
+ const t=ensureCaravanTrade(),serial=lifeSerial();
+ for(const [routeId,p] of Object.entries(t.guild.politics)){
+  if(p.lastQuarterSerial===serial)continue;
+  p.lastQuarterSerial=serial;
+  const rec=t.competition[routeId],n=rec?.npcId?npcById(rec.npcId):null;
+  if(n?.alive){
+   // NPC'nin son çeyrekteki fiilî ticaret büyüklüğü siyasi rekabetin kaynağıdır.
+   p.rivalStrength=Math.max(0,Math.min(100,p.rivalStrength+(rec.lastCycleSerial===serial&&rec.sold>0?2:0)-
+    (rec.displaced>0?1:0)));
+  }
+  if(t.guild.routeId===routeId&&p.influence>0)p.influence--;
+  if(p.policy&&(p.policy.until<serial||!n?.alive||p.policy.sponsorId!==rec?.npcId)){
+   p.history.unshift({serial,kind:'expired',choice:p.policy.kind});
+   p.policy=null;
+  }
+  p.history=p.history.slice(0,30);
+ }
+}
+function caravanPoliticsSummaryHtml(){
+ if(!s.assets.includes('caravan_share'))return '';
+ const t=ensureCaravanTrade(),g=t.guild;
+ let html='<div class="card"><h3>🏛️ Lonca Rekabeti ve Ticaret Meclisi</h3><p>Her pazarın nüfuzu ayrı gelişir. Rakibin ticaret gücü ile yarış; nüfuzunu ve servetini ticaret kararları için kullan.</p>';
+ for(const [id,route] of Object.entries(CARAVAN_ROUTES)){
+  const p=g.politics[id],policy=caravanPoliticsPolicy(id),own=g.routeId===id;
+  html+='<h3 class="sectionTitle">'+safeText(route.name)+'</h3><p>'+
+   'Nüfuz '+p.influence+'/100 • Rakip ağırlığı '+p.rivalStrength+'/100'+
+   (policy?' • '+safeText(CARAVAN_POLICIES[policy.kind].name)+' ('+Math.max(0,policy.until-lifeSerial())+' ay)':'')+'</p>';
+  if(own){
+   html+='<div class="grid2">';
+   html+=actionButton('Tüccar desteği topla',{kind:'caravanPolitics',id:'lobby',routeId:id},
+    'caravanPoliticsAction("lobby",'+JSON.stringify(id)+')','4 servet • altı ayda bir');
+   for(const [kind,cfg] of Object.entries(CARAVAN_POLICIES))
+    html+=actionButton(safeText(cfg.name),{kind:'caravanPolitics',id:'decree',routeId:id,choice:kind},
+     'caravanPoliticsAction("decree",'+JSON.stringify(id)+','+JSON.stringify(kind)+')',
+     '8 servet • 20 nüfuz • 36 itibar • 12 ay');
+   html+='</div>';
+  }
+ }
+ return html+'</div>';
+}
 
 /* v43: NPC sponsorlu bölgesel tüccar loncaları, kanıtlanmış ticaret itibarı. */
 const CARAVAN_GUILD_FEE=8;
@@ -5322,7 +5444,7 @@ function caravanTradeSummaryHtml(){
  if(t.voyages.length)html+='<h3 class="sectionTitle">Sefer geçmişi</h3><div class="memoryline">'+
   t.voyages.slice(0,5).map(x=>safeText(CARAVAN_ROUTES[x.routeId]?.name||'Kervan')+' • gelir '+x.earned+' • maliyet '+x.spent+' • net '+x.profit).join('<br>')+'</div>';
  if(t.history.length)html+='<div class="memoryline">'+t.history.slice(0,3).map(x=>safeText(x.note)).join('<br>')+'</div>';
- return html+'</div>'+caravanNetworkSummaryHtml()+caravanMarketSummaryHtml()+caravanContractSummaryHtml()+caravanGuildSummaryHtml();
+ return html+'</div>'+caravanNetworkSummaryHtml()+caravanMarketSummaryHtml()+caravanContractSummaryHtml()+caravanGuildSummaryHtml()+caravanPoliticsSummaryHtml();
 }
 
 function ensureEconomy(){
@@ -5626,6 +5748,7 @@ function accessIssue(a){
   else if(a.kind==='caravanWholesale'){min=18;const issue=caravanWholesaleIssue(a.id);if(issue)return issue;}
   else if(a.kind==='caravanContract'){min=18;const issue=caravanContractIssue(a.id,a.offerId);if(issue)return issue;}
   else if(a.kind==='caravanGuild'){min=18;const issue=caravanGuildIssue(a.id,a.routeId);if(issue)return issue;}
+  else if(a.kind==='caravanPolitics'){min=18;const issue=caravanPoliticsIssue(a.id,a.routeId,a.choice);if(issue)return issue;}
  else if(a.kind==='toyContest'){min=12;const issue=toyIssue(a.id,a.contestType);if(issue)return issue;}
  else if(a.kind==='horseStable'){min=12;const issue=horseActionIssue(a.id,a.horseId,a.other);if(issue)return issue;}
  else if(a.kind==='asset'){
@@ -5704,7 +5827,7 @@ function monthlyTick(month,action,allowEvent=true){
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
  tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);tickGuardianshipMonth(action);tickFriendshipMonth(action);tickWorkplaceMonth(action);horseMonthTick(month);bereavementMonthTick(month,action);tickCommunityReputationMonth(month);
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
- if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);caravanMarketQuarterTick(month);caravanContractMonthTick();
+ if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);caravanMarketQuarterTick(month);caravanContractMonthTick();caravanPoliticsQuarterTick(month);
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
   if(s.married&&s.partner?.alive&&s.age>=18&&s.partner.age>=18){const gender=pick(['male','female']);const c=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age:0,type:'Çocuk',birthYear:s.year+s.age,birthMonth:month,alive:true,rel:80,realm:s.realm,place:s.place,tribe:s.tribe,parentIds:[s.id,s.partner.id]},'Çocuk');s.children.push(c);ensureChildProfile(c);unlock('parent');log(safeText(c.name)+' dünyaya geldi.','major');}s.pregnancy=null;
  }
@@ -6144,7 +6267,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);

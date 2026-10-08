@@ -312,6 +312,17 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Kervan payı miras kalırsa ticari geçmiş korunur fakat yeni kuşak eski karakterin lonca üyeliği ve kişisel itibarını otomatik devralamaz.
 - Eski v42 kayıtları `yazgi_before_v43` ile yedeklenir. 22 yeni regresyon testi eklendi; tüm test paketi 513 senaryodan oluşur.
 
+### v44 — Lonca Rekabeti ve Bölgesel Ticaret Meclisleri
+
+- Irmak, Dağ Geçidi ve Bozkır pazarlarında ayrı ve kalıcı siyasi nüfuz kayıtları vardır. Her pazarın oyuncu nüfuzu (0–100), rakip tüccar ağırlığı (0–100), karar tarihi ve geçmişi ayrıdır.
+- Sadece o pazara ait loncanın üyesi, yaşayan gerçek NPC lonca temsilcisi eşliğinde meclis kararlarına katılabilir. Görüşmeler obada ve 18 yaş üzeri Kervan Payı sahiplerine açıktır.
+- **Tüccar desteği topla:** 4 servet oyuncudan gerçek NPC temsilcisine aktarılır, 15 nüfuz kazanılır; aynı temsilcilikte tekrar görüşmek için 6 ay geçmelidir.
+- Rakip tüccarın dönemsel ticaret faaliyetleri yerel siyasi ağırlığını güçlendirir. Oyuncunun nüfuzu bölge loncasında zamanla azalır, bu yüzden uzun vadeli nüfuz birikimi maliyetlidir. Her çeyreğin hesabı yalnız bir defa yapılır.
+- **Bölgesel meclis kararı:** 36 ticaret itibarı, en az 20 nüfuz, rakibin meclis ağırlığını aşma ve 8 servet gerektirir. Bedel NPC temsilcisine aktarılır; 20 nüfuz harcanır ve 12 aylık karar yürürlüğe girer. Aynı anda ikinci karar çıkartılamaz.
+- İki alternatif karar vardır: **Geçiş kolaylığı** o bölgedeki sefer yol bedelini ilaveten 1 azaltır; **Adil pazar nizamı** aynı bölgede sadece yeni seferlerin tekliflerine %6 fiyat avantajı sağlar. Üyelik sona erince veya temsilci ölünce siyasi ayrıcalık uygulanmaz. Mevcut seferlerin kilitlenmiş fiyatları değişmez.
+- Siyasi nüfuz ve kararlar kayıtta korunur; mirasla siyasi yetki, nüfuz veya aktif karar yeni karaktere geçmez. Eski v43 kaydı `yazgi_before_v44` anahtarıyla ayrıca yedeklenir.
+- v44 için 21 yeni test yazıldı; tüm bağımsız regresyon paketi 534 senaryodur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
