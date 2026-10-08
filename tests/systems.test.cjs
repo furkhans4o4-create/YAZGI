@@ -501,7 +501,7 @@ test('v32 heirs inherit real horses only if they receive the horse ownership ass
 test('v32 horse illness event targets actual unwell horses and treats them',()=>{
  const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.health=40;window.__event=EVENT_DECK.find(x=>x.id==="horse_sick_v32");window.__before=__h.health;horseSickEvent(0)');
  assert.equal(run('eventRequirementOK(__event)'),true);assert.ok(run('__h.health>__before'));
- assert.ok(run('eventDisplayText(__event,{}).includes(__h.name)')===false || run('__h.health>=60')); 
+ assert.ok(run('eventDisplayText(__event,{}).includes(__h.name)')); 
 });
 test('v32 stable data survives JSON serialization and load without making duplicate horses',()=>{
  const {run}=game();run(setup+'s.assets=["horse"];s.horseStable=null;window.__h=horses()[0];__h.name="Bozkır";window.__id=__h.id;save();load()');
