@@ -547,8 +547,8 @@ test('v33 a completed goal cannot be chosen and rewarded again',()=>{
  const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","alp");window.__a=ensureLifePurpose().active;__a.actions=30;s.military.served=true;s.military.campaigns=3;purposeProgressCheck();s.age++;purposeProgressCheck();s.age++;purposeProgressCheck();s.age++;window.__why=lifePurposeIssue("choose","alp")');
  assert.ok(run('__why.includes("tamamlandı")'));assert.equal(run('ensureLifePurpose().completed.length'),1);
 });
-test('v33 abandoning a lifetime goal records its actual stage and forbids same-year reselect',()=>{
- const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","craft");s.age++;window.__a=ensureLifePurpose().active;__a.stage=1;__a.actions=6;lifePurposeAction("abandon");window.__last=ensureLifePurpose().history[0];window.__why=lifePurposeIssue("choose","trade")');
+test('v33 abandoning a lifetime goal records its stage and permits later-year new choices',()=>{
+ const {run}=game();run(setup+'s.age=30;lifePurposeAction("choose","craft");s.age++;s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=12;window.__a=ensureLifePurpose().active;__a.stage=1;__a.actions=6;lifePurposeAction("abandon");window.__last=ensureLifePurpose().history[0];window.__why=lifePurposeIssue("choose","trade")');
  assert.equal(run('__last.stage'),1);assert.equal(run('__last.status'),'active');
  assert.ok(run('__why.includes("zaten bir ülkü")')===false);assert.equal(run('ensureLifePurpose().active'),null);
 });
