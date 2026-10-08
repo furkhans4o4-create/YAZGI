@@ -281,6 +281,16 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Ticaret rakiplerinin stokları ve kimlikleri kayıtta korunur. Kervan Payı miras kalan kuşağa rakip NPC kayıtları da taşınır. v39 dosyası güncellenirken `yazgi_before_v40` yedeği oluşturulur.
 - v40 için 13 yeni senaryo eklenmiştir; tüm test paketi 453 senaryodur.
 
+### v41 — Bölgesel Arz, Talep ve Pazar Krizleri
+
+- Irmak, Dağ Geçidi ve Bozkır pazarlarının her birinde tuz, yün, demir eşya ve ipek için ayrı arz, talep ve işlem kaydı tutulur. Bölgesel piyasa fiyatı pazarın kendi arz/talebinden etkilenir.
+- Gerçek oyuncu satışı ve rakip tüccarın satışları bölgesel arzı yükseltir. Rakip tüccarın çeyreklik mal alımı arzı azaltır. Oyuncudan rakibe yapılan toptan transfer, mal perakende pazarda satılana kadar arzı yapay olarak artırmaz.
+- Seyrek rastlantısal kıtlık ve bolluk oluşur. Kıtlık stok azaltıp talebi artırır; bolluk tersini yapar. Etkiler üç çeyrek aktif kalır; pazarın arzı ve talebi her çeyrekte normal seviyelere yaklaşır.
+- Bir pazarda devam eden kriz üst üste uygulanamaz, aynı çeyreğin hesabı ikinci kez işlenmez. Her bir mal için arz/talep 0–24 aralığında, fiyat çarpanı 0,65–1,55 aralığında tutulur.
+- Fiyatlar kervanın kalkışında sabitlenir; yoldayken değişen bölgesel koşullar mevcut seferin fiyatını geriye dönük değiştirmez, sonraki seferleri etkiler.
+- Oyunun kervan varlığına sahip kişiler için bölgesel pazar panosu arz/talep ve güncel krizleri gösterir. Pazar durumu ve işlem geçmişi kayıtta, kervan mirasında da korunur.
+- v40 kayıtları ilk yüklemede `yazgi_before_v41` ile yedeklenir; mevcut eski yedeklere dokunulmaz. 18 yeni regresyon testi eklendi; tüm paket 471 testten oluşur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.

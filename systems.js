@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=40,ADULT_AGE=18;
+const SAVE_VERSION=41,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -4603,6 +4603,82 @@ const CARAVAN_ROUTES={
  steppe:{name:'Bozkır Toy Pazarı',months:1,toll:1,risk:.11,prices:{salt:.9,wool:1.35,iron:1.05,silk:1.65}}
 };
 
+
+/* v41 — Kalıcı bölgesel arz/talep ve mevsimsel pazar krizleri. */
+const CARAVAN_MARKET_SHOCKS={
+ shortage:{name:'Ticaret kıtlığı',supply:-5,demand:3},
+ surplus:{name:'Pazar bolluğu',supply:6,demand:-2}
+};
+function caravanMarketState(routeId){
+ return CARAVAN_ROUTES[routeId]?ensureCaravanTrade().markets[routeId]:null;
+}
+function caravanMarketMultiplier(routeId,goodId){
+ if(!CARAVAN_GOODS[goodId])return 1;
+ const m=caravanMarketState(routeId);if(!m)return 1;
+ const g=m.goods[goodId],cr=m.crisis?.goodId===goodId?m.crisis:null;
+ return Math.max(.65,Math.min(1.55,1+(g.demand-g.supply)*.028+(cr?(cr.kind==='shortage'?.05:-.05):0)));
+}
+function caravanMarketNote(m,kind,goodId,qty,note){
+ m.history.unshift({serial:lifeSerial(),kind,goodId,qty,note});
+ m.history=m.history.slice(0,36);
+}
+function caravanMarketExchange(routeId,goodId,qty,kind){
+ if(!CARAVAN_GOODS[goodId])return false;
+ const m=caravanMarketState(routeId);if(!m)return false;
+ const count=Math.max(0,Math.min(12,Math.floor(qty||0)));if(!count)return false;
+ const g=m.goods[goodId];
+ if(kind==='playerSell'||kind==='npcSell')g.supply=Math.min(24,g.supply+count);
+ else if(kind==='npcBuy')g.supply=Math.max(0,g.supply-count);
+ else return false;
+ g.traded+=count;
+ caravanMarketNote(m,kind,goodId,count,CARAVAN_GOODS[goodId].name+' pazar işlemi');
+ return true;
+}
+function caravanMarketShock(routeId,goodId,kind){
+ if(!CARAVAN_GOODS[goodId]||!CARAVAN_MARKET_SHOCKS[kind])return false;
+ const m=caravanMarketState(routeId);if(!m||m.crisis)return false;
+ const cfg=CARAVAN_MARKET_SHOCKS[kind],g=m.goods[goodId];
+ g.supply=Math.max(0,Math.min(24,g.supply+cfg.supply));
+ g.demand=Math.max(0,Math.min(24,g.demand+cfg.demand));
+ m.crisis={kind,goodId,remaining:3,started:lifeSerial()};
+ caravanMarketNote(m,kind,goodId,0,CARAVAN_GOODS[goodId].name+' — '+cfg.name);
+ return true;
+}
+function caravanMarketQuarterTick(month){
+ if(month%3!==0||!s.assets.includes('caravan_share'))return;
+ const serial=lifeSerial();
+ for(const routeId of Object.keys(CARAVAN_ROUTES)){
+  const m=caravanMarketState(routeId);if(m.lastQuarterSerial===serial)continue;
+  m.lastQuarterSerial=serial;m.quarters++;
+  for(const g of Object.values(m.goods)){
+   if(g.supply<10)g.supply++;else if(g.supply>10)g.supply--;
+   if(g.demand<10)g.demand++;else if(g.demand>10)g.demand--;
+  }
+  if(m.crisis&&!--m.crisis.remaining){
+   caravanMarketNote(m,'recovery',m.crisis.goodId,0,'Pazar toparlandı.');m.crisis=null;
+  }
+  if(!m.crisis&&Math.random()<.065){
+   const keys=Object.keys(CARAVAN_GOODS);
+   caravanMarketShock(routeId,keys[rng(0,keys.length-1)],Math.random()<.5?'shortage':'surplus');
+  }
+ }
+}
+function caravanMarketSummaryHtml(){
+ if(!s.assets.includes('caravan_share'))return '';
+ const t=ensureCaravanTrade();
+ let html='<div class="card"><h3>📈 Bölgesel Pazarlar</h3><p>Kıtlık fiyatı artırır, bolluk düşürür. İşlemler arzı değiştirir; pazar çeyrekler boyunca toparlanır. Açık sefer fiyatları sabittir.</p>';
+ for(const [routeId,route] of Object.entries(CARAVAN_ROUTES)){
+  const m=t.markets[routeId],cr=m.crisis;
+  html+='<h3 class="sectionTitle">'+safeText(route.name)+'</h3>';
+  if(cr)html+='<p>'+safeText(CARAVAN_GOODS[cr.goodId].name)+' • '+safeText(CARAVAN_MARKET_SHOCKS[cr.kind].name)+' • '+cr.remaining+' çeyrek</p>';
+  html+='<div class="memoryline">'+Object.entries(m.goods).map(([id,g])=>{
+   const factor=caravanMarketMultiplier(routeId,id);
+   return safeText(CARAVAN_GOODS[id].name)+' arz '+g.supply+' / talep '+g.demand+' • '+(factor>1.04?'pahalı':factor<.96?'ucuz':'dengeli');
+  }).join('<br>')+'</div>';
+ }
+ return html+'</div>';
+}
+
 /* v39: kalıcı ticaret ortaklığı ve yol bazlı gerçek NPC rekabeti. */
 function caravanPartnerCandidates(){
  const m=careerContact('merchant'),list=[m,...s.careerContacts,...s.friends,...s.relatives].filter(n=>n?.alive&&n.age>=18&&!npcLifeBlocksNormalInteraction(n)&&
@@ -4696,12 +4772,14 @@ function caravanRivalCycle(month){
      CARAVAN_ROUTES[routeId].prices[id]*(.85+ensureEconomy().tradeDemand/500)));
     lot.qty--;r.inventory=r.inventory.filter(x=>x.qty>0);
     n.wealth+=price;r.revenue+=price;r.profit+=price-cost;r.sold++;r.recentVolume=Math.min(6,r.recentVolume+1);
+    caravanMarketExchange(routeId,id,1,'npcSell');
     r.lastSaleSerial=serial;caravanRivalJournal(r,'sell',id,price);
    }
   }
   if(caravanRivalUnits(r)<8){
    const id=goods[(r.cycles+routes.indexOf(routeId))%goods.length],cost=caravanBuyPrice(id);
-   if(n.wealth>=cost){n.wealth-=cost;r.expenses+=cost;r.bought++;caravanRivalStockAdd(r,id,cost);caravanRivalJournal(r,'buy',id,-cost);}
+   if(n.wealth>=cost){n.wealth-=cost;r.expenses+=cost;r.bought++;caravanRivalStockAdd(r,id,cost);caravanRivalJournal(r,'buy',id,-cost);
+    caravanMarketExchange(routeId,id,1,'npcBuy');}
    else if(caravanRivalUnits(r)===0){r.stalls++;caravanRivalJournal(r,'stalled',id,0);}
   }
   if(r.lastSaleSerial!==serial)r.recentVolume=Math.max(0,r.recentVolume-1);
@@ -4792,6 +4870,24 @@ function ensureCaravanTrade(){
  t.trip=t.trip&&typeof t.trip==='object'?t.trip:null;
  t.partnerId=typeof t.partnerId==='string'&&t.partnerId?t.partnerId:null;
  t.partnerHistory=Array.isArray(t.partnerHistory)?t.partnerHistory.slice(0,40):[];
+ t.markets=t.markets&&typeof t.markets==='object'&&!Array.isArray(t.markets)?t.markets:{};
+ for(const routeId of Object.keys(CARAVAN_ROUTES)){
+  const m=t.markets[routeId]&&typeof t.markets[routeId]==='object'&&!Array.isArray(t.markets[routeId])?t.markets[routeId]:{};
+  t.markets[routeId]=m;m.goods=m.goods&&typeof m.goods==='object'&&!Array.isArray(m.goods)?m.goods:{};
+  for(const goodId of Object.keys(CARAVAN_GOODS)){
+   const g=m.goods[goodId]&&typeof m.goods[goodId]==='object'?m.goods[goodId]:{};
+   m.goods[goodId]=g;
+   for(const key of ['supply','demand'])g[key]=Math.max(0,Math.min(24,Math.floor(Number.isFinite(g[key])?g[key]:10)));
+   g.traded=Math.max(0,Math.floor(Number.isFinite(g.traded)?g.traded:0));
+  }
+  m.history=Array.isArray(m.history)?m.history.slice(0,36):[];
+  m.quarters=Math.max(0,Math.floor(Number.isFinite(m.quarters)?m.quarters:0));
+  m.lastQuarterSerial=Number.isFinite(m.lastQuarterSerial)?m.lastQuarterSerial:null;
+  const q=m.crisis;
+  m.crisis=q&&CARAVAN_MARKET_SHOCKS[q.kind]&&CARAVAN_GOODS[q.goodId]&&Number.isFinite(q.remaining)&&q.remaining>0?
+   {kind:q.kind,goodId:q.goodId,remaining:Math.min(4,Math.floor(q.remaining)),started:Number.isFinite(q.started)?q.started:0}:null;
+ }
+ for(const id of Object.keys(t.markets))if(!CARAVAN_ROUTES[id])delete t.markets[id];
  t.competition=t.competition&&typeof t.competition==='object'&&!Array.isArray(t.competition)?t.competition:{};
  for(const [id,rec] of Object.entries(t.competition)){
   if(!CARAVAN_ROUTES[id]||!rec||typeof rec!=='object'){delete t.competition[id];continue;}
@@ -4826,7 +4922,7 @@ function caravanQuote(routeId){
  const competition=Math.max(.67,1-rivalry-supply);
  const partner=caravanPartner(),bonus=partner?.alive?1.12:1;
  return Object.fromEntries(Object.keys(CARAVAN_GOODS).map(id=>[
-  id,Math.max(1,Math.round(CARAVAN_GOODS[id].cost*route.prices[id]*(.85+e.tradeDemand/500)*competition*bonus))
+  id,Math.max(1,Math.round(CARAVAN_GOODS[id].cost*route.prices[id]*(.85+e.tradeDemand/500)*competition*bonus*caravanMarketMultiplier(routeId,id)))
  ]));
 }
 function caravanIssue(mode,id=null,extra=null){
@@ -4883,6 +4979,7 @@ function caravanAction(mode,id=null,extra=null){
   }else if(mode==='sell'){
    const amount=t.cargo.reduce((sum,x)=>sum+x.qty*t.prices[x.goodId],0);
    const goods=t.cargo.reduce((sum,x)=>sum+x.qty,0);
+   const soldGoods={};for(const lot of t.cargo)soldGoods[lot.goodId]=(soldGoods[lot.goodId]||0)+lot.qty;
    const costs=t.cargo.reduce((sum,x)=>sum+x.qty*x.unitCost,0);
    const share=t.trip?.partnerId?Math.floor(Math.max(0,amount-costs-(t.trip?.fee||0))*.25):0;
    const income=amount-share;
@@ -4890,6 +4987,7 @@ function caravanAction(mode,id=null,extra=null){
    if(t.trip){t.trip.earned+=income;t.trip.partnerPaid=(t.trip.partnerPaid||0)+share;}
    t.cargo=[];
    const rival=t.competition[t.routeId];if(rival)rival.displaced=Math.min(8,rival.displaced+Math.ceil(goods/2));
+   for(const [id,qty] of Object.entries(soldGoods))caravanMarketExchange(t.routeId,id,qty,'playerSell');
    const partner=t.trip?.partnerId?npcById(t.trip.partnerId):null;
    if(partner){partner.wealth=Math.max(0,Math.round(partner.wealth||0))+share;
     if(partner.alive)adjustNPC(partner,{rel:2,trust:3},'Kervan kârının söz verilen payı teslim edildi.');}
@@ -4978,7 +5076,7 @@ function caravanTradeSummaryHtml(){
  if(t.voyages.length)html+='<h3 class="sectionTitle">Sefer geçmişi</h3><div class="memoryline">'+
   t.voyages.slice(0,5).map(x=>safeText(CARAVAN_ROUTES[x.routeId]?.name||'Kervan')+' • gelir '+x.earned+' • maliyet '+x.spent+' • net '+x.profit).join('<br>')+'</div>';
  if(t.history.length)html+='<div class="memoryline">'+t.history.slice(0,3).map(x=>safeText(x.note)).join('<br>')+'</div>';
- return html+'</div>'+caravanNetworkSummaryHtml();
+ return html+'</div>'+caravanNetworkSummaryHtml()+caravanMarketSummaryHtml();
 }
 
 function ensureEconomy(){
@@ -5358,7 +5456,7 @@ function monthlyTick(month,action,allowEvent=true){
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
  tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);tickGuardianshipMonth(action);tickFriendshipMonth(action);tickWorkplaceMonth(action);horseMonthTick(month);bereavementMonthTick(month,action);tickCommunityReputationMonth(month);
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
- if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);
+ if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);caravanMarketQuarterTick(month);
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
   if(s.married&&s.partner?.alive&&s.age>=18&&s.partner.age>=18){const gender=pick(['male','female']);const c=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age:0,type:'Çocuk',birthYear:s.year+s.age,birthMonth:month,alive:true,rel:80,realm:s.realm,place:s.place,tribe:s.tribe,parentIds:[s.id,s.partner.id]},'Çocuk');s.children.push(c);ensureChildProfile(c);unlock('parent');log(safeText(c.name)+' dünyaya geldi.','major');}s.pregnancy=null;
  }
@@ -5798,7 +5896,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
