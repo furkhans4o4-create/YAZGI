@@ -587,3 +587,101 @@ test('v33 life purposes remain separate for the next heir with ancestry history'
  assert.equal(run('ensureLifePurpose().active'),null);
  assert.ok(run('s.legacy.purposes.some(x=>x.purpose?.active?.id==="craft")'));
 });
+
+
+const npcAspFixture="s.age=35;s.wealth=90;s.monthsRemaining=12;s.pendingDecision=null;s.pendingEventId=null;window.__n=normalizeNPC({name:'Bagatur',gender:'male',age:25,birthYear:s.year+s.age-25,alive:true,goal:'mastery',type:'Erkek kardeş',role:'Avcı',health:95,rel:72,traits:['caliskan','sadik']},'Erkek kardeş');s.siblings.push(__n);window.__a=npcAspiration(__n);";
+
+test('v34 NPC begins an independent, saved three-stage life aspiration',()=>{
+ const {run}=game();run(setup+npcAspFixture);
+ assert.equal(run('s.version'),34);assert.equal(run('__a.goal'),'mastery');
+ assert.equal(run('__a.stage'),0);assert.equal(run('__a.status'),'active');
+ assert.equal(run('NPC_ASPIRATION_STAGES.mastery.length'),3);
+});
+test('v34 a parent sibling or child ages into an autonomous ambition without interaction',()=>{
+ const {run}=game();run(setup+"s.age=35;window.__n=normalizeNPC({name:'Genc',gender:'female',age:12,birthYear:s.year+s.age-12,alive:true,goal:'wisdom',type:'Kız kardeş'},'Kız kardeş');s.siblings.push(__n);npcAspirationYearTick(__n,s.year+s.age);");
+ assert.ok(run('__n.aspiration&&__n.aspiration.effort>0'));
+ assert.equal(run('__n.aspiration.lastYear'),run('s.year+s.age'));
+});
+test('v34 autonomy progresses at most once per calendar year',()=>{
+ const {run}=game();run(setup+npcAspFixture+"npcAspirationYearTick(__n,1234);window.__first=__a.effort;npcAspirationYearTick(__n,1234);");
+ assert.equal(run('__a.effort'),run('__first'));
+});
+test('v34 monthly support consumes one month and costs three wealth',()=>{
+ const {run}=game();run(setup+npcAspFixture+"window.__wealth=s.wealth;window.__months=s.monthsRemaining;window.__effort=__a.effort;npcAspirationAction(__n.id,'support');");
+ assert.equal(run('__wealth-s.wealth'),3);assert.equal(run('__months-s.monthsRemaining'),1);
+ assert.ok(run('__a.effort>__effort'));assert.ok(run('__n.wealth>=2'));
+});
+test('v34 listening improves autonomy and NPC trust without rewriting personal goal',()=>{
+ const {run}=game();run(setup+npcAspFixture+"window.__autonomy=__a.autonomy;window.__trust=__n.bonds.trust;npcAspirationAction(__n.id,'listen');");
+ assert.ok(run('__a.autonomy>__autonomy'));assert.ok(run('__n.bonds.trust>__trust'));
+ assert.equal(run('__n.goal'),'mastery');
+});
+test('v34 pressuring a NPC weakens trust and increases oppressive pressure',()=>{
+ const {run}=game();run(setup+npcAspFixture+"window.__trust=__n.bonds.trust;window.__autonomy=__a.autonomy;__a.pressure=5;npcAspirationAction(__n.id,'pressure');");
+ assert.ok(run('__a.pressure>5'));assert.ok(run('__a.autonomy<__autonomy'));assert.ok(run('__n.bonds.trust<__trust'));
+});
+test('v34 stepping back reduces an existing pressure without costing wealth',()=>{
+ const {run}=game();run(setup+npcAspFixture+"__a.pressure=65;window.__money=s.wealth;npcAspirationAction(__n.id,'leave');");
+ assert.ok(run('__a.pressure<65'));assert.equal(run('s.wealth'),run('__money'));
+});
+test('v34 a sick NPC pauses ordinary autonomous progress and records the stall',()=>{
+ const {run}=game();run(setup+npcAspFixture+"__n.lifeState.status='ill';__n.lifeState.remainingYears=2;window.__before=__a.effort;npcAspirationYearTick(__n,s.year+s.age);");
+ assert.equal(run('__a.effort'),run('__before'));
+ assert.equal(run('__a.stalledYears'),1);
+ assert.ok(run('__a.history.some(x=>x.type==="blocked")'));
+});
+test('v34 completed milestone alters real NPC skill and is visible to the living world',()=>{
+ const {run}=game();run(setup+npcAspFixture+"__a.effort=25;window.__skill=__n.skills.craft||0;window.__res=npcAspirationStep(__n,__a);");
+ assert.equal(run('__res'),true);assert.equal(run('__a.stage'),1);
+ assert.ok(run('__n.skills.craft>__skill'));assert.equal(run('ensureNPCWorld().counts.aspiration'),1);
+});
+test('v34 stage two promotes a craftsman and saves role protection',()=>{
+ const {run}=game();run(setup+npcAspFixture+"__a.stage=1;__a.effort=60;__a.lastMilestoneYear=null;window.__res=npcAspirationStep(__n,__a);");
+ assert.equal(run('__res'),true);assert.equal(run('__a.stage'),2);
+ assert.equal(run('__n.role'),'Demirci');assert.equal(run('__a.protectedRole'),'Demirci');
+ assert.ok(run('__n.roleHistory.some(x=>x.role==="Demirci"&&x.source==="own_aspiration")'));
+});
+test('v34 third milestone completes the NPC life goal with persistent history',()=>{
+ const {run}=game();run(setup+npcAspFixture+"__a.stage=2;__a.effort=90;__a.lastMilestoneYear=null;window.__res=npcAspirationStep(__n,__a);");
+ assert.equal(run('__res'),true);assert.equal(run('__a.status'),'completed');
+ assert.equal(run('__a.milestones.length'),1);
+ assert.ok(run('__n.memories.some(x=>x.text.includes("Kendi ülküsüne ulaştı"))'));
+});
+test('v34 long-term aspiration milestone cannot be duplicated in the same year',()=>{
+ const {run}=game();run(setup+npcAspFixture+"__a.effort=90;window.__a1=npcAspirationStep(__n,__a);window.__a2=npcAspirationStep(__n,__a);");
+ assert.equal(run('__a1'),true);assert.equal(run('__a2'),false);
+ assert.equal(run('__a.stage'),1);
+});
+test('v34 autonomous NPC actions are rejected for nonexistent or very young people',()=>{
+ const {run}=game();run(setup+npcAspFixture+"window.__none=npcAspirationActionIssue(null,'support');__n.age=9;window.__young=npcAspirationActionIssue(__n,'support');");
+ assert.ok(run('__none.includes("Bu kişiyle")'));assert.ok(run('__young.includes("Bu kişiyle")'));
+});
+test('v34 support action cannot spend wealth a player does not have',()=>{
+ const {run}=game();run(setup+npcAspFixture+"s.wealth=1;window.__before=s.monthsRemaining;window.__ok=npcAspirationAction(__n.id,'support');");
+ assert.equal(run('__ok'),false);assert.equal(run('s.monthsRemaining'),run('__before'));
+});
+test('v34 family UI shows the independent NPC goal, progress and response actions',()=>{
+ const {run}=game();run(setup+npcAspFixture+"window.__html=familyCard(__n,'siblings',0);");
+ assert.ok(run('__html.includes("Kendi ülküsü:")'));assert.ok(run('__html.includes("Destek ol")'));
+ assert.ok(run('__html.includes("Özgür")')===false || run('__html.includes("özgür")'));
+});
+test('v34 saving and reloading preserves individual goals and milestone history',()=>{
+ const {run}=game();run(setup+npcAspFixture+"__a.effort=30;npcAspirationStep(__n,__a);window.__id=__n.id;save();load();window.__loaded=npcById(__id);");
+ assert.equal(run('__loaded.aspiration.stage'),1);
+ assert.equal(run('__loaded.aspiration.milestones[0].title'),'Çıraklık emeği');
+});
+test('v34 older v33 saves migrate without discarding family relations',()=>{
+ const {run,storage}=game();run(setup+npcAspFixture+"s.version=33;delete __n.aspiration;save();load();");
+ assert.equal(run('s.version'),34);assert.ok(storage.has('yazgi_before_v34'));
+ assert.equal(run('s.siblings[0].name'),'Bagatur');
+});
+test('v34 a childs NPC ambition remains as an independent lineage note after heir continuation',()=>{
+ const {run}=game();run(setup+"s.age=50;window.__child=normalizeNPC({name:'Varis',gender:'male',alive:true,age:22,type:'Çocuk',goal:'wisdom',birthYear:s.year+s.age-22,rel:85},'Çocuk');s.children=[__child];window.__asp=npcAspiration(__child);__asp.effort=50;__asp.stage=1;s.military.called=true;s.military.served=true;die();continueAsHeir(0);");
+ assert.equal(run('s.legacy.heirJourneys.at(-1).goal'),'wisdom');
+ assert.equal(run('s.legacy.heirJourneys.at(-1).stage'),1);
+ assert.equal(run('s.lifePurpose?.active||null'),null);
+});
+test('v34 repeated year updates cannot change already completed individual achievements',()=>{
+ const {run}=game();run(setup+npcAspFixture+"__a.stage=3;__a.status='completed';__a.effort=99;window.__history=__a.milestones.length;npcAspirationYearTick(__n,s.year+s.age);");
+ assert.equal(run('__a.stage'),3);assert.equal(run('__a.milestones.length'),run('__history'));
+});
