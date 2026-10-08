@@ -941,7 +941,7 @@ test('v37 delivery pays the remainder and closes order only once',()=>{
  assert.ok(run('__why.includes("açık değil")'));
 });
 test('v37 low skill creates a defective product and rework consumes additional stock',()=>{
- const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=7;__w.materials.charcoal=5;s.skills.craft=0;assetState('smithy').condition=28;workshopAction('take','kilic');s.pendingEventId=null;s.pendingDecision=null;window.__o=__w.orders[0];workshopAction('forge',__o.id);window.__old=__w.items[0].quality;window.__stock=__w.materials.iron;s.pendingEventId=null;s.pendingDecision=null;workshopAction('rework',__o.id);");
+ const {run}=game();run(setup+workshopFixture+"window.__w=ensureWorkshop();__w.materials.iron=7;__w.materials.charcoal=5;__w.materials.leather=1;s.skills.craft=0;assetState('smithy').condition=28;workshopAction('take','kilic');s.pendingEventId=null;s.pendingDecision=null;window.__o=__w.orders[0];workshopAction('forge',__o.id);window.__old=__w.items[0].quality;window.__stock=__w.materials.iron;s.pendingEventId=null;s.pendingDecision=null;workshopAction('rework',__o.id);");
  assert.ok(run('__old<__o.minQuality'));assert.equal(run('__w.materials.iron'),run('__stock-1'));
  assert.ok(run('__w.items[0].quality>__old'));assert.equal(run('__w.items.length'),1);
 });
@@ -1002,4 +1002,11 @@ test('v37 v36 saves migrate without losing old economic assets',()=>{
  const {run,storage}=game();run(setup+"s.age=30;s.assets.push('smithy');s.version=36;delete s.workshop;save();load();");
  assert.equal(run('s.version'),37);assert.ok(storage.has('yazgi_before_v37'));
  assert.equal(run('s.assets.includes("smithy")'),true);assert.equal(run('ensureWorkshop().orders.length'),0);
+});
+
+
+test('v37 apprentice and graduate roles resist annual random career switching',()=>{
+ const {run}=game();run(setup+workshopFixture+"window.__n=s.siblings[0];__n.alive=true;__n.age=24;__n.rel=85;__n.role='Demirci Çırağı';window.__w=ensureWorkshop();__w.apprenticeId=__n.id;Math.random=()=>0;familyTick();window.__during=__n.role;__w.apprenticeId=null;__n.statusFlags.workshopGraduate=true;__n.role='Demirci';familyTick();");
+ assert.equal(run('__during'),'Demirci Çırağı');
+ assert.equal(run('__n.role'),'Demirci');
 });

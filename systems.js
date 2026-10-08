@@ -4522,7 +4522,7 @@ function workshopMonthTick(month){
   }
   if(rec.months>=12&&(n.skills.craft||0)>=35){
    rec.status='graduated';rec.endYear=s.year+s.age;w.apprenticeId=null;
-   n.role='Demirci';n.roleHistory.push({year:s.year+s.age,role:'Demirci',source:'workshop-graduation'});
+   n.role='Demirci';n.statusFlags=n.statusFlags||{};n.statusFlags.workshopGraduate=true;n.roleHistory.push({year:s.year+s.age,role:'Demirci',source:'workshop-graduation'});
    adjustNPC(n,{rel:7,trust:7,respect:8},'Usta yanında yetişip demirci oldun.');
    workshopRecord('graduated',n.name+' ocakta yetişip demirci ustası oldu.');
   }
@@ -5095,7 +5095,7 @@ function familyTick(){
   const grudgeDrop=n.traits.includes('bagislayici')?4:n.traits.includes('kinci')?0:2;n.bonds.grudge=clamp(n.bonds.grudge-grudgeDrop);
   if(n.bonds.grudge>55)n.rel=clamp(n.rel-2);if(n.bonds.trust>78&&n.rel<75)n.rel=clamp(n.rel+1);
   if(!npcLifeBlocksNormalInteraction(n)){if(n.goal==='wealth')n.wealth+=rng(0,3);if(n.goal==='prestige')n.prestige=clamp(n.prestige+rng(0,2));if(n.goal==='mastery')n.skills.mastery=clamp((n.skills.mastery||0)+rng(1,3));}npcEstateYearTick(n);
-  if(n.age>=18&&!npcLifeBlocksNormalInteraction(n)&&!n.statusFlags?.familyMatchedTo&&!n.aspiration?.protectedRole&&Math.random()<(n.traits.includes('hirsli')?.22:.07)){const old=n.role,next=npcCareerFor(n);if(old!==next){n.role=next;n.roleHistory.push({year,role:n.role});rememberNPC(n,'career','Görevini değiştirip '+n.role+' oldu.',2);if(closeIds.has(n.id))log(safeText(n.name)+' artık '+safeText(n.role)+'.','good');}}
+  if(n.age>=18&&!npcLifeBlocksNormalInteraction(n)&&!n.statusFlags?.familyMatchedTo&&!n.aspiration?.protectedRole&&!n.statusFlags?.workshopGraduate&&s.workshop?.apprenticeId!==n.id&&Math.random()<(n.traits.includes('hirsli')?.22:.07)){const old=n.role,next=npcCareerFor(n);if(old!==next){n.role=next;n.roleHistory.push({year,role:n.role});rememberNPC(n,'career','Görevini değiştirip '+n.role+' oldu.',2);if(closeIds.has(n.id))log(safeText(n.name)+' artık '+safeText(n.role)+'.','good');}}
   npcAspirationYearTick(n,year);
   if(n.partner){
    if(isAdultPlayerChild(n)){
