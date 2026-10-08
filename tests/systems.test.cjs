@@ -733,7 +733,7 @@ test('v35 pazar capital requires collateral and increases obligations without gr
  assert.equal(run('s.assets.includes("flock")'),true);
 });
 test('v35 pledged property cannot be sold before clearing its agreement',()=>{
- const {run}=game();run(setup+creditFixture+"s.assets.push('flock');ensureEconomy();creditAction('borrow','pazar','flock');window.__why=accessIssue({kind:'asset',id:'flock',sell:true});");
+ const {run}=game();run(setup+creditFixture+"s.assets.push('flock');ensureEconomy();creditAction('borrow','pazar','flock');s.pendingEventId=null;s.pendingDecision=null;window.__why=accessIssue({kind:'asset',id:'flock',sell:true});");
  assert.ok(run('__why.includes("rehinli")'));
 });
 test('v35 foreclosing collateral removes the property, reduces outstanding balance and preserves a default record',()=>{
