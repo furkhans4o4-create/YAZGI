@@ -271,6 +271,16 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Ortaklık ve rakip kayıtları oyun kaydında korunur. Kervan Payı miras kaldığında yük ve ticari geçmiş korunur, fakat yeni kuşak ortaklığı yeniden kurmak zorundadır. Ölüm kaydı ticari ilişki özetini saklar.
 - v38 kayıtları v39'a geçerken `yazgi_before_v39` yedeği alınır; eski yedekler silinmez.
 
+### v40 — Bağımsız Tüccarlar ve Canlı Pazar
+
+- Her açılan ticaret yolunda kalıcı kimlikli rakip tüccar, kendi gerçek serveti ve ambarındaki mallarla ticaret yapar. Her üç ayda bir dönemsel satış ve yeni alım gerçekleştirir; gerçek nakit harcamadan yeni mal edinemez.
+- Rakibin mal cinsi, alış maliyeti, stok miktarı, nakdi, yaptığı alımlar/satışlar, gerçekleşen kârı ve durgun geçen dönemleri ayrı ayrı saklanır. Aynı çeyrek iki defa hesaplanmaz.
+- Rakibin pazardaki gerçek satışları sonraki seferler için fiyat baskısı oluşturur; oyuncunun aynı pazara yaptığı satışlar da rakibin gelecek dönemde bulabileceği müşterileri azaltır.
+- Oyuncu ulaştığı pazarda rakibin nakdi ve depo kapasitesi elverdiği sürece yükünü tek tek toptan satabilir. Ödeme gerçek NPC servetinden düşer, kervan stoğu eksilir; aynı malın iki kez satılması engellenir.
+- v39 ortaklık kâr payları bu satışlarda da uygulanır. Eski seferin kilitli satış fiyatları sefer sırasında geriye dönük değiştirilmez.
+- Ticaret rakiplerinin stokları ve kimlikleri kayıtta korunur. Kervan Payı miras kalan kuşağa rakip NPC kayıtları da taşınır. v39 dosyası güncellenirken `yazgi_before_v40` yedeği oluşturulur.
+- v40 için 13 yeni senaryo eklenmiştir; tüm test paketi 453 senaryodur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
