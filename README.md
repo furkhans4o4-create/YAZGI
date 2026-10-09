@@ -430,6 +430,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Görevli kimliği, alınan ücret, yapılan ödemeler, son işlem ayı ve görevlendirme durumu oyunun kayıtlarında tutulur. v55'ten yükseltme için `yazgi_before_v56` yedeği kullanılır.
 - **32 yeni v56 testi; toplam 834 otomatik regresyon testi.**
 
+### v57 — Yaşlanan Ebeveynlere Yetişkin Çocukların Kendi Kararıyla Desteği
+
+- Yetişkin çocuklar artık yalnızca ebeveynden mal ve kariyer yardımı almaz: yaşlanan veya ağır hastalanan ebeveyn **düzenli hane desteği isteyebilir**. 60 yaş üstü (veya sağlığı 55 ve altı), serveti en fazla 15 olan ebeveyn için çocuğun en az 6 serveti ve en az 55 güveni olmalıdır.
+- Çocuğun kendi kararı, aile bağı, güveni, bağımsızlığı ve kişiliğine bağlı olasılıkla kabul veya ret edilir. Kabulde **12 aylık destek planı** açılır; her uygun ayda gerçek yetişkin çocuk NPC'nin servetinden 1 birim ebeveyne geçer. Çocuğun kaynağı azaldığında veya ebeveynin serveti yeterliyken ödeme yapılmaz. Aynı ay ödeme tekrarlanamaz. Planı gönüllü olarak sonlandırabilirsin.
+- 55 yaş üstü veya sağlığı düşmüş ebeveyn, **yaşlılık bakımına çağır** seçeneğini kullanabilir. Çocuk kabul ederse ebeveynin sağlığı +7, mutluluğu +3 gelişir; reddederse sağlık sahte biçimde artmaz. Aynı çocuktan bir yılda tek bakım isteği yapılabilir.
+- Yetişkin çocuklar ve soy kolları ekranında destek kararları, ebeveyne toplam katkı, bakım ziyaretleri ve kalan destek ayları gösterilir. NPC kimliği ve kişisel karar hakkı korunur. 12 aylık süre, aylık eylem hakları ve erişim kontrolü eski sistemlerle uyumludur.
+- v56 kayıtları güvenle yükseltilir, `yazgi_before_v57` yedeği oluşturulur. **37 yeni otomatik test, toplam 871 regresyon testi.**
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
