@@ -389,6 +389,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Malın izi en çok 12 ay takip edilebilir. NPC ölümü, talebin bitişi, kayıt/yükleme, soy mirası ve eski kayıt göçleri güvence altına alındı. Mirasçı kapanmış ganimet geçmişini görür; önceki kişinin canlı kurtarma talebini devralmaz.
 - v50 kayıtları `yazgi_before_v51` anahtarıyla yedeklenir. **23 yeni otomatik test** eklendi; toplam 689 regresyon testi vardır.
 
+### v52 — Kervan Loncasında Yol Kesici Soruşturması
+
+- v51 çalınan yükü için oyuncu, bağımsız üçüncü pazar tüccarını 2 servet karşılığı soruşturmacı olarak görevlendirebilir. Gerçek para oyuncudan bu NPC'nin servetine aktarılır; aynı hırsızlık için tekrar başvuru yapılamaz.
+- Soruşturmanın başarısı lonca ticaret itibarı ve rastlantısal olasılığa bağlıdır. Başarılı soruşturmada adı belli gerçek yol kesici 12 ay aranan kişi olarak kaydedilir; hedef ticaret yoluna 12 aylık NPC devriyesi atanır.
+- Yaşayan görevlisi bulunan etkin devriye aylık yol kaybı olasılığını azaltır; süre bittiğinde veya görevlisi öldüğünde avantaj kalmaz. Devriye yalnız ilgili pazarı korur; ücret başarısız incelemede de geri ödenmez.
+- Şikâyet sırasında çalınan mal üretilmez, sigorta bir kez daha ödenmez. Oyuncu ayrı fidye veya iz sürme kararını eskisi gibi kullanabilir; hak sahibinin stok kuralları değişmez.
+- v51 ganimetleri geçerli sevkiyat geçmişinden rota bilgisiyle yükseltilir. Geri dönük koruma için `yazgi_before_v52` yedeği alınır; bozuk veya sahte devriye kayıtları normalize edilir. **24 yeni test, toplam 713 regresyon testi.**
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
