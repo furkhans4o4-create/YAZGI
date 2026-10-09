@@ -2624,7 +2624,7 @@ function adultChildrenSummaryHtml(){
  const grandkids=kids.flatMap(c=>(c.descendants||[]).filter(g=>g?.alive));
  let html='<div class="card"><h3>🌳 Yetişkin Çocuklar ve Soy Kolları</h3><p>Yetişkin çocuk '+kids.length+' • yaşayan torun '+grandkids.length+' • tanıştırma '+f.introductions+' • kariyer kapısı '+f.careerOpenings+' • aile işi görevi '+f.enterpriseAssignments+
   ' • yaşlılık bakımı '+f.elderVisits+' • hane desteği '+f.elderPaid+
-  ' • bakım nöbetleri '+f.careCircles+' • ortak ziyaret '+f.careCircleVisits+
+  ' • bakım nöbetleri '+f.careCircles+' • ortak ziyaret '+f.careCircleVisits+' • kardeş gerilimi '+f.careCircleDisputes+
   '<br>Çocukların kendi kararlarını verir; sen destek, bağlantı ve aile mirasıyla etkide bulunabilirsin.</p></div>';
  const rota=f.careCircle;
  if(rota?.active&&rota.untilSerial>=lifeSerial()){
@@ -2632,6 +2632,9 @@ function adultChildrenSummaryHtml(){
    safeText(rota.childIds.map(id=>s.children.find(n=>n.id===id)?.name||'Çocuk').join(', '))+
    ' • kalan '+Math.max(0,rota.untilSerial-lifeSerial())+
    ' ay • üç ayda bir dönüşümlü ziyaret</p>'+
+   '<p>'+rota.childIds.map(id=>{const child=s.children.find(n=>n.id===id);return safeText(child?.name||'Çocuk')+': '+(rota.visitsByChild?.[id]||0)+' nöbet • yorgunluk '+(child?ensureAdultChildProfile(child).elderCare.careFatigue:0)+'/100';}).join('<br>')+'</p>'+
+   (rota.disputeOpen?actionButton('Kardeşler arasında arabuluculuk yap',{kind:'familyCareCircle',id:'mediate'},'familyCareCircleAction("mediate")','Bir ay • kardeşler arasındaki yük gerilimini azaltır'):'')+
+   rota.childIds.map(id=>{const child=s.children.find(n=>n.id===id);return child?actionButton('Dinlenme desteği: '+safeText(child.name)+' (3 servet)',{kind:'familyCareCircle',id:'respite',childId:id},'familyCareCircleAction("respite",'+JSON.stringify(id)+')','Bir ay • bakım yorgunluğunu azaltır'):'';}).join('')+
    actionButton('Bakım nöbetini bitir',{kind:'familyCareCircle',id:'stop'},
     'familyCareCircleAction("stop")','Bir ay • gönüllü aile bakım nöbeti sona erer')+'</div>';
  }else if(s.age>=55||s.health<=65){
@@ -2652,7 +2655,7 @@ function adultChildrenSummaryHtml(){
   const gcHtml=gcs.slice(0,4).map(g=>'<div class="memoryline"><b>'+safeText(g.name)+'</b> • '+g.age+' yaş • ilişki '+g.rel+'<div class="actions"><button class="mini" onclick=\'grandchildAction('+JSON.stringify(g.id)+',"spend")\'>Vakit geçir</button>'+(g.age>=5?'<button class="mini" onclick=\'grandchildAction('+JSON.stringify(g.id)+',"teach")\'>Bir şey öğret</button>':'')+'<button class="mini" onclick=\'grandchildAction('+JSON.stringify(g.id)+',"gift")\'>Armağan</button>'+(normalizeNPCLifeState(g).status!=='normal'?npcLifeActionsHtml(g):'')+'</div></div>').join('');
   return '<div class="card"><h3>'+safeText(child.name)+' • '+child.age+' yaş</h3><p>'+safeText(child.role||'Kendi yolunu arıyor')+(child.partner?.alive?' • eşi/eş adayı '+safeText(child.partner.name):' • bekar')+'<br>Bağımsızlık '+p.autonomy+' • aile isteği '+p.familyReadiness+' • kariyer ivmesi '+p.careerMomentum+' • hane desteği '+p.householdSupport+
    ' • ebeveyne katkısı '+p.elderCare.supportPaid+
-   ' • bakım ziyaretleri '+p.elderCare.visits+' • ortak nöbet '+p.elderCare.sharedVisits+
+   ' • bakım ziyaretleri '+p.elderCare.visits+' • ortak nöbet '+p.elderCare.sharedVisits+' • bakım yorgunluğu '+p.elderCare.careFatigue+
    (p.elderCare.active?' • hane desteği devam ediyor ('+Math.max(0,p.elderCare.untilSerial-lifeSerial())+' ay)':'')+
    (stewards.length?'<br>Aile işi: '+safeText(stewards.join(', ')):'')+(inherit.length?'<br>Vasiyet edilen: '+safeText(inherit.join(', ')):'')+'<br>Torun: '+gcs.length+'</p><div class="actions">'+actions+'</div>'+gcHtml+'</div>';
  }).join('');
