@@ -5440,24 +5440,22 @@ function caravanConvoyMonthTick(){
  if(now>=q.arrivalSerial)caravanConvoyFinish('delivered','Ortak sevkiyat ulaştı; satıcıya bedel, aracıya komisyon ödendi.');
 }
 
-function caravanConvoyLootRecipient(recipientId){
- const t=ensureCaravanTrade();
+function caravanConvoyLootRecipient(recipientId,t=ensureCaravanTrade()){
  const record=Object.values(t.competition).find(x=>x.npcId===recipientId);
  const person=recipientId?npcById(recipientId):null;
  return person?.alive&&record?{person,record}:null;
 }
 function caravanConvoyLootIssue(mode,id){
- const c=ensureCaravanTrade().guild.convoys;
+ const t=ensureCaravanTrade(),c=t.guild.convoys;
  if(!s.assets.includes('caravan_share')||s.age<18)return 'Kayıp yükü takip etmek için yetişkin Kervan Payı sahibi olmalısın.';
  const loot=c.loot.find(x=>x.id===id);if(!loot)return 'Bu çalınan yükün kaydı bulunamadı.';
  if(loot.status!=='held')return 'Bu yükün takip hakkı sona erdi.';
  if(lifeSerial()>loot.lostSerial+12)return 'Yükün izi on iki aydan sonra kayboldu.';
  const bandit=npcById(loot.banditId);if(!bandit?.alive)return 'Yol kesici artık hayatta değil; yükün izi kayıp.';
- const recipient=caravanConvoyLootRecipient(loot.recipientId);
+ const recipient=caravanConvoyLootRecipient(loot.recipientId,t);
  if(!recipient)return 'Yükün hak sahibi hayatta veya ticaret ağı içinde değil.';
  if(caravanRivalUnits(recipient.record)>=8-caravanConvoyReservedUnits(recipient.person.id)-
-   (ensureCaravanTrade().contracts.active?.issuerId===recipient.person.id?
-    ensureCaravanTrade().contracts.active.qty:0))return 'Hak sahibinin ambarında yükü alacak yer yok.';
+   (t.contracts.active?.issuerId===recipient.person.id?t.contracts.active.qty:0))return 'Hak sahibinin ambarında yükü alacak yer yok.';
  if(mode==='ransom'){
   if(s.wealth<3)return 'Yükü geri almak için 3 servet gerekiyor.';
  }else if(mode!=='track')return 'Bilinmeyen yük geri alma kararı.';
@@ -5467,8 +5465,8 @@ function caravanConvoyLootAction(mode,id){
  const issue=caravanConvoyLootIssue(mode,id);
  if(issue){notice(issue);return false;}
  return performAction({kind:'caravanLoot',id:mode,lootId:id},()=>{
-  const c=ensureCaravanTrade().guild.convoys,loot=c.loot.find(x=>x.id===id);
-  const bandit=npcById(loot.banditId),recipient=caravanConvoyLootRecipient(loot.recipientId);
+  const t=ensureCaravanTrade(),c=t.guild.convoys,loot=c.loot.find(x=>x.id===id);
+  const bandit=npcById(loot.banditId),recipient=caravanConvoyLootRecipient(loot.recipientId,t);
   let recovered=mode==='ransom';
   if(mode==='ransom'){
    s.wealth-=3;bandit.wealth+=3;c.lootRansomsPaid+=3;
