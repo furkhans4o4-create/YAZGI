@@ -380,6 +380,15 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Bir sevkiyatta en fazla bir karşılaşma açılabilir; karar tekrar uygulanıp ikinci ücret alınamaz. Muhafız, sigorta, acele haberci, aylık risk ve alıcı/satıcı cüzdanları korunur. Yeni tüccar/NPC kimliği kayıttan yüklenir; açık sevkiyatın yükümlülüğü mirasçıya geçmez.
 - Eski v49 kayıtları `yazgi_before_v50` yedeğiyle taşınır. 21 yeni test eklendi; tam regresyon paketi 666 testi hedefler.
 
+### v51 — Yol Kesici Ganimeti ve Çalınan Yüklerin Geri Alınması
+
+- v50'deki yol kesme olayında başarısız direniş veya karar süresinin aşılması durumunda gerçek birim mal yok olmaz; **yol kesici NPC'nin tuttuğu tekil ganimet** olarak kaydedilir. Rastgele diğer kervan kayıpları ganimet oluşturmaz.
+- Her çalınan malda gerçek yol kesici kimliği, mal cinsi, ilk maliyet, kayıp zamanı ve iade edileceği tüccar kayıtlıdır. Çifte ödeme ve yinelenen kazanımlar önlenir.
+- Oyuncu **3 servetlik gerçek fidye** ödeyerek yükü doğrudan yol kesiciden alabilir veya **iz sürme** eylemiyle becerilerine bağlı ihtimalle ücretsiz geri almaya çalışabilir. İz sürme başarısızsa malın izi kaybolur ve oyuncunun sağlığı 3 azalır. İki yöntem de aylık eylem hakkı harcar ve yük için yalnızca bir kez sonuç üretir.
+- Sigortasız mal geri gelirse satıcı tüccarın gerçek ambarına, sigorta tazminatı ödenmişse **sigortacı tüccarın ambarına** geçer. Sigorta tazminatı ve alıcı emaneti ikinci kez ödenmez. Ambar doluysa veya hak sahibi ölmüşse geri alma işlemi engellenir.
+- Malın izi en çok 12 ay takip edilebilir. NPC ölümü, talebin bitişi, kayıt/yükleme, soy mirası ve eski kayıt göçleri güvence altına alındı. Mirasçı kapanmış ganimet geçmişini görür; önceki kişinin canlı kurtarma talebini devralmaz.
+- v50 kayıtları `yazgi_before_v51` anahtarıyla yedeklenir. **23 yeni otomatik test** eklendi; toplam 689 regresyon testi vardır.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
