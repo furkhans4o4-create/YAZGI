@@ -372,6 +372,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Varış tarihi, acele haberci sözleşmesi ve muhafız takviyesi kalıcı kayıtla korunur. Eski v48 kayıtları `yazgi_before_v49` anahtarıyla yedeklenerek yükseltilir; aktif sözleşmeler mirasçıya devredilmez.
 - Eski sürümde geçersiz teslimat son anda iptal edilirken sigortacı teminatının iki kez iade edilmesine yol açabilen hata giderildi. 20 yeni test eklendi; hedef regresyon paketi 645 testtir.
 
+### v50 — Kervan Yol Kesme Olayları ve Gerçek NPC Seçimleri
+
+- Aktif ortak kervanın aylık yol riskinde artık iki ayrı sonuç bulunur: **doğrudan fiziksel yük kaybı** veya daha düşük olasılıkla **yol kesiciyle karşılaşma**. Karşılaşmada yalnız metin değil, adı, serveti ve kalıcı NPC kimliği olan gerçek bir rakip ortaya çıkar.
+- Karşılaşma sırasında sevkiyatın ilerlemesi durur. Oyuncu 4 servetlik **geçiş bedelini** kendi cüzdanından yol kesicinin NPC servetine aktarabilir veya **direnmeyi** emredebilir. Muhafız hayattaysa direnişin başarı olasılığı %77, yoksa %33'tür. Kayıp gerçekleşirse önceki sigorta ve alıcı emanet hükümleri aynen çalışır.
+- Yol kesme talebi bir sonraki oyun ayına kadar çözülebilir; sonra iki ayı aşan beklemede gerçek yük kaybı meydana gelir. Etkin karşılaşma bitmeden yeni haberci veya muhafız takviyesi satın alınamaz.
+- Bir sevkiyatta en fazla bir karşılaşma açılabilir; karar tekrar uygulanıp ikinci ücret alınamaz. Muhafız, sigorta, acele haberci, aylık risk ve alıcı/satıcı cüzdanları korunur. Yeni tüccar/NPC kimliği kayıttan yüklenir; açık sevkiyatın yükümlülüğü mirasçıya geçmez.
+- Eski v49 kayıtları `yazgi_before_v50` yedeğiyle taşınır. 21 yeni test eklendi; tam regresyon paketi 666 testi hedefler.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
