@@ -438,6 +438,15 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Yetişkin çocuklar ve soy kolları ekranında destek kararları, ebeveyne toplam katkı, bakım ziyaretleri ve kalan destek ayları gösterilir. NPC kimliği ve kişisel karar hakkı korunur. 12 aylık süre, aylık eylem hakları ve erişim kontrolü eski sistemlerle uyumludur.
 - v56 kayıtları güvenle yükseltilir, `yazgi_before_v57` yedeği oluşturulur. **37 yeni otomatik test, toplam 871 regresyon testi.**
 
+### v58 — Kardeşler Arası Gönüllü Bakım Nöbeti
+
+- v57'deki tek tek yaşlılık bakımından ayrı, en az iki yetişkin çocuğun katıldığı **aile bakım toplantısı** oluşturulabilir. Ebeveyn en az 55 yaşında veya sağlık bakımına muhtaç olmalı; sağlığı çok iyiyse plan açılamaz.
+- Yalnız yaşayan, 18 yaş üstü, sağlığı yeterli, yakında bulunan ve en az 55 güvene sahip yetişkin çocuklar adaydır. Her çocuğun **kabul/ret kararı bağımsız olarak** ilişkilerinden, güveninden, özerkliğinden ve kişiliğinden etkilenir. En az ikisi kabul etmezse görev zorla başlatılmaz. Aynı yılda yalnızca bir toplantı yapılır.
+- Kabul edilen gönüllü çocukların isimleriyle **12 aylık dönüşümlü bakım nöbeti** başlar. Her üç oyun ayında sıradaki uygun kardeş gelir; ebeveynin sağlığı +3, mutluluğu +1 artar. Görevi üstlenen çocuğun sağlığı 1 azalır ve aile bağı güçlenir. Hastalanan veya uzaklaşan kardeş bakım için zorlanmaz; diğer gönüllü kardeş devreye girebilir. İki gönüllü kardeşten biri ölürse ortak nöbet kapanır.
+- Her ay aynı ziyaretin tekrarlanması, süresi dolmuş nöbetin devamı, sağlıklı ebeveyne gereksiz bakım ve plan sırasında para üretimi önlenir. v57'den kalan **maddi hane desteği bağımsız** işlemeye devam eder; oyuncu ortak bakım nöbetini isteyerek bitirebilir.
+- Soy kolları ekranında gönüllü katılımcılar, kalan süre ve her çocuğun bakım nöbeti sayısı görünür. Kayıt/yükleme, eski v57 kaydı göçü ve `yazgi_before_v58` güvenlik yedeği desteklenir.
+- **40 yeni v58 regresyon testi, toplam 911 otomatik kontrol.**
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
