@@ -2757,6 +2757,7 @@ function adultChildrenSummaryHtml(){
    actionButton('Kardeşler arasında bakım nöbeti kur',{kind:'familyCareCircle',id:'start'},
     'familyCareCircleAction("start")','Bir ay • gönüllü kabul • üç ayda bir bakım ziyareti')+'</div>';
  }
+ html+=familyCareLegacySummaryHtml();
  html+='<div class="grid2">';
  const btn=(child,label,id,extra=null)=>{const issue=adultChildActionIssue(child.id,id,extra),x=JSON.stringify(extra);return '<button class="mini" '+(issue?'disabled':'')+' title="'+safeText(issue)+'" onclick=\'adultChildAction('+JSON.stringify(child.id)+','+JSON.stringify(id)+','+x+')\'>'+safeText(label)+'</button>';};
  html+=kids.map(child=>{const p=ensureAdultChildProfile(child),gcs=(child.descendants||[]).filter(g=>g?.alive),matches=!child.partner?.alive?adultChildMatchCandidates(child).slice(0,2):[],opp=adultChildCareerOpportunity(child),stewards=Object.entries(f.stewards).filter(([,id])=>id===child.id).map(([a])=>FAMILY_BRANCH_ENTERPRISES[a]?.name||a),inherit=Object.entries(f.assetHeirs).filter(([,id])=>id===child.id).map(([a])=>D.assets.find(x=>x.id===a)?.name||a);
@@ -5187,7 +5188,7 @@ function caravanNetworkSummaryHtml(){
   html+=actionButton('Ortaklığı bitir',{kind:'caravanNetwork',id:'leave',targetId:t.partnerId},
    'caravanNetworkAction("leave",'+JSON.stringify(t.partnerId)+')','Yalnız obada • geçmiş sözleşmeler korunur');
  }else{
-  html+=familyCareLegacySummaryHtml();
+  /* care history is rendered in the family tab below */
   html+='<div class="grid2">';
   for(const n of caravanPartnerCandidates().slice(0,4))html+=actionButton(safeText(n.name)+' ile ortak ol',
    {kind:'caravanNetwork',id:'join',targetId:n.id},'caravanNetworkAction("join",'+JSON.stringify(n.id)+')',
