@@ -1855,7 +1855,7 @@ test("v62 automatic annual transactions do not use player's month quota",()=>{co
 /* v63: household hardship, work interruption, family relief and older-save migration. */
 const v63Job=v58Family+"s.age=65;s.wealth=10;__kid.wealth=20;__kid2.wealth=18;__kid.role='Demirci';Math.random=()=>.99;window.__case=familyHouseholdCrisisStart(__kid,'job_loss');";
 const v63Shortage=v58Family+"s.age=65;s.wealth=10;__kid.wealth=20;__kid2.wealth=18;Math.random=()=>.99;window.__case=familyHouseholdCrisisStart(__kid,'shortage');";
-test("v63 fresh v63 registry is empty",()=>{const {run,storage}=game();run(setup+v58Family+"");assert.equal(run("s.version"),63);assert.equal(run("ensureFamilyBranches().householdCrises.cases.length"),0);});
+test("v63 fresh v63 registry is empty",()=>{const {run,storage}=game();run(setup+v58Family+"");assert.equal(run("s.version"),64);assert.equal(run("ensureFamilyBranches().householdCrises.cases.length"),0);});
 test("v63 job loss stores original career",()=>{const {run,storage}=game();run(setup+v63Job+"");assert.equal(run("ensureFamilyBranches().householdCrises.cases[0].pastRole"),"Demirci");});
 test("v63 job loss changes real NPC occupation",()=>{const {run,storage}=game();run(setup+v63Job+"");assert.equal(run("__kid.role"),"İşsiz");});
 test("v63 job loss costs only NPC cash",()=>{const {run,storage}=game();run(setup+v63Job+"");assert.equal(run("__kid.wealth"),16);assert.equal(run("s.wealth"),10);});
@@ -1896,7 +1896,7 @@ test("v63 borrowing household holds four coins while in crisis",()=>{const {run,
 test("v63 crisis leaves previous sibling loan principal intact",()=>{const {run,storage}=game();run(setup+v62Loan+"window.__balance=__loan.remaining;familyHouseholdCrisisStart(__kid2,'job_loss');");assert.equal(run("ensureFamilyBranches().siblingEconomy.loans[0].remaining"),3);});
 test("v63 crisis persists after save and reload",()=>{const {run,storage}=game();run(setup+v63Job+"save();load();");assert.equal(run("ensureFamilyBranches().householdCrises.cases[0].kind"),"job_loss");});
 test("v63 relief support is persisted after reload",()=>{const {run,storage}=game();run(setup+v63Job+"familyHouseholdCrisisAction(__kid.id,'relief');save();load();");assert.equal(run("ensureFamilyBranches().householdCrises.cases[0].assistance"),5);});
-test("v63 v62 save upgrades and creates v63 backup",()=>{const {run,storage}=game();run(setup+v63Job+"s.version=62;save();load();");assert.equal(run("s.version"),63);assert.ok(run("localStorage.getItem('yazgi_before_v63')!==null"));});
+test("v63 v62 save upgrades and creates v63 backup",()=>{const {run,storage}=game();run(setup+v63Job+"s.version=62;save();load();");assert.equal(run("s.version"),64);assert.ok(run("localStorage.getItem('yazgi_before_v63')!==null"));});
 test("v63 unknown crisis kind discarded on load normalization",()=>{const {run,storage}=game();run(setup+v63Job+"s.familyBranches.householdCrises.cases.push({childId:__kid2.id,kind:'unknown',startedYear:300});ensureFamilyBranches();");assert.equal(run("ensureFamilyBranches().householdCrises.cases.length"),1);});
 test("v63 corrupt crisis counters sanitized",()=>{const {run,storage}=game();run(setup+v63Job+"s.familyBranches.householdCrises.started=-999;ensureFamilyBranches();");assert.equal(run("ensureFamilyBranches().householdCrises.started"),0);});
 test("v63 public family cash never changes merely by NPC shock",()=>{const {run,storage}=game();run(setup+v63Shortage+"");assert.equal(run("s.wealth"),10);});
