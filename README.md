@@ -355,6 +355,15 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Sigorta kimliği, teminat, prim ve son risk dönemi kayıt/yükleme sonrasında devam eder. Yeni kuşağa aktif sigorta taahhüdü aktarılmaz; olay geçmişi korunur. Önceki v46 kaydı `yazgi_before_v47` ile ayrıca yedeklenir.
 - v47'de 21 yeni test eklendi; toplam regresyon paketi 607 testten oluşur.
 
+### v48 — Ücretli Kervan Muhafızları ve Kayıp Riskini Azaltma
+
+- İttifak loncasından gönderilen NPC ortak sevkiyatları artık dört seçeneğe sahiptir: standart, sigortalı (2 servet), muhafızlı (3 servet), hem sigortalı hem muhafızlı (toplam 5 servet).
+- Yol muhafızlığını iki ticaret ortağından bağımsız üçüncü pazardaki yaşayan tüccar düzenler. Üç servet oyuncunun gerçek parasından bu NPC'nin cüzdanına aktarılır; işlem tek defadır ve teslimatta, kayıpta veya iptalde geri alınmaz.
+- Koruma etkisi aylık yol kaybı riskini yüzde 55 azaltır, ancak risk sıfırlanmaz. Muhafız hizmetini düzenleyen NPC ölürse henüz sonuçlanmamış yolculuk korumasını kaybeder; ödenmiş hizmet bedeli geri verilmez.
+- Sigorta ve koruma bir arada seçildiğinde oyun toplam beş servetin baştan bulunmasını kontrol eder. Sigorta teminatı önceki sürümde olduğu gibi gerçekten bloke edilir; koruma primiyle ya da alıcı emanet parasıyla karıştırılmaz.
+- Aktif sevkiyat ekranında muhafız NPC adı, geçerli aylık kayıp olasılığı ve korunmuş gönderi sayısı görülür. Sonuç geçmişi ve muhafız sözleşmesi kayıtta devam eder; aktif sevkiyat mirasçıya geçmez.
+- v47 kaydı geçiş öncesinde `yazgi_before_v48` anahtarıyla ayrıca korunur. 18 yeni otomatik test eklendi; regresyon paketi 625 test içerir.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
