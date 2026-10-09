@@ -479,6 +479,15 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Oyuncu yeterli servete sahipse yetişkin çocuklarının açık borcunu **kendi parasından gerçek alacaklı çocuğa ödeyerek** tek aylık eylemle kapatabilir. Bu, otomatik bağış değildir ve aynı borç tekrar tahsil edilemez.
 - İşlemler yılda en fazla bir yeni talep, sınırlı sayıda geçmiş kaydı ve v62 kayıt göçüyle korunur. Soy kolları ekranı karşılıksız yardım, borç, ödeme ve kefalet geçmişini gösterir; `yazgi_before_v62` güvenlik yedeği oluşturulur.
 
+### v63 — Yetişkin Çocuklarda İş Kaybı ve Hane Krizleri
+
+- Yetişkin çocuklar kendi hanelerinde **iş kaybı** ya da **geçim darlığı** yaşayabilir. Kriz kimlik, tür, başlangıç yılı, eski görev, baskı, toparlanma ve desteğiyle sınırlı kayıt altında tutulur. Aynı kişi üst üste her yıl aynı krize düşmez.
+- Kriz başladığında sınırlı, NPC'nin gerçekten sahip olduğu servetten harcama olur; oyuncunun serveti gizlice değişmez. İşini kaybeden çocuğun görevi geçici olarak **İşsiz** olur ve otomatik meslek değişikliğiyle kriz atlanmaz.
+- Aile yılları geçtikçe kriz, özellikler, güven, zaman ve sağlanan desteğe göre sona erebilir; toparlanınca eski görev geri gelir (iş değiştirmişse zorla değiştirilmez). Uzayan sıkıntılar aile güvenini yavaşça zayıflatabilir.
+- Oyuncu bir aylık hakkını kullanarak ve gerçek **3 servet ödeyerek** yardım yapabilir veya işini kaybeden çocuğa **yeni görev bağlantısı** sunabilir. Tek bir çocuğa aynı yıl her iki destek art arda verilerek puan veya para üretilemez; uzaktaki veya ölü NPC'ye yardım edilemez.
+- v62 aile borcu sürerken krizdeki borçlunun **4 servet** geçim payı korunur. Yıllık NPC yardım/borç kuralları işlemeye devam eder; yeni kriz eski borçların kimliğini veya miktarını değiştirmez.
+- Aile ekranında açık krizler, destek seçenekleri ve geçmiş görüntülenir. v62 dahil eski kayıtlar v63'e yükseltilirken `yazgi_before_v63` yedeği alınır.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
