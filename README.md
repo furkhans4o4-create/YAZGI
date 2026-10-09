@@ -455,6 +455,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Oyuncu bir ay ayırarak kardeşleri **arabuluculukla uzlaştırabilir** veya kendi servetinden üç birim harcayarak seçtiği bakım veren çocuğa **dinlenme desteği** sağlayabilir. Eylemler sınırlandırılmıştır, bedava servet ve sınırsız iyileşme üretmez.
 - Soy kolları görünümünde her çocuğun nöbet sayısı ve yorgunluğu, uzlaşma/dinlenme seçenekleri görünür. Eski v58 kayıtları yükseltilirken `yazgi_before_v59` yedeği oluşturulur.
 
+### v60 — Bakım Emeğinin Uzun Vadeli Aile Hatırası
+
+- Biten ortak bakım nöbetlerinin kimlikli katılımcıları, kişi başına görev sayıları, bitiş yılı ve gerilim durumu son 12 kayıt boyunca saklanır. Bir nöbet iki defa kapanamaz.
+- v59'da çözülmeyen, en az iki görevlik dengesizlik taşıyan bakım kırgınlıkları sonraki üç yılda **kardeşlerin gerçek sosyal bağına** az ama kalıcı sonuç uygular. Daha sonra kırgınlık geçmişte kalır fakat kaydı ve görüşme olanağı korunur; sınırsız yıllık ceza yoktur.
+- Yetişkin çocuklar aynı bölgede, sağlıklı ve görüşmeye razı olmaya elverişli ise oyuncu **eski bakım kırgınlığını konuşabilir**. İki kardeş de kendi kişiliği/güveni üzerinden bağımsız kabul veya ret verebilir; ret tek bir yıllık görüşme hakkını kullanır ama otomatik barışma yaratmaz.
+- Vasiyet kararı bakım katkılarını artık hesaba katar: eşit miras, daha çok bakım veren çocuğu seçmek veya onu dışarıda bırakmak aile uyumunu ve gerçek NPC tepkilerini farklı etkiler. **Nakit, mal veya vasiyet tercihi gizlice değiştirilmez.** Aynı yıl aynı geçmiş dosyadan tekrar tekrar etki alınamaz.
+- Ölüm kaydı bakım emeği arşivini içerir; çocukla soyu devam ettirince bu arşiv son miras kaydında görülebilir. v59 ve eski kayıtlar v60'a yükseltilir, `yazgi_before_v60` yedeği oluşturulur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
