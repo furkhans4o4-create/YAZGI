@@ -335,6 +335,16 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Kervan payı mirasında iki loncanın geçmişte yaptığı anlaşmalar görünmeye devam eder ancak yeni karakter eski oyuncunun aktif anlaşma veya taraf seçimi yetkisini devralmaz. v44 kayıtları `yazgi_before_v45` olarak yedeklenir.
 - 26 yeni v45 testi eklendi. Toplam regresyon paketi 560 senaryodur.
 
+### v46 — Loncalar Arası Ortak Kervan Sevkiyatları
+
+- İttifak kurmuş iki bölgenin gerçek tüccar NPC'leri, bir mal birimini kendi ambarlarından birbirine sevk edebilir. Oyuncu en az 48 ticaret itibarı ve kendi loncasında 5 siyasi nüfuzla aracı olur; aynı anda yalnız tek sevkiyat düzenler, yeni sevkiyatlar arasında altı aylık süre bulunur.
+- Gönderen NPC'nin gerçek stokundan **bir birim düşülür**, alıcı NPC bedelin tamamını kendi servetinden emanete ayırır. Stok, ücret, iki NPC kimliği ve teslim ayı sevkiyat başladığında kilitlenir. Ürün yoksa, alıcı iflas etmişse, iki NPC yaşamıyorsa veya geçerli lonca ittifakı bulunmuyorsa taşıma yapılamaz.
+- Teslim süresi varış bölgesinin yol süresine göre en az iki aydır. Varış gerçekleştiğinde gerçek ürün alıcı ambarına geçer; emanet bedelin aracılık komisyonu oyuncuya, kalanı satıcı NPC'ye ödenir. Toplam paranın korunması ve aynı malın iki kez teslim edilmemesi güvence altındadır. Oyuncu ayrıca iki siyasi nüfuz puanı kazanır.
+- Taşıma sürerken alıcı ambarında teslimata yer, gönderen ambarda olası iade için yer ayrılır. NPC tüccarlarının otomatik alımları, diğer toptan satışlar ve teslimat sözleşmeleri bu ayrılan ambar yerini kullanamaz. Depoların 8 birimlik sınırı korunur.
+- Anlaşmazlık yolda başlasa bile imzalanmış ve bedeli ayrılmış sevkiyatın fiyatı değişmez. Tüccar ölürse veya oyuncu hayatını kaybederse sevkiyat iptal edilir: alıcının emanet parası iade edilir, mümkünse ürün gönderen NPC'nin gerçek stoğuna döner.
+- Sevkiyat girişimleri, teslimatları, iptalleri, gerçek NPC para değişimleri ve aracılık kazançları kayıt altına alınır. Başka bir kuşağa geçen kervanda önceki sevkiyat geçmişi korunur, ancak aktif aracılık yükümlülüğü miras kalmaz.
+- v45 ve önceki kayıtlar korunur; eski kayıt v46 geçişinde `yazgi_before_v46` olarak ayrıca yedeklenir. 26 yeni test eklenmiştir; toplam 586 bağımsız regresyon testi bulunur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
