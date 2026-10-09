@@ -397,6 +397,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Şikâyet sırasında çalınan mal üretilmez, sigorta bir kez daha ödenmez. Oyuncu ayrı fidye veya iz sürme kararını eskisi gibi kullanabilir; hak sahibinin stok kuralları değişmez.
 - v51 ganimetleri geçerli sevkiyat geçmişinden rota bilgisiyle yükseltilir. Geri dönük koruma için `yazgi_before_v52` yedeği alınır; bozuk veya sahte devriye kayıtları normalize edilir. **24 yeni test, toplam 713 regresyon testi.**
 
+### v53 — Lonca Devriyesiyle Aranan Yol Kesiciyi Yakalama
+
+- v52'de lonca soruşturması başarıya ulaşarak etkin yol devriyesi kurulmuşsa oyuncu **3 servet** karşılığında gerçek NPC devriye görevlisini aranan yol kesiciyi yakalamaya gönderebilir. Para NPC görevlisinin servetine eklenir, oyuncudan düşülür; başarısız girişim de ücretlidir.
+- Başarı ihtimali oyuncunun savaş becerisinden etkilenir; başarı hâlinde tam olarak ismi ve kimliği bilinen NPC **6 oyun ayı tutulur**. Aynı devriye yalnız bir yakalama denemesi yapabilir.
+- Yakalanmış NPC çalınan yük için fidye talep edemez. Mevcut ücretsiz **iz sür** seçeneği bu süre içinde kesin başarıyla gerçek malı hak sahibinin ambarına teslim eder. Böylece başarılı soruşturma → yakalama → fidyesiz yükü geri alma şeklinde oyun içi sonuç zinciri vardır.
+- Yakalama doğrudan para, eşya, sigorta tazminatı veya satıcı stoku yaratmaz; her kurtarılacak mal için ayrı bir işlem yapılır. Ambar sınırı, NPC ölümü, önceki tazminat ve tekil kurtarma hakkı korunur.
+- Eski v52 devriyeleri geriye uyumlu yüklenir; yakalama sonucu, süre ve NPC kimliği kaydedilir. `yazgi_before_v53` güvenlik yedeği ve **24 yeni otomatik test (toplam 737 test)** bulunur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
