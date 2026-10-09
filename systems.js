@@ -5665,7 +5665,9 @@ function caravanBanditCourtAction(mode,routeId,lootId=null){
    caravanRecord('convoy_court_exile',bandit.name+' Töre kararıyla 12 ay ticaret yolundan sürüldü.',
     {banditId:bandit.id,routeId});
   }
-  p.verdict={mode,serial:now,amount,lootId:selectedId,recipientId};
+  // Günlük ve NPC yardımcısı normalizasyon yapsa bile hükmü güncel devriye kaydına yaz.
+  ensureCaravanTrade().guild.convoys.patrols[routeId].verdict=
+   {mode,serial:now,amount,lootId:selectedId,recipientId};
   c.courtCases++;t.guild.reputation=Math.min(100,t.guild.reputation+2);
  },mode==='restitution'?'Töre gereğince yol kesiciden gerçek mal bedelini tahsil ettin.':
    'Yol kesiciyi Töre hükmüyle ticaret yolundan sürgün ettin.');
