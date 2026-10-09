@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=57,ADULT_AGE=18;
+const SAVE_VERSION=58,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -2237,7 +2237,20 @@ function ensureFamilyBranches(){
  f.stewards=f.stewards&&typeof f.stewards==='object'&&!Array.isArray(f.stewards)?f.stewards:{};
  f.childInLaws=Array.isArray(f.childInLaws)?f.childInLaws.filter(Boolean).map(n=>{const x=normalizeNPC(n,n.type||'Çocuk Eşi'),src=x.statusFlags?.sourceNPCId?adultChildMatchSource(x.statusFlags.sourceNPCId):null;if(!src)return x;src.statusFlags=src.statusFlags||{};src.statusFlags.childInLaw=true;src.statusFlags.childInLawFor=x.statusFlags?.childInLawFor||src.statusFlags.childInLawFor;src.statusFlags.sourceNPCId=src.id;src.statusFlags.familyMatchedTo=src.statusFlags.childInLawFor||src.statusFlags.familyMatchedTo;return src;}):[];
  f.history=Array.isArray(f.history)?f.history.slice(0,80):[];
- for(const k of ['introductions','careerOpenings','householdSupport','familyTalks','enterpriseAssignments','inheritanceAssignments','grandparentActions','grandchildrenBorn','elderRequests','elderPlans','elderPaid','elderVisits','elderDeclines','elderEnds'])f[k]=Math.max(0,Math.round(Number.isFinite(f[k])?f[k]:0));
+ for(const k of ['introductions','careerOpenings','householdSupport','familyTalks','enterpriseAssignments','inheritanceAssignments','grandparentActions','grandchildrenBorn','elderRequests','elderPlans','elderPaid','elderVisits','elderDeclines','elderEnds','careCircles','careCircleVisits','careCircleMissed','careCircleDeclines','careCircleEnds'])f[k]=Math.max(0,Math.round(Number.isFinite(f[k])?f[k]:0));
+ f.lastCareCircleYear=Number.isFinite(f.lastCareCircleYear)?Math.floor(f.lastCareCircleYear):null;
+ const rota=f.careCircle;
+ if(rota&&typeof rota==='object'&&!Array.isArray(rota)&&Number.isFinite(rota.startedSerial)&&
+    Number.isFinite(rota.untilSerial)&&rota.untilSerial===rota.startedSerial+12&&rota.startedSerial<=lifeSerial()&&
+    Array.isArray(rota.childIds)&&rota.childIds.length>=2&&rota.childIds.length<=8&&
+    rota.childIds.every(id=>typeof id==='string'&&id.length>0)&&
+    new Set(rota.childIds).size===rota.childIds.length){
+  f.careCircle={startedSerial:Math.floor(rota.startedSerial),untilSerial:Math.floor(rota.untilSerial),
+   childIds:[...rota.childIds],active:rota.active===true,
+   nextIndex:Math.max(0,Math.floor(Number.isFinite(rota.nextIndex)?rota.nextIndex:0))%rota.childIds.length,
+   lastVisitSerial:Number.isFinite(rota.lastVisitSerial)&&rota.lastVisitSerial>=rota.startedSerial&&
+    rota.lastVisitSerial<=lifeSerial()?Math.floor(rota.lastVisitSerial):null};
+ }else f.careCircle=null;
  for(const asset of Object.keys(f.assetHeirs))if(!s.assets.includes(asset))delete f.assetHeirs[asset];
  for(const asset of Object.keys(f.stewards))if(!s.assets.includes(asset))delete f.stewards[asset];
  for(const child of s.children.filter(n=>n?.alive&&n.age>=18)){ensureAdultChildProfile(child);ensureAdultChildPartnerRecord(child,f);}
@@ -2263,7 +2276,7 @@ function ensureAdultChildProfile(child){
  for(const k of ['supportGiven','matches','careerOpenings','familyTalks','births','grandparentActions'])p[k]=Math.max(0,Math.round(p[k]||0));
  p.elderCare=p.elderCare&&typeof p.elderCare==='object'&&!Array.isArray(p.elderCare)?p.elderCare:{};
  const care=p.elderCare;
- for(const k of ['visits','supportPaid','monthsPaid','declines'])care[k]=Math.max(0,Math.floor(Number.isFinite(care[k])?care[k]:0));
+ for(const k of ['visits','supportPaid','monthsPaid','declines','sharedVisits'])care[k]=Math.max(0,Math.floor(Number.isFinite(care[k])?care[k]:0));
  for(const k of ['lastAskYear','lastVisitYear','startedSerial','untilSerial','lastPaidSerial'])care[k]=Number.isFinite(care[k])?Math.floor(care[k]):null;
  care.active=care.active===true&&Number.isFinite(care.startedSerial)&&
   Number.isFinite(care.untilSerial)&&care.untilSerial===care.startedSerial+12&&
@@ -2463,6 +2476,90 @@ function familyElderCareMonthTick(){
   familyBranchRecord(child,child.name+' kendi servetinden 1 birim hane desteği verdi.','elder_support_payment',{amount:1});
  }
 }
+
+/* v58 — En az iki yetişkin çocuğun özgür kararıyla dönüşümlü yaşlı bakım nöbeti. */
+function familyCareCircleCandidates(){
+ return (s.children||[]).filter(child=>child?.alive&&child.age>=18&&child.health>=40&&
+  child.place===s.place&&child.realm===s.realm&&
+  (normalizeBonds(child).trust||0)>=55&&
+  !npcLifeBlocksNormalInteraction(child)).slice(0,8);
+}
+function familyCareCircleIssue(mode){
+ const f=ensureFamilyBranches(),circle=f.careCircle,year=s.year+s.age;
+ if(s.age<18)return 'Bakım nöbeti için yetişkin bir ebeveyn olmalısın.';
+ if(mode==='stop'){
+  if(!circle?.active||circle.untilSerial<=lifeSerial())return 'Sonlandırılacak etkin bir bakım nöbeti yok.';
+  return '';
+ }
+ if(mode!=='start')return 'Bilinmeyen aile bakım nöbeti kararı.';
+ if(s.age<55&&s.health>65)return 'Aile bakım nöbeti için yaşlı veya bakıma muhtaç olmalısın.';
+ if(s.health>=95)return 'Şu anda düzenli sağlık bakımına ihtiyacın yok.';
+ if(circle?.active&&circle.untilSerial>lifeSerial())return 'Bir yıllık aile bakım nöbeti zaten sürüyor.';
+ if(f.lastCareCircleYear===year)return 'Bu yıl bakım nöbeti için aile toplantısı yaptın.';
+ if(familyCareCircleCandidates().length<2)return 'Bakım nöbeti için yakınında yaşayan ve güven duyduğun en az iki yetişkin çocuğun olmalı.';
+ return '';
+}
+function familyCareCircleAction(mode){
+ const issue=familyCareCircleIssue(mode);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'familyCareCircle',id:mode},()=>{
+  const f=ensureFamilyBranches(),now=lifeSerial();
+  if(mode==='stop'){
+   f.careCircle.active=false;f.careCircleEnds++;
+   f.history.unshift({year:s.year+s.age,age:s.age,type:'care_circle_end',
+    note:'Aile bakım nöbetini kendi isteğinle sonlandırdın.'});
+  }else{
+   f.lastCareCircleYear=s.year+s.age;
+   const accepted=[];
+   for(const child of familyCareCircleCandidates()){
+    const p=ensureAdultChildProfile(child);
+    const chance=Math.max(.15,Math.min(.93,.27+(normalizeBonds(child).trust||0)/300+
+     child.rel/500-p.autonomy/600+(child.traits?.includes('merhametli')?.10:0)));
+    if(Math.random()<chance)accepted.push(child);
+    else{p.elderCare.declines++;f.careCircleDeclines++;}
+   }
+   if(accepted.length>=2){
+    f.careCircle={startedSerial:now,untilSerial:now+12,
+     childIds:accepted.map(x=>x.id),active:true,nextIndex:0,lastVisitSerial:null};
+    f.careCircles++;
+    f.history.unshift({year:s.year+s.age,age:s.age,type:'care_circle_start',
+     note:accepted.map(x=>x.name).join(', ')+' kendi isteğiyle aile bakım nöbetini paylaştı.'});
+   }else{
+    f.careCircleDeclines++;
+    f.history.unshift({year:s.year+s.age,age:s.age,type:'care_circle_declined',
+     note:'Yetişkin çocuklar bakım nöbetinde birlikte yer almayı kabul etmedi.'});
+   }
+  }
+  f.history=f.history.slice(0,80);
+ },mode==='start'?'Yetişkin çocuklarınla bir yıllık bakım nöbetini konuştun.':'Aile bakım nöbetini sona erdirdin.');
+}
+function familyCareCircleMonthTick(){
+ if(!s.familyBranches?.careCircle?.active)return;
+ const f=ensureFamilyBranches(),rota=f.careCircle,now=lifeSerial();
+ if(!rota?.active)return;
+ if(now>rota.untilSerial){rota.active=false;f.careCircleEnds++;return;}
+ if(now<=rota.startedSerial||(now-rota.startedSerial)%3!==0||rota.lastVisitSerial===now)return;
+ rota.lastVisitSerial=now;
+ const consenting=rota.childIds.map(id=>s.children.find(x=>x?.id===id)).filter(c=>c?.alive&&c.age>=18);
+ if(consenting.length<2){rota.active=false;f.careCircleEnds++;return;}
+ let chosen=null;
+ for(let step=0;step<rota.childIds.length;step++){
+  const index=(rota.nextIndex+step)%rota.childIds.length;
+  const candidate=s.children.find(x=>x?.id===rota.childIds[index]);
+  if(candidate?.alive&&candidate.age>=18&&candidate.health>=40&&
+     candidate.place===s.place&&candidate.realm===s.realm&&
+     !npcLifeBlocksNormalInteraction(candidate)){
+   chosen=candidate;rota.nextIndex=(index+1)%rota.childIds.length;break;
+  }
+ }
+ if(!chosen||s.health>=95){f.careCircleMissed++;return;}
+ const p=ensureAdultChildProfile(chosen);
+ s.health=clamp(s.health+3);apply({happiness:1});chosen.health=clamp(chosen.health-1);
+ p.elderCare.sharedVisits++;f.careCircleVisits++;
+ adjustNPC(chosen,{rel:2,trust:2,respect:1},'Kardeşleriyle sırayla yaşlı ebeveyninin bakımını üstlendi.');
+ familyBranchRecord(chosen,chosen.name+' aile bakım nöbetine gelerek sağlığına yardımcı oldu.',
+  'care_circle_visit',{childId:chosen.id});
+}
 function familyStewardQuarter(assetId){
  const f=ensureFamilyBranches(),child=adultChildById(f.stewards[assetId]);if(!child||!s.assets.includes(assetId)||npcLifeBlocksNormalInteraction(child))return 0;
  const st=assetState(assetId);st.condition=clamp(st.condition+1);child.wealth=(child.wealth||0)+(Math.random()<.55?1:0);
@@ -2473,7 +2570,22 @@ function adultChildrenSummaryHtml(){
  const grandkids=kids.flatMap(c=>(c.descendants||[]).filter(g=>g?.alive));
  let html='<div class="card"><h3>🌳 Yetişkin Çocuklar ve Soy Kolları</h3><p>Yetişkin çocuk '+kids.length+' • yaşayan torun '+grandkids.length+' • tanıştırma '+f.introductions+' • kariyer kapısı '+f.careerOpenings+' • aile işi görevi '+f.enterpriseAssignments+
   ' • yaşlılık bakımı '+f.elderVisits+' • hane desteği '+f.elderPaid+
-  '<br>Çocukların kendi kararlarını verir; sen destek, bağlantı ve aile mirasıyla etkide bulunabilirsin.</p></div><div class="grid2">';
+  ' • bakım nöbetleri '+f.careCircles+' • ortak ziyaret '+f.careCircleVisits+
+  '<br>Çocukların kendi kararlarını verir; sen destek, bağlantı ve aile mirasıyla etkide bulunabilirsin.</p></div>';
+ const rota=f.careCircle;
+ if(rota?.active&&rota.untilSerial>=lifeSerial()){
+  html+='<div class="card"><h3>🤝 Kardeşler Arası Bakım Nöbeti</h3><p>'+
+   safeText(rota.childIds.map(id=>s.children.find(n=>n.id===id)?.name||'Çocuk').join(', '))+
+   ' • kalan '+Math.max(0,rota.untilSerial-lifeSerial())+
+   ' ay • üç ayda bir dönüşümlü ziyaret</p>'+
+   actionButton('Bakım nöbetini bitir',{kind:'familyCareCircle',id:'stop'},
+    'familyCareCircleAction("stop")','Bir ay • gönüllü aile bakım nöbeti sona erer')+'</div>';
+ }else if(s.age>=55||s.health<=65){
+  html+='<div class="card"><h3>🤝 Aile Bakım Toplantısı</h3><p>En az iki yetişkin çocuğun kendi isteğiyle kabul ederse bir yıl boyunca sırayla destek verir.</p>'+
+   actionButton('Kardeşler arasında bakım nöbeti kur',{kind:'familyCareCircle',id:'start'},
+    'familyCareCircleAction("start")','Bir ay • gönüllü kabul • üç ayda bir bakım ziyareti')+'</div>';
+ }
+ html+='<div class="grid2">';
  const btn=(child,label,id,extra=null)=>{const issue=adultChildActionIssue(child.id,id,extra),x=JSON.stringify(extra);return '<button class="mini" '+(issue?'disabled':'')+' title="'+safeText(issue)+'" onclick=\'adultChildAction('+JSON.stringify(child.id)+','+JSON.stringify(id)+','+x+')\'>'+safeText(label)+'</button>';};
  html+=kids.map(child=>{const p=ensureAdultChildProfile(child),gcs=(child.descendants||[]).filter(g=>g?.alive),matches=!child.partner?.alive?adultChildMatchCandidates(child).slice(0,2):[],opp=adultChildCareerOpportunity(child),stewards=Object.entries(f.stewards).filter(([,id])=>id===child.id).map(([a])=>FAMILY_BRANCH_ENTERPRISES[a]?.name||a),inherit=Object.entries(f.assetHeirs).filter(([,id])=>id===child.id).map(([a])=>D.assets.find(x=>x.id===a)?.name||a);
   let actions=btn(child,'Hanesine destek ver','support')+
@@ -2486,7 +2598,7 @@ function adultChildrenSummaryHtml(){
   const gcHtml=gcs.slice(0,4).map(g=>'<div class="memoryline"><b>'+safeText(g.name)+'</b> • '+g.age+' yaş • ilişki '+g.rel+'<div class="actions"><button class="mini" onclick=\'grandchildAction('+JSON.stringify(g.id)+',"spend")\'>Vakit geçir</button>'+(g.age>=5?'<button class="mini" onclick=\'grandchildAction('+JSON.stringify(g.id)+',"teach")\'>Bir şey öğret</button>':'')+'<button class="mini" onclick=\'grandchildAction('+JSON.stringify(g.id)+',"gift")\'>Armağan</button>'+(normalizeNPCLifeState(g).status!=='normal'?npcLifeActionsHtml(g):'')+'</div></div>').join('');
   return '<div class="card"><h3>'+safeText(child.name)+' • '+child.age+' yaş</h3><p>'+safeText(child.role||'Kendi yolunu arıyor')+(child.partner?.alive?' • eşi/eş adayı '+safeText(child.partner.name):' • bekar')+'<br>Bağımsızlık '+p.autonomy+' • aile isteği '+p.familyReadiness+' • kariyer ivmesi '+p.careerMomentum+' • hane desteği '+p.householdSupport+
    ' • ebeveyne katkısı '+p.elderCare.supportPaid+
-   ' • bakım ziyaretleri '+p.elderCare.visits+
+   ' • bakım ziyaretleri '+p.elderCare.visits+' • ortak nöbet '+p.elderCare.sharedVisits+
    (p.elderCare.active?' • hane desteği devam ediyor ('+Math.max(0,p.elderCare.untilSerial-lifeSerial())+' ay)':'')+
    (stewards.length?'<br>Aile işi: '+safeText(stewards.join(', ')):'')+(inherit.length?'<br>Vasiyet edilen: '+safeText(inherit.join(', ')):'')+'<br>Torun: '+gcs.length+'</p><div class="actions">'+actions+'</div>'+gcHtml+'</div>';
  }).join('');
@@ -6933,6 +7045,7 @@ function accessIssue(a){
  }else if(a.kind==='inheritanceDispute'){const issue=inheritanceDisputeIssue(a.caseId,a.id);if(issue)return issue;min=12;
  }else if(a.kind==='reputation'){const issue=reputationActionIssue(a.rumorId,a.id);if(issue)return issue;min=10;
  }else if(a.kind==='adultChild'){const issue=adultChildActionIssue(a.childId,a.id,a.extra??null);if(issue)return issue;min=18;
+ }else if(a.kind==='familyCareCircle'){const issue=familyCareCircleIssue(a.id);if(issue)return issue;min=18;
  }else if(a.kind==='grandchild'){const issue=grandchildActionIssue(a.grandId,a.id);if(issue)return issue;min=18;
  }else if(a.kind==='health'){min=5;if(!['rest','healer'].includes(a.id))return 'Bakım bulunamadı.';if(a.id==='healer'&&s.wealth<2)return '2 servet gerekiyor; dinlenebilirsin.';}
  else if(a.kind==='healthAdapt'){min=5;const issue=healthAdaptationIssue(a.id);if(issue)return issue;}
@@ -6981,7 +7094,7 @@ function monthlyTick(month,action,allowEvent=true){
  tickEventCooldowns();
  for(const n of allNPCs())if(n.alive&&n.birthYear!=null){const before=n.age;n.age=Math.max(0,s.year+s.age-n.birthYear-(month<n.birthMonth?1:0));if(before!==n.age&&[8,12,18].includes(n.age))n.role=npcRole(n.age);}
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
- tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);familyElderCareMonthTick();tickGuardianshipMonth(action);tickFriendshipMonth(action);tickWorkplaceMonth(action);horseMonthTick(month);bereavementMonthTick(month,action);tickCommunityReputationMonth(month);
+ tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);familyElderCareMonthTick();familyCareCircleMonthTick();tickGuardianshipMonth(action);tickFriendshipMonth(action);tickWorkplaceMonth(action);horseMonthTick(month);bereavementMonthTick(month,action);tickCommunityReputationMonth(month);
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
  if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);caravanDebtCollectorMonthTick();caravanMarketQuarterTick(month);caravanContractMonthTick();caravanPoliticsQuarterTick(month);caravanDiplomacyQuarterTick(month);caravanConvoyMonthTick();
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
@@ -7423,7 +7536,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
