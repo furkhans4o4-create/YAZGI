@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=49,ADULT_AGE=18;
+const SAVE_VERSION=50,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -4942,10 +4942,16 @@ function ensureCaravanTrade(){
    expedite.acceleratedSerial>=x.departedSerial&&expedite.acceleratedSerial<x.arrivalSerial?
    {courierId:expedite.courierId,fee:4,acceleratedSerial:expedite.acceleratedSerial,priorArrivalSerial:expedite.priorArrivalSerial}:null;
   x.escortRenewed=x.escortRenewed===true;
+  x.ambushHandled=x.ambushHandled===true;
+  const a=x.ambush;
+  x.ambush=a&&typeof a.banditId==='string'&&a.banditId!==x.sellerId&&a.banditId!==x.buyerId&&
+   Number.isFinite(a.startedSerial)&&a.startedSerial>x.departedSerial&&a.startedSerial<=x.arrivalSerial?
+   {banditId:a.banditId,startedSerial:Math.floor(a.startedSerial)}:null;
+  if(x.ambush)x.ambushHandled=true;
   x.lastRiskSerial=Number.isFinite(x.lastRiskSerial)?x.lastRiskSerial:null;
  }
  shipments.history=Array.isArray(shipments.history)?shipments.history.slice(0,30):[];
- for(const k of ['delivered','cancelled','lost','claimsPaid','escorted','expedited','escortRenewals','nextId'])shipments[k]=Math.max(0,Math.floor(Number.isFinite(shipments[k])?shipments[k]:0));
+ for(const k of ['delivered','cancelled','lost','claimsPaid','escorted','expedited','escortRenewals','ambushes','ambushPaid','ambushRepelled','ambushLost','ambushExpired','tollsPaid','nextId'])shipments[k]=Math.max(0,Math.floor(Number.isFinite(shipments[k])?shipments[k]:0));
  shipments.lastDispatchSerial=Number.isFinite(shipments.lastDispatchSerial)?shipments.lastDispatchSerial:null;
  t.contracts=t.contracts&&typeof t.contracts==='object'&&!Array.isArray(t.contracts)?t.contracts:{};
  const c=t.contracts;
@@ -5143,6 +5149,7 @@ function caravanLegacySnapshot(){
 /* v47 — Ortak lonca sevkiyatlarında finanse edilmiş teminat ve gerçek yol kaybı. */
 /* v48 — Bağımsız tüccar aracılığıyla gerçek bedeli ödenen yol muhafızlığı. */
 /* v49 — Sefer ortasında hızlandırma ve tek defalık muhafız yenileme. */
+/* v50 — Yoldaki bağımsız NPC kesiciler, gerçek geçiş parası ve çatışma kararları. */
 function caravanConvoyUnderwriter(origin,dest){
  if(!CARAVAN_ROUTES[origin]||!CARAVAN_ROUTES[dest]||origin===dest)return null;
  const third=Object.keys(CARAVAN_ROUTES).find(id=>id!==origin&&id!==dest);
@@ -5223,7 +5230,7 @@ function caravanConvoyAction(dest,goodId,insured=false,escorted=false){
   const now=lifeSerial();
   c.active={id:'cv46_'+c.nextId++,origin,dest,sellerId:seller.id,buyerId:buyer.id,goodId,qty:1,
    unitCost,price,commission,insurance,escort,escortRenewed:false,expedite:null,lastRiskSerial:null,
-   departedSerial:now,arrivalSerial:now+Math.max(2,CARAVAN_ROUTES[dest].months)};
+   ambushHandled:false,ambush:null,departedSerial:now,arrivalSerial:now+Math.max(2,CARAVAN_ROUTES[dest].months)};
   c.lastDispatchSerial=now;
   sr.ledger.unshift({serial:now,kind:'convoyDispatched',goodId,amount:0});
   br.ledger.unshift({serial:now,kind:'convoyEscrow',goodId,amount:-price});
@@ -5282,6 +5289,7 @@ function caravanConvoyInterveneIssue(mode){
  const t=ensureCaravanTrade(),q=t.guild.convoys.active;
  if(!s.assets.includes('caravan_share')||s.age<18)return 'Sevkiyat düzenlemek için yetişkin Kervan Payı sahibi olmalısın.';
  if(!q)return 'Yolda müdahale edilecek bir ortak sevkiyat bulunmuyor.';
+ if(q.ambush)return 'Önce yol kesiciyle yaşanan karşılaşmayı sonuçlandırmalısın.';
  if(lifeSerial()>=q.arrivalSerial)return 'Bu sevkiyat varış dönemine ulaştı.';
  const agent=caravanConvoyUnderwriter(q.origin,q.dest);
  if(!agent)return 'Müdahale için üçüncü pazarda yaşayan bir tüccar gerekiyor.';
@@ -5321,17 +5329,88 @@ function caravanConvoyIntervene(mode){
   }
  },mode==='expedite'?'Kervan yoluna acele haberci gönderdin.':'Kervana muhafız desteği gönderdin.');
 }
+function caravanConvoyOpenAmbush(q,now){
+ if(q.ambushHandled||q.ambush)return false;
+ const gender=pick(['male','female']),age=rng(21,52);
+ const bandit=normalizeNPC({id:npcId(),name:pick(D.realms[s.realm][gender]),gender,age,
+  birthYear:s.year+s.age-age,type:'Yol Kesici',role:'Yol Kesici',goal:'wealth',
+  alive:true,rel:12,wealth:rng(2,15),place:s.place,realm:s.realm,tribe:s.tribe,
+  traits:['hirsli','cesur']},'Yol Kesici');
+ bandit.statusFlags=bandit.statusFlags||{};
+ bandit.statusFlags.caravanBanditConvoy=q.id;
+ s.careerContacts.push(bandit);
+ q.ambush={banditId:bandit.id,startedSerial:now};
+ q.ambushHandled=true;
+ ensureCaravanTrade().guild.convoys.ambushes++;
+ caravanRecord('convoy_ambush',bandit.name+' yol kesti: '+CARAVAN_GOODS[q.goodId].name+
+  ' yüklü ortak sevkiyat tehdit altında.',{convoyId:q.id,banditId:bandit.id});
+ return true;
+}
+function caravanConvoyAmbushIssue(mode){
+ const c=ensureCaravanTrade().guild.convoys,q=c.active;
+ if(!s.assets.includes('caravan_share')||s.age<18)return 'Yol kararlarını yalnız yetişkin kervan payı sahipleri alabilir.';
+ if(!q?.ambush)return 'Karar bekleyen bir yol kesme olayı yok.';
+ if(lifeSerial()>q.ambush.startedSerial+1)return 'Yol kesicinin bekleme süresi doldu.';
+ if(!npcById(q.ambush.banditId)?.alive)return 'Yol kesici artık hayatta değil.';
+ if(mode==='pay'){
+  if(s.wealth<4)return 'Yol geçiş bedeli için 4 servet gerekiyor.';
+ }else if(mode!=='resist')return 'Bilinmeyen yol kesme kararı.';
+ return '';
+}
+function caravanConvoyAmbushAction(mode){
+ const issue=caravanConvoyAmbushIssue(mode);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'caravanAmbush',id:mode},()=>{
+  const c=ensureCaravanTrade().guild.convoys,q=c.active,bandit=npcById(q.ambush.banditId);
+  q.lastRiskSerial=lifeSerial();
+  if(mode==='pay'){
+   s.wealth-=4;bandit.wealth+=4;c.ambushPaid++;c.tollsPaid+=4;
+   q.ambush=null;
+   economyLedger('caravanTrade',-4,'Yol kesiciye ödenen gerçek geçiş bedeli');
+   caravanRecord('convoy_ambush_paid','Kervanın geçişi için '+bandit.name+' 4 servet aldı.',
+    {convoyId:q.id,banditId:bandit.id,amount:4});
+  }else{
+   const guard=q.escort?.escortId?npcById(q.escort.escortId):null;
+   const chance=guard?.alive?.77:.33;
+   if(Math.random()<chance){
+    c.ambushRepelled++;q.ambush=null;
+    adjustNPC(bandit,{rel:-8,grudge:12},'Kervan yolundaki pususu geri püskürtüldü.');
+    caravanRecord('convoy_ambush_repulsed',bandit.name+' ve adamları kervandan uzaklaştırıldı.',
+     {convoyId:q.id,banditId:bandit.id});
+   }else{
+    c.ambushLost++;
+    caravanConvoyFinish('lost',bandit.name+' yol kesme sırasında kervan yükünü ele geçirdi.');
+   }
+  }
+ },mode==='pay'?'Kervana güvenli geçiş bedelini gönderdin.':'Yol kesicilere direnilmesini emrettin.');
+}
 function caravanConvoyMonthTick(){
- const q=ensureCaravanTrade().guild.convoys.active;if(!q)return;
+ const c=ensureCaravanTrade().guild.convoys,q=c.active;if(!q)return;
  const seller=npcById(q.sellerId),buyer=npcById(q.buyerId);
  if(!seller?.alive||!buyer?.alive){
   caravanConvoyFinish('cancelled','Tüccarlardan biri yaşamını yitirdi; emanet iade edildi.');return;
  }
  const now=lifeSerial();
+ if(q.ambush){
+  const bandit=npcById(q.ambush.banditId);
+  if(!bandit?.alive){
+   q.ambush=null;
+   caravanRecord('convoy_ambush_ended','Yol kesici etkisiz kaldı; kervanın yolu yeniden açıldı.',{convoyId:q.id});
+  }else if(now>q.ambush.startedSerial+1){
+   c.ambushExpired++;
+   caravanConvoyFinish('lost','Yol kesiciye yanıt verilmedi; gerçek kervan yükü kaybedildi.');
+   return;
+  }else return;
+ }
  if(now>q.departedSerial&&now<q.arrivalSerial&&q.lastRiskSerial!==now){
   q.lastRiskSerial=now;
-  if(Math.random()<caravanConvoyRisk(q)){
+  const risk=caravanConvoyRisk(q),roll=Math.random();
+  if(roll<risk){
    caravanConvoyFinish('lost','Ortak sevkiyat yolda kayboldu; alıcının emanet bedeli geri ödendi.');
+   return;
+  }
+  if(!q.ambushHandled&&roll<risk+.045){
+   caravanConvoyOpenAmbush(q,now);
    return;
   }
  }
@@ -5342,7 +5421,9 @@ function caravanConvoySummaryHtml(){
  const t=ensureCaravanTrade(),g=t.guild,c=g.convoys;
  let html='<div class="card"><h3>🐫 Ortak Lonca Sevkiyatları</h3><p>Teslim '+c.delivered+
   ' • Kayıp '+c.lost+' • İptal '+c.cancelled+' • Muhafızlı '+c.escorted+
-  ' • Muhafız takviyesi '+c.escortRenewals+' • Hızlandırma '+c.expedited+' • Sigorta tazminatı '+c.claimsPaid+
+  ' • Muhafız takviyesi '+c.escortRenewals+' • Hızlandırma '+c.expedited+
+  ' • Yol kesme '+c.ambushes+' • Geçiş bedeli '+c.tollsPaid+
+  ' • Pusu püskürtme '+c.ambushRepelled+' • Sigorta tazminatı '+c.claimsPaid+
   ' • Alıcı bedeli emanete ayırır, sigortacı kendi servetinden teminat verir.</p>';
  if(c.active){
   const q=c.active;
@@ -5353,11 +5434,22 @@ function caravanConvoySummaryHtml(){
    (q.expedite?' • Hızlandırıldı':'')+
    ' • Aylık yol kaybı riski %'+(caravanConvoyRisk(q)*100).toFixed(1)+
    ' • '+Math.max(0,q.arrivalSerial-lifeSerial())+' ay kaldı</p>';
-  html+='<div class="grid2">'+
-   actionButton('Acele haberci gönder',{kind:'caravanConvoy',id:'expedite'},'caravanConvoyIntervene("expedite")',
-    '4 servet • bir ay erken varış • daha yüksek yol riski')+
-   actionButton('Muhafız takviyesi gönder',{kind:'caravanConvoy',id:'renewEscort'},'caravanConvoyIntervene("renewEscort")',
-    '3 servet • korumasız sefer için tek defalık takviye')+'</div>';
+  if(q.ambush){
+   const bandit=npcById(q.ambush.banditId);
+   html+='<p>⚠️ Yol kesildi: '+safeText(bandit?.name||'Yol Kesici')+
+    ' • Geçiş bedeli 4 servet • Son karar dönemi '+Math.max(0,q.ambush.startedSerial+1-lifeSerial())+' ay</p>';
+   html+='<div class="grid2">'+
+    actionButton('Geçiş bedelini öde',{kind:'caravanAmbush',id:'pay'},'caravanConvoyAmbushAction("pay")',
+     '4 servet • yol kesicinin gerçek cüzdanına aktarılır')+
+    actionButton('Direnmeyi emret',{kind:'caravanAmbush',id:'resist'},'caravanConvoyAmbushAction("resist")',
+     'Ücretsiz • muhafız varsa kurtulma şansı yükselir')+'</div>';
+  }else{
+   html+='<div class="grid2">'+
+    actionButton('Acele haberci gönder',{kind:'caravanConvoy',id:'expedite'},'caravanConvoyIntervene("expedite")',
+     '4 servet • bir ay erken varış • daha yüksek yol riski')+
+    actionButton('Muhafız takviyesi gönder',{kind:'caravanConvoy',id:'renewEscort'},'caravanConvoyIntervene("renewEscort")',
+     '3 servet • korumasız sefer için tek defalık takviye')+'</div>';
+  }
  }else if(g.routeId&&t.stage==='home'){
   html+='<p>İttifak kurduğun loncaya stok sahibi tüccardan yük yollat. 48 itibar, 5 nüfuz ve altı ayda bir sevkiyat şartı vardır.</p><div class="grid2">';
   const sellerRec=t.competition[g.routeId];
@@ -6239,6 +6331,7 @@ function accessIssue(a){
   else if(a.kind==='caravanConvoy'){min=18;const issue=a.id==='dispatch'?
    caravanConvoyIssue(a.id,a.routeId,a.goodId,a.insured,a.escorted):caravanConvoyInterveneIssue(a.id);
    if(issue)return issue;}
+  else if(a.kind==='caravanAmbush'){min=18;const issue=caravanConvoyAmbushIssue(a.id);if(issue)return issue;}
  else if(a.kind==='toyContest'){min=12;const issue=toyIssue(a.id,a.contestType);if(issue)return issue;}
  else if(a.kind==='horseStable'){min=12;const issue=horseActionIssue(a.id,a.horseId,a.other);if(issue)return issue;}
  else if(a.kind==='asset'){
@@ -6757,7 +6850,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
