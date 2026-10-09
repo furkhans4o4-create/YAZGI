@@ -1495,8 +1495,8 @@ test('v53 unknown arrest action is rejected at central access gate',()=>{const {
 
 
 /* v54 — Töre judgments after a lawful NPC arrest. */
-const v54Captured=v53Arrest+"window.__verdictPatrol=ensureCaravanTrade().guild.convoys.patrols.mountain;";
-const v54Insured=v51Covered+"window.__officer=caravanConvoyUnderwriter(__loot.origin,__loot.dest);window.__oldTick=monthlyTick;monthlyTick=()=>{};Math.random=()=>0;caravanConvoyPatrolAction(__loot.id);s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;caravanBanditArrestAction('mountain');monthlyTick=__oldTick;s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;";
+const v54Captured=v53Arrest+"__bandit.wealth=Math.max(20,__bandit.wealth);window.__verdictPatrol=ensureCaravanTrade().guild.convoys.patrols.mountain;";
+const v54Insured=v51Covered+"__robber.wealth=Math.max(20,__robber.wealth);window.__officer=caravanConvoyUnderwriter(__loot.origin,__loot.dest);window.__oldTick=monthlyTick;monthlyTick=()=>{};Math.random=()=>0;caravanConvoyPatrolAction(__loot.id);s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;caravanBanditArrestAction('mountain');monthlyTick=__oldTick;s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;";
 test('v54 initial state has zero rulings and restitution fees',()=>{const {run}=game();run(setup+v52Case+"");assert.equal(run('s.version'),54);assert.equal(run('__g.convoys.courtCases'),0);assert.equal(run('__g.convoys.courtRestitutionPaid'),0);assert.equal(run('__g.convoys.courtExiles'),0);});
 test('v54 requires an actual captured bandit not simply a theft record',()=>{const {run}=game();run(setup+v52Case+"window.__issue=caravanBanditCourtIssue('restitution','mountain',__loot.id);");assert.ok(run('__issue.includes("yakalanmış")'));});
 test('v54 allow restitution for held cargo to its documented owner',()=>{const {run}=game();run(setup+v54Captured+"");assert.equal(run('caravanBanditCourtIssue("restitution","mountain",__loot.id)'),'');});
