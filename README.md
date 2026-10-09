@@ -345,6 +345,16 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Sevkiyat girişimleri, teslimatları, iptalleri, gerçek NPC para değişimleri ve aracılık kazançları kayıt altına alınır. Başka bir kuşağa geçen kervanda önceki sevkiyat geçmişi korunur, ancak aktif aracılık yükümlülüğü miras kalmaz.
 - v45 ve önceki kayıtlar korunur; eski kayıt v46 geçişinde `yazgi_before_v46` olarak ayrıca yedeklenir. 26 yeni test eklenmiştir; toplam 586 bağımsız regresyon testi bulunur.
 
+### v47 — Ortak Kervan Sigortası ve Gerçek Yol Kayıpları
+
+- v46'nın NPC'den NPC'ye gerçek yük ve para hareketi korunur. Ortak lonca sevkiyatları hedef yolun riski ve ittifakın anlaşmazlık durumuna bağlı düşük bir aylık olasılıkla yolda kaybolabilir. Aynı oyun ayı için risk hesabı tekrar çalıştırılmaz.
+- Standart sevkiyatta kayıp olursa bir adet gerçek stok geri gelmez; alıcıya önceden ayırdığı emanet bedeli geri ödenir, aracıya veya satıcıya satış kazancı yazılmaz. Kayıplar ve nedenleri kalıcı geçmişe işlenir.
+- **Sigortalı sevkiyat** için oyuncu 2 servet prim öder. İlk iki ticaret bölgesinden farklı üçüncü pazardaki yaşayan bir NPC sigortacı, malın gerçek alış maliyetine eşit teminatı kendi cüzdanından ayırır. NPC teminatı karşılayamıyorsa veya üçüncü pazarda yaşayan tüccar yoksa sevkiyat başlatılamaz.
+- Başarılı teslimatta teminat aynı NPC'ye aynen geri verilir ve sigortacı oyuncunun ödediği primi gelir olarak tutar. Yolda kayıp olduğunda alıcı emanet bedelini geri alır, sigortacının ayrılmış gerçek teminatı satıcıya aktarılır; yok olan mal yeniden oluşturulmaz.
+- Cezasız iptalde satıcı malını, alıcı emanetini, sigortacı teminatını geri alır. Kayba bağlı tazminat bir defadan fazla ödenemez. Oyuncu/NPC para toplamının hem kayıp hem de teslim senaryolarında korunduğu test edilir.
+- Sigorta kimliği, teminat, prim ve son risk dönemi kayıt/yükleme sonrasında devam eder. Yeni kuşağa aktif sigorta taahhüdü aktarılmaz; olay geçmişi korunur. Önceki v46 kaydı `yazgi_before_v47` ile ayrıca yedeklenir.
+- v47'de 21 yeni test eklendi; toplam regresyon paketi 607 testten oluşur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
