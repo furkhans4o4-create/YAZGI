@@ -471,6 +471,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Hiçbir yeni eşya, servet, miras payı veya kişi üretilmez. Anıların yeniden tekrar edilerek puan toplanması engellenir. Aile ekranında kardeş bağları ve sonraki kuşağa anlatılan hikâye sayısı görünür.
 - Eski kayıtlar v61'e yükseltilir, `yazgi_before_v61` güvenli yedeği oluşturulur.
 
+### v62 — Kardeşlerin Hane Ekonomisi ve Gönüllü Dayanışma
+
+- Yaşayan, 18 yaş üstü ve aynı yerdeki yetişkin kardeşlerden serveti üç veya altında olan biri, başka bir kardeşten **gönüllü yardım** isteyebilir. Verici en az 12 servete sahip olmalı; verdiği en fazla üç servet gerçek NPC malından çıkıp alıcının gerçek servetine geçer. Kimsenin malı kopyalanmaz.
+- Kardeşlerin sosyal güveni ve kişiliği destek kararını etkiler. Yardım reddedilirse servet hareketi olmaz. Çok yoksul bir kardeşe merhametli bir kardeşin yaptığı yardım karşılıksız olabilir; aksi halde gerçek, kimlikli **aile borcu** yazılır.
+- Borç alan kardeş gelecek oyun yıllarında, kendi hanesinde en az iki servet bırakarak yılda en fazla iki servet geri öder. Her ödeme gerçek borçludan gerçek alacaklıya geçer. Süresi geçip uzun süre ödenmeyen borç aile bağını zedeler. Ölen kişiden tahsilat yapılmaz.
+- Oyuncu yeterli servete sahipse yetişkin çocuklarının açık borcunu **kendi parasından gerçek alacaklı çocuğa ödeyerek** tek aylık eylemle kapatabilir. Bu, otomatik bağış değildir ve aynı borç tekrar tahsil edilemez.
+- İşlemler yılda en fazla bir yeni talep, sınırlı sayıda geçmiş kaydı ve v62 kayıt göçüyle korunur. Soy kolları ekranı karşılıksız yardım, borç, ödeme ve kefalet geçmişini gösterir; `yazgi_before_v62` güvenlik yedeği oluşturulur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
