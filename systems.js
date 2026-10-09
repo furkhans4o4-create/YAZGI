@@ -3236,7 +3236,7 @@ function familyBudgetSummaryHtml(){
 /* v65: Torunlar düzenli öğrenir; ailedeki yetişkin dayı/hala/amca/teyze
    kendi rızasıyla bakım nöbetine katılır. Yıllık bütçe indirimi en fazla birdir. */
 function familyGrandchildStudent(g,parent){
- const f=ensureFamilyBranches(),e=f.grandchildLearning;
+ const f=s.familyBranches?.grandchildLearning?s.familyBranches:ensureFamilyBranches(),e=f.grandchildLearning;
  let r=e.students.find(x=>x.grandId===g.id);
  if(!r){
   r={grandId:g.id,parentId:parent.id,field:parent.goal==='mastery'?'craft':parent.goal==='wisdom'?'literacy':'riding',
