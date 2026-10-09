@@ -405,6 +405,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Yakalama doğrudan para, eşya, sigorta tazminatı veya satıcı stoku yaratmaz; her kurtarılacak mal için ayrı bir işlem yapılır. Ambar sınırı, NPC ölümü, önceki tazminat ve tekil kurtarma hakkı korunur.
 - Eski v52 devriyeleri geriye uyumlu yüklenir; yakalama sonucu, süre ve NPC kimliği kaydedilir. `yazgi_before_v53` güvenlik yedeği ve **24 yeni otomatik test (toplam 737 test)** bulunur.
 
+### v54 — Töre Yargısı, Mal Bedeli Tazminatı ve Yol Sürgünü
+
+- Başarılı bir lonca yakalamasından sonra, alıkonulan **gerçek NPC yol kesicisi** için iki ayrı **Töre kararı** verilebilir. Karar vermek bir aylık eylem hakkını kullanır; aynı yakalamada yalnızca bir hüküm verilir.
+- **Mal bedelini tahsil et:** Dava açık ve suçlunun serveti yeterliyse çalınan tek bir malın bedeli suçlunun gerçek cüzdanından çıkar, asıl hak sahibinin cüzdanına geçer. Mal kurtarılabilir durumdan "tazmin edilmiş" durumuna döner; ikinci kez mal stoğu, sigorta parası veya oyuncu ödülü yaratılmaz. Sigortalı yükte hak sahibi, tazminatı önceden ödemiş sigortacı tüccardır.
+- **Ticaret yolundan sür:** Yol kesici 12 ay sürgün edilir, alıkonulması sona erer. Sürgüne bağlı yol güvenliği etkisi ilgili pazarda geçerlidir ve devriye görevlisi ölse veya devriye süresi dolsa bile sürgün süresince devam eder. Süre bitince etkisi kaldırılır.
+- Sürgünde de tazminatta da oyuncunun kervan ittifakları ve önceki olay geçmişi korunur. Karar için yakalanmış, hayatta bir suçlu ve yaşayan görevli gerekir. İki yargı seçeneği gerçek NPC kimlikleriyle görünür.
+- v53 oyun kayıtları `yazgi_before_v54` yedeğiyle taşınır. **31 yeni test** eklendi; tüm otomatik regresyon paketi **768 test** içerir.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
