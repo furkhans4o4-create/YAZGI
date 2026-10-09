@@ -413,6 +413,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Sürgünde de tazminatta da oyuncunun kervan ittifakları ve önceki olay geçmişi korunur. Karar için yakalanmış, hayatta bir suçlu ve yaşayan görevli gerekir. İki yargı seçeneği gerçek NPC kimlikleriyle görünür.
 - v53 oyun kayıtları `yazgi_before_v54` yedeğiyle taşınır. **31 yeni test** eklendi; tüm otomatik regresyon paketi **768 test** içerir.
 
+### v55 — Töre Borcu ve Sonradan Tahsil Edilen Gerçek Tazminat
+
+- v54 Töre davasında yakalanan yol kesicinin tüm mal bedelini ödeyecek serveti yoksa **Töre borcu hükmü** verilebilir. Mevcut gerçek serveti hemen hak sahibi NPC'ye aktarılır, kalan bedel kaydedilir. Suçlunun yeterli parası varsa tam tazminat hükmü kullanılmaya devam eder.
+- **Töre borçlarını tahsil et** eylemi, sonraki 36 oyun ayı içinde suçlunun elde ettiği gerçek servetinden yalnız ödenmemiş miktarı gerçek hak sahibine aktarır; her tahsilat bir aylık oyun eylemidir. Para yoksa işlem engellenir ve eylem hakkı harcanmaz.
+- Sigortasız çalıntıda satıcı, sigorta önceden bedel ödemişse sigortacı hak sahibidir. Borç açılması çalınan mal dosyasını kapatır; aynı maldan tekrar fidye, fiziksel stok ya da ikinci sigorta kazancı sağlanamaz. Borç tamamen ödenirse kapalı tazminat kaydı korunur.
+- NPC ölümü, alacaklı ölümü, süre aşımı, ödenmiş dosyada çift tahsilat, sahte borç kaydı, soy mirası, eski v54 kayıtları ve kayıt/yükleme için regresyon kontrolleri vardır. `yazgi_before_v55` güvenli eski sürüm yedeğidir.
+- **34 yeni test, toplam 802 otomatik regresyon testi.**
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
