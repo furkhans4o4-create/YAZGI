@@ -24,7 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run v49 regression gate
-        run: node --test --test-name-pattern='v49 ' tests/systems.test.cjs
+      - name: Run v50 regression gate
+        run: node --test --test-name-pattern='v50 ' tests/systems.test.cjs
       - name: Run complete regression suite
         run: node --test tests/systems.test.cjs
