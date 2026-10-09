@@ -2880,7 +2880,8 @@ function familySiblingEconomyYearTick(){
  const needy=kids.filter(c=>(c.wealth||0)<=3).sort((a,b)=>(a.wealth||0)-(b.wealth||0));
  for(const borrower of needy){
   const lender=kids.filter(c=>c.id!==borrower.id&&c.place===borrower.place&&c.realm===borrower.realm&&
-   (c.wealth||0)>=12&&!e.loans.some(l=>l.status==='active'&&(l.lenderId===c.id&&l.borrowerId===borrower.id||l.lenderId===borrower.id&&l.borrowerId===c.id)))
+   (c.wealth||0)>=12&&!e.loans.some(l=>(l.status==='active'||l.status==='defaulted'||l.year>year-3)&&
+    (l.lenderId===c.id&&l.borrowerId===borrower.id||l.lenderId===borrower.id&&l.borrowerId===c.id)))
    .sort((a,b)=>(b.wealth||0)-(a.wealth||0))[0];
   if(!lender)continue;
   e.requests++;
