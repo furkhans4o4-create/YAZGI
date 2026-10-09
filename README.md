@@ -364,6 +364,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Aktif sevkiyat ekranında muhafız NPC adı, geçerli aylık kayıp olasılığı ve korunmuş gönderi sayısı görülür. Sonuç geçmişi ve muhafız sözleşmesi kayıtta devam eder; aktif sevkiyat mirasçıya geçmez.
 - v47 kaydı geçiş öncesinde `yazgi_before_v48` anahtarıyla ayrıca korunur. 18 yeni otomatik test eklendi; regresyon paketi 625 test içerir.
 
+### v49 — Kervan Seferine Müdahale: Acele Haberci ve Muhafız Takviyesi
+
+- Aktif lonca sevkiyatında artık birer aylık eylem hakkı kullanarak iki farklı karar alınır. **Acele haberci** (4 servet) kervanın varışını bir ay öne çeker; sonraki yol aylarında aylık kayıp olasılığı %2,5 puan artar. Bu seçenek yalnız varışa en az iki ay kala, sevkiyat başına bir kez kullanılabilir.
+- **Muhafız takviyesi** (3 servet) korumasız gönderiye yol muhafızı ekler veya yol muhafızı ölen kervana yenisini sağlar. Çalışan mevcut muhafız varken kullanılamaz. Takviye bir seferde en çok bir kez alınabilir.
+- Her iki bedel oyuncunun gerçek servetinden bağımsız üçüncü pazar tüccarının cüzdanına aktarılır; ücret teslimatta veya iptalde geri dönmez. Sevkiyatın sabit alıcı emanet bedeli, sigorta teminatı ve fiziksel mal stoku değişmez.
+- Varış tarihi, acele haberci sözleşmesi ve muhafız takviyesi kalıcı kayıtla korunur. Eski v48 kayıtları `yazgi_before_v49` anahtarıyla yedeklenerek yükseltilir; aktif sözleşmeler mirasçıya devredilmez.
+- Eski sürümde geçersiz teslimat son anda iptal edilirken sigortacı teminatının iki kez iade edilmesine yol açabilen hata giderildi. 20 yeni test eklendi; hedef regresyon paketi 645 testtir.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
