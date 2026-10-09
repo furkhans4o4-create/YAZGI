@@ -2847,7 +2847,7 @@ function familyGenerationsSummaryHtml(){
 function familySiblingEconomyRecord(e,type,from,to,amount,note){
  e.history.unshift({year:s.year+s.age,type,fromId:from||null,toId:to||null,amount,note});
  e.history=e.history.slice(0,40);
- const f=ensureFamilyBranches();
+ const f=s.familyBranches;
  f.history.unshift({year:s.year+s.age,age:s.age,type:'sibling_economy_'+type,note});
  f.history=f.history.slice(0,80);
 }
