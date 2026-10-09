@@ -496,6 +496,15 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Oyuncu yetişkin çocukla aynı bölgede, güveni yeterliyse **bir aylık eylem** harcayarak gönüllü hane bütçesi görüşmesi yapabilir. Kabul edilirse en fazla iki yıl yıllık masrafta 1 servetlik tasarruf sağlanır; reddi ve görüşme yılı kaydedilir. Aynı yıl görüşmeyi tekrar etmek veya sınırsız puan toplamak mümkün değildir.
 - Hane ekranı evlilik, küçük çocuk sayısı, son yıl geliri, gideri, eş katkısı, açık ve bütçe geçmişini gösterir. Eski kayıtlar v64'e yükseltilirken `yazgi_before_v64` yedeği oluşturulur.
 
+### v65 — Torunların Eğitimi ve Gönüllü Çocuk Bakımı
+
+- Yetişkin çocukların 5–17 yaşındaki yaşayan çocukları her oyun yılında, aile içindeki yetişme yoluna göre **binicilik, zanaat veya bitig okuma** becerisi kazanır. Kazanım torunun gerçek NPC beceri kaydına ve sınırlı eğitim geçmişine yazılır; aynı yıl iki kez ilerlemez.
+- Oyuncu torunuyla aynı yerdeyse **bir aylık eylemle** üç alandan birini öğretebilir. İleri seviye eğitim torunun gerçek becerisini ve öğrenme ilerlemesini yükseltir; aynı toruna aynı yıl sınırsız ders verilemez. 5 yaşından küçükler veya 18 yaşını tamamlayanlar bu programa katılmaz.
+- En az iki yaşayan yetişkin çocuğu olan ailede kardeşlerden biri, diğer kardeşin 18 yaşından küçük çocuğunun bakımı için **gönüllü davet** alabilir. Güven, yakınlık, yer ve kişilik kabul olasılığını etkiler. Ret de kaydedilir; 1 aylık eylem hakkı harcanır.
+- Onaylanan görev **gelecek oyun yılı** için bir bakımı paylaşır; yardımcı o yılda yaşıyor, uygun ve aynı yerdeyse v64 hane bütçesindeki giderden **yalnızca 1 servet** düşer. Hane gideri eksiye inmez, aynı yardımcı birden çok haneye aynı yıl söz veremez. Katkı, çocuk 5–17 yaşındaysa aile bağı ve öğrenme becerisini de geliştirir.
+- Görev gerçek para transferi değildir: yardım eden akraba zaman ayırır ve bakım gideri oluşmadığı için harcama gerçekleşmez. v63 geçim sıkıntısı ve v62 kardeş borçlarıyla birlikte işler.
+- Eğitim, ders, kabul/ret ve akraba bakımı geçmişi aile ekranında görünür. Eski kayıtlar v65'e yükseltilirken `yazgi_before_v65` güvenlik kopyası oluşturulur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
