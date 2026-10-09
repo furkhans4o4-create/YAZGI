@@ -447,6 +447,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Soy kolları ekranında gönüllü katılımcılar, kalan süre ve her çocuğun bakım nöbeti sayısı görünür. Kayıt/yükleme, eski v57 kaydı göçü ve `yazgi_before_v58` güvenlik yedeği desteklenir.
 - **40 yeni v58 regresyon testi, toplam 911 otomatik kontrol.**
 
+### v59 — Bakım Yükü, Kardeş Gerilimi ve Aile Uzlaşması
+
+- Gönüllü ortak bakım nöbetlerinin her çocuğa düşen görev sayısı ayrı saklanır; geçmiş ziyaretler, çocuk kimlikleri ve süreli rıza korunur.
+- Üç aylık bakım ziyaretleri bakım veren çocuğun **yorgunluğunu** artırır. Dinlenme zamanla yorgunluğu azaltır; çok yorulan veya hastalanan çocuk zorla nöbete çağrılmaz.
+- Bir kardeş diğerlerinden en az iki fazla nöbet üstlenirse ilişkilerine yansıyan aile gerilimi oluşabilir; bu gerilim NPC-NPC sosyal bağında ve aile geçmişinde kalıcıdır.
+- Oyuncu bir ay ayırarak kardeşleri **arabuluculukla uzlaştırabilir** veya kendi servetinden üç birim harcayarak seçtiği bakım veren çocuğa **dinlenme desteği** sağlayabilir. Eylemler sınırlandırılmıştır, bedava servet ve sınırsız iyileşme üretmez.
+- Soy kolları görünümünde her çocuğun nöbet sayısı ve yorgunluğu, uzlaşma/dinlenme seçenekleri görünür. Eski v58 kayıtları yükseltilirken `yazgi_before_v59` yedeği oluşturulur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
