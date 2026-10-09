@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=59,ADULT_AGE=18;
+const SAVE_VERSION=60,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -2240,6 +2240,14 @@ function ensureFamilyBranches(){
  for(const k of ['introductions','careerOpenings','householdSupport','familyTalks','enterpriseAssignments','inheritanceAssignments','grandparentActions','grandchildrenBorn','elderRequests','elderPlans','elderPaid','elderVisits','elderDeclines','elderEnds','careCircles','careCircleVisits','careCircleMissed','careCircleDeclines','careCircleEnds','careCircleDisputes','careCircleMediations','careCircleRespite'])f[k]=Math.max(0,Math.round(Number.isFinite(f[k])?f[k]:0));
  f.lastCareCircleYear=Number.isFinite(f.lastCareCircleYear)?Math.floor(f.lastCareCircleYear):null;
  f.lastCareRecoverySerial=Number.isFinite(f.lastCareRecoverySerial)&&f.lastCareRecoverySerial<=lifeSerial()?Math.floor(f.lastCareRecoverySerial):null;
+ f.careLegacies=Array.isArray(f.careLegacies)?f.careLegacies.filter(v=>v&&typeof v==='object'&&typeof v.id==='string'&&Number.isFinite(v.startedSerial)&&Number.isFinite(v.endedYear)&&Array.isArray(v.childIds)&&v.childIds.length>=2&&v.childIds.length<=8&&new Set(v.childIds).size===v.childIds.length&&v.childIds.every(id=>typeof id==='string'&&id.length>0)).slice(0,12).map(v=>({
+  id:v.id.slice(0,128),startedSerial:Math.floor(v.startedSerial),endedYear:Math.floor(v.endedYear),
+  childIds:[...v.childIds],visitsByChild:Object.fromEntries(v.childIds.map(id=>[id,Math.max(0,Math.min(4,Math.floor(Number.isFinite(v.visitsByChild?.[id])?v.visitsByChild[id]:0)))])),
+  status:['settled','tense','lasting','bereaved'].includes(v.status)?v.status:'settled',
+  reason:String(v.reason||'done').slice(0,32),lastYear:Number.isFinite(v.lastYear)?Math.floor(v.lastYear):null,
+  lastTalkYear:Number.isFinite(v.lastTalkYear)?Math.floor(v.lastTalkYear):null,
+  lastWillYear:Number.isFinite(v.lastWillYear)?Math.floor(v.lastWillYear):null
+ })):[];
  const rota=f.careCircle;
  if(rota&&typeof rota==='object'&&!Array.isArray(rota)&&Number.isFinite(rota.startedSerial)&&
     Number.isFinite(rota.untilSerial)&&rota.untilSerial===rota.startedSerial+12&&rota.startedSerial<=lifeSerial()&&
@@ -2616,6 +2624,109 @@ function familyCareCircleMonthTick(){
   f.history.unshift({year:s.year+s.age,age:s.age,type:'care_circle_dispute',note:'Bakım görevlerinin eşitsizliği kardeşler arasında gerilim yarattı.'});
   f.history=f.history.slice(0,80);
  }
+}
+/* v60: Bakım emeğinin sonraki yıllara ve mirasa uzanan aile hatırası. */
+function familyCareLegacyClose(reason='done'){
+ const f=ensureFamilyBranches(),r=f.careCircle;
+ if(!r||f.careLegacies.some(x=>x.id==='care_'+r.startedSerial))return null;
+ const values=r.childIds.map(id=>r.visitsByChild?.[id]||0);
+ const tense=r.disputeOpen&&!r.mediationDone&&Math.max(...values)-Math.min(...values)>=2;
+ const rec={id:'care_'+r.startedSerial,startedSerial:r.startedSerial,endedYear:s.year+s.age,
+  childIds:[...r.childIds],visitsByChild:Object.fromEntries(r.childIds.map(id=>[id,r.visitsByChild?.[id]||0])),
+  status:tense?'tense':'settled',reason,lastYear:null,lastTalkYear:null,lastWillYear:null};
+ f.careLegacies.unshift(rec);f.careLegacies=f.careLegacies.slice(0,12);
+ f.history.unshift({year:s.year+s.age,age:s.age,type:'care_legacy_close',
+  note:tense?'Bakım nöbeti bitti; kardeşler arasındaki dengesizlik henüz çözülmedi.':'Bakım nöbeti tamamlandı; katkılar aile hatırasına işlendi.'});
+ f.history=f.history.slice(0,80);return rec;
+}
+function familyCareLegacyYearTick(){
+ const f=ensureFamilyBranches(),year=s.year+s.age;
+ for(const rec of f.careLegacies){
+  if(rec.status!=='tense'||rec.lastYear===year||year<=rec.endedYear)continue;
+  const people=rec.childIds.map(id=>s.children.find(c=>c.id===id));
+  if(people.filter(c=>c?.alive).length<2){rec.status='bereaved';continue;}
+  if(year>rec.endedYear+3){rec.status='lasting';continue;}
+  const counts=rec.childIds.map(id=>rec.visitsByChild[id]||0);
+  const over=people[counts.indexOf(Math.max(...counts))],under=people[counts.indexOf(Math.min(...counts))];
+  if(over?.alive&&under?.alive)adjustSocialLink(over,under,{score:-3,trust:-2,grudge:2},'Eski bakım görevleri yıllar sonra bile unutulmadı.');
+  rec.lastYear=year;
+  f.history.unshift({year,age:s.age,type:'care_legacy_year',note:'Eski bakım nöbetinin adaletsizliği kardeşler arasındaki güveni etkiliyor.'});
+  f.history=f.history.slice(0,80);
+ }
+}
+function familyCareLegacyIssue(legacyId,mode='talk'){
+ const rec=ensureFamilyBranches().careLegacies.find(x=>x.id===legacyId);
+ if(mode!=='talk')return 'Bilinmeyen aile hatırası kararı.';
+ if(!rec||!['tense','lasting'].includes(rec.status))return 'Görüşülecek açık bakım kırgınlığı bulunamadı.';
+ if(s.age<18)return 'Aile görüşmesi için yetişkin olmalısın.';
+ if(rec.lastTalkYear===s.year+s.age)return 'Bu yıl bu bakım meselesini zaten konuştunuz.';
+ for(const id of rec.childIds){
+  const child=s.children.find(c=>c.id===id);
+  if(!child?.alive||child.age<18)return 'Görüşmeye katılacak yaşayan yetişkin çocuklar gerekiyor.';
+  if(child.place!==s.place||child.realm!==s.realm||npcLifeBlocksNormalInteraction(child))return 'Katılımcılar aynı yerde ve görüşmeye uygun olmalı.';
+  if((normalizeBonds(child).trust||0)<35)return 'Önce çocuklarının sana olan güvenini kazanmalısın.';
+ }
+ return '';
+}
+function familyCareLegacyAction(legacyId,mode='talk'){
+ const issue=familyCareLegacyIssue(legacyId,mode);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'familyCareLegacy',legacyId,id:mode},()=>{
+  const f=ensureFamilyBranches(),rec=f.careLegacies.find(x=>x.id===legacyId),people=rec.childIds.map(id=>s.children.find(c=>c.id===id));
+  rec.lastTalkYear=s.year+s.age;
+  const accepts=people.every(c=>{
+   const p=ensureAdultChildProfile(c),b=normalizeBonds(c);
+   return Math.random()<Math.max(.12,Math.min(.94,.22+(b.trust||0)/250+(c.rel||0)/400-p.autonomy/800));
+  });
+  if(accepts){
+   rec.status='settled';
+   for(let i=0;i<people.length;i++){
+    adjustNPC(people[i],{rel:3,trust:4,grudge:-3},'Eski bakım yükünü kendi isteğiyle aile içinde konuştu.');
+    for(let j=i+1;j<people.length;j++)adjustSocialLink(people[i],people[j],{score:9,trust:7,grudge:-4},'Eski bakım kırgınlığını konuşup barıştılar.');
+   }
+   const q=ensureSuccession();q.familyHarmony=clamp(q.familyHarmony+3);
+   f.history.unshift({year:s.year+s.age,age:s.age,type:'care_legacy_reconciled',note:'Bakım nöbetinden kalan kırgınlık çocukların rızasıyla çözüldü.'});
+  }else{
+   f.history.unshift({year:s.year+s.age,age:s.age,type:'care_legacy_declined',note:'Çocukların eski bakım yükü tartışmasını henüz kapatmak istemedi.'});
+  }
+  f.history=f.history.slice(0,80);
+ },'Çocuklarınla eski bakım nöbeti hakkında konuştun.');
+}
+function familyCareLegacyWillReaction(heirId){
+ const f=ensureFamilyBranches(),q=ensureSuccession(),year=s.year+s.age;
+ for(const rec of f.careLegacies){
+  if(!['tense','lasting'].includes(rec.status)||rec.lastWillYear===year)continue;
+  const counts=rec.childIds.map(id=>rec.visitsByChild[id]||0);
+  if(Math.max(...counts)-Math.min(...counts)<2)continue;
+  const over=s.children.find(c=>c.id===rec.childIds[counts.indexOf(Math.max(...counts))]);
+  if(!over?.alive)continue;
+  rec.lastWillYear=year;
+  let note='';
+  if(heirId==='equal'){q.familyHarmony=clamp(q.familyHarmony+1);note='Geçmiş bakım emeği konuşulurken eşit paylaşım tercih edildi.';}
+  else if(heirId===over.id){
+   q.familyHarmony=clamp(q.familyHarmony+2);
+   adjustNPC(over,{trust:3,respect:2},'Bakım emeğinin vasiyette fark edildiğini hissetti.');
+   note=over.name+' tarafından verilen bakım emeği, vasiyet görüşmesinde dikkate alındı.';
+  }else{
+   q.familyHarmony=clamp(q.familyHarmony-3);
+   adjustNPC(over,{rel:-3,trust:-4,grudge:4},'Bakım yükünün miras görüşmesinde görmezden gelindiğini düşündü.');
+   note=over.name+' miras görüşmesinde bakım emeğinin görmezden gelindiğini düşündü.';
+  }
+  f.history.unshift({year,age:s.age,type:'care_legacy_will',note,heirId});
+  f.history=f.history.slice(0,80);
+ }
+}
+function familyCareLegacySummaryHtml(){
+ const f=ensureFamilyBranches();if(!f.careLegacies.length)return '';
+ return '<div class="card"><h3>📜 Bakım Emeğinin Aile Hatırası</h3><p>Geçmiş nöbetlerin katkısı ve kırgınlığı yıllar sonra da hatırlanır. Miras payı otomatik değişmez.</p></div>'+
+ f.careLegacies.slice(0,4).map(rec=>{
+  const names=rec.childIds.map(id=>{const n=s.children.find(c=>c.id===id);return safeText(n?.name||'Eski aile üyesi')+' '+(rec.visitsByChild[id]||0)+' nöbet';}).join(' • ');
+  const status=rec.status==='settled'?'uzlaşıldı':rec.status==='tense'?'açık kırgınlık':rec.status==='lasting'?'kalıcı kırgınlık':'yasla kapandı';
+  const action=rec.status==='tense'||rec.status==='lasting'?actionButton('Eski bakım kırgınlığını konuş',
+   {kind:'familyCareLegacy',legacyId:rec.id,id:'talk'},
+   'familyCareLegacyAction('+JSON.stringify(rec.id)+')','Bir ay • herkesin onayı gerekir'):'';
+  return '<div class="card"><h3>'+safeText(rec.endedYear)+' yılı bakım kaydı • '+status+'</h3><p>'+names+'</p>'+action+'</div>';
+ }).join('');
 }
 function familyStewardQuarter(assetId){
  const f=ensureFamilyBranches(),child=adultChildById(f.stewards[assetId]);if(!child||!s.assets.includes(assetId)||npcLifeBlocksNormalInteraction(child))return 0;
