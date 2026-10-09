@@ -421,6 +421,15 @@ Bu repo artık YAZGI'nın ana deposudur.
 - NPC ölümü, alacaklı ölümü, süre aşımı, ödenmiş dosyada çift tahsilat, sahte borç kaydı, soy mirası, eski v54 kayıtları ve kayıt/yükleme için regresyon kontrolleri vardır. `yazgi_before_v55` güvenli eski sürüm yedeğidir.
 - **34 yeni test, toplam 802 otomatik regresyon testi.**
 
+### v56 — Lonca Tahsildarıyla Aylık Otomatik Töre Borcu Ödemeleri
+
+- v55 Töre borcu olan NPC yol kesicinin borcunu oyuncu artık gerçek tüccar NPC'yi **2 servet karşılığında lonca tahsildarı olarak görevlendirerek** otomatik takip edebilir.
+- Görevlendirmeden sonraki oyun aylarında tahsildar gerçek borçlunun mevcut servetinden **ayda en fazla 2 serveti** gerçek alacaklı NPC'ye aktarır. Borçlu para kazanmamışsa ödeme yapılmaz. Devreye sokulan görevlendirme, ay içinde birden çok kez işlem üretmez.
+- Sigortalı yükte alacaklı tazminatı ödeyen sigortacı, aksi durumda yükü çalınan tüccardır. **Oyuncuya karşılıksız para, yeni mal veya ikinci sigorta tazminatı yaratılmaz.**
+- Borç tamamen ödenirse görev sona erer. Tahsildar/borçlu/alacaklı NPC ölümü veya 36 aylık takip süresinin bitişi de yeni tahsilatı durdurur. Oyuncu tek seferliğine görevliyi geri çağırabilir; aynı dosyada tekrar görevlendirme ücreti alınamaz.
+- Görevli kimliği, alınan ücret, yapılan ödemeler, son işlem ayı ve görevlendirme durumu oyunun kayıtlarında tutulur. v55'ten yükseltme için `yazgi_before_v56` yedeği kullanılır.
+- **32 yeni v56 testi; toplam 834 otomatik regresyon testi.**
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.

@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=55,ADULT_AGE=18;
+const SAVE_VERSION=56,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -4964,7 +4964,19 @@ function ensureCaravanTrade(){
      x.debt.paid<=x.unitCost&&Number.isFinite(x.debt.openedSerial)&&
      x.debt.openedSerial>=x.lostSerial&&x.debt.openedSerial<=lifeSerial()&&
      x.method==='debt'&&['debt','compensated','abandoned'].includes(x.status)?
-     {total:Math.floor(x.unitCost),paid:Math.floor(x.debt.paid),openedSerial:Math.floor(x.debt.openedSerial)}:null,
+     {total:Math.floor(x.unitCost),paid:Math.floor(x.debt.paid),openedSerial:Math.floor(x.debt.openedSerial),
+      collector:x.debt.collector&&typeof x.debt.collector==='object'&&
+       typeof x.debt.collector.collectorId==='string'&&x.debt.collector.fee===2&&
+       Number.isFinite(x.debt.collector.startedSerial)&&
+       x.debt.collector.startedSerial>=x.debt.openedSerial&&
+       x.debt.collector.startedSerial<=lifeSerial()&&
+       (x.debt.collector.lastSerial===null||Number.isFinite(x.debt.collector.lastSerial)&&
+        x.debt.collector.lastSerial>=x.debt.collector.startedSerial&&
+        x.debt.collector.lastSerial<=lifeSerial())?
+       {collectorId:x.debt.collector.collectorId,fee:2,
+        startedSerial:Math.floor(x.debt.collector.startedSerial),
+        lastSerial:Number.isFinite(x.debt.collector.lastSerial)?Math.floor(x.debt.collector.lastSerial):null,
+        enabled:x.debt.collector.enabled===true}:null}:null,
    report:x.report&&typeof x.report==='object'&&typeof x.report.officerId==='string'&&
     x.report.fee===2&&Number.isFinite(x.report.serial)&&typeof x.report.success==='boolean'?
     {officerId:x.report.officerId,fee:2,serial:Math.floor(x.report.serial),success:x.report.success}:null
@@ -5004,7 +5016,7 @@ function ensureCaravanTrade(){
    startedSerial:Math.floor(p.startedSerial),untilSerial:Math.floor(p.untilSerial),
    arrest,verdict};
  }
- for(const k of ['delivered','cancelled','lost','claimsPaid','escorted','expedited','escortRenewals','ambushes','ambushPaid','ambushRepelled','ambushLost','ambushExpired','tollsPaid','lootRecovered','lootEscaped','lootRansomsPaid','patrolReports','patrolConvictions','patrolFees','arrestAttempts','arrestSuccess','arrestFees','courtCases','courtRestitutions','courtRestitutionPaid','courtExiles','courtDebtsOpened','courtDebtInstallments','nextId'])shipments[k]=Math.max(0,Math.floor(Number.isFinite(shipments[k])?shipments[k]:0));
+ for(const k of ['delivered','cancelled','lost','claimsPaid','escorted','expedited','escortRenewals','ambushes','ambushPaid','ambushRepelled','ambushLost','ambushExpired','tollsPaid','lootRecovered','lootEscaped','lootRansomsPaid','patrolReports','patrolConvictions','patrolFees','arrestAttempts','arrestSuccess','arrestFees','courtCases','courtRestitutions','courtRestitutionPaid','courtExiles','courtDebtsOpened','courtDebtInstallments','debtCollectorHires','debtCollectorFees','debtCollectorPayments','debtCollectorPaid','debtCollectorDismissals','nextId'])shipments[k]=Math.max(0,Math.floor(Number.isFinite(shipments[k])?shipments[k]:0));
  shipments.lastDispatchSerial=Number.isFinite(shipments.lastDispatchSerial)?shipments.lastDispatchSerial:null;
  t.contracts=t.contracts&&typeof t.contracts==='object'&&!Array.isArray(t.contracts)?t.contracts:{};
  const c=t.contracts;
@@ -5210,6 +5222,7 @@ function caravanLegacySnapshot(){
 /* v53 — Aranan yol kesicinin lonca tarafından yakalanması ve ücretsiz yük teslimi. */
 /* v54 — Töre yargısı, maddi tazminat veya on iki aylık ticaret yolu sürgünü. */
 /* v55 — Yetersiz servette Töre borcu ve hak sahibine gerçek dönemsel tahsilat. */
+/* v56 — Lonca tahsildarına bir kere görev ver; sonraki aylarda gerçek NPC gelirinden tahsil et. */
 function caravanConvoyUnderwriter(origin,dest){
  if(!CARAVAN_ROUTES[origin]||!CARAVAN_ROUTES[dest]||origin===dest)return null;
  const third=Object.keys(CARAVAN_ROUTES).find(id=>id!==origin&&id!==dest);
@@ -5725,6 +5738,83 @@ function caravanBanditDebtCollectAction(lootId){
    {banditId:bandit.id,recipientId:owner.person.id,convoyId:loot.id,payment});
  },'Töre borcunu yol kesicinin mevcut gerçek servetinden hak sahibine tahsil ettin.');
 }
+
+function caravanDebtCollectorOfficer(loot,t=ensureCaravanTrade()){
+ const owner=loot?loot.recipientId:null;
+ return Object.values(t.competition).map(x=>npcById(x.npcId))
+  .find(x=>x?.alive&&x.id!==owner&&x.id!==loot?.banditId)||null;
+}
+function caravanDebtCollectorIssue(mode,lootId){
+ const t=ensureCaravanTrade(),c=t.guild.convoys,loot=c.loot.find(x=>x.id===lootId);
+ if(!s.assets.includes('caravan_share')||s.age<18)return 'Lonca tahsildarı yetişkin Kervan Payı sahiplerine açıktır.';
+ if(!loot||loot.status!=='debt'||loot.method!=='debt'||!loot.debt)
+  return 'Bu dosyada açık bir Töre borcu yok.';
+ if(mode==='dismiss'){
+  if(!loot.debt.collector?.enabled)return 'Bu dosyada görev yapan bir tahsildar yok.';
+  return '';
+ }
+ if(mode!=='hire')return 'Bilinmeyen tahsildar kararı.';
+ if(loot.debt.collector)return 'Bu borç için daha önce bir lonca tahsildarı görevlendirildi.';
+ if(lifeSerial()>loot.debt.openedSerial+36)return 'Borç için üç yıllık tahsil süresi doldu.';
+ if(!npcById(loot.banditId)?.alive)return 'Borçlu yol kesici hayatta değil.';
+ if(!caravanConvoyLootRecipient(loot.recipientId,t))return 'Gerçek alacaklı hayatta değil.';
+ if(!caravanDebtCollectorOfficer(loot,t))return 'Bağımsız yaşayan lonca tüccarı bulunamadı.';
+ if(s.wealth<2)return 'Lonca tahsildarı görevlendirmek için 2 servet gerekiyor.';
+ return '';
+}
+function caravanDebtCollectorAction(mode,lootId){
+ const issue=caravanDebtCollectorIssue(mode,lootId);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'caravanCollector',id:mode,lootId},()=>{
+  const t=ensureCaravanTrade(),c=t.guild.convoys,loot=c.loot.find(x=>x.id===lootId);
+  if(mode==='hire'){
+   const officer=caravanDebtCollectorOfficer(loot,t);
+   s.wealth-=2;officer.wealth+=2;c.debtCollectorHires++;c.debtCollectorFees+=2;
+   loot.debt.collector={collectorId:officer.id,fee:2,
+    startedSerial:lifeSerial(),lastSerial:null,enabled:true};
+   economyLedger('caravanTrade',-2,'Töre borcu için lonca tahsildarı görevlendirme');
+   caravanRecord('convoy_debt_collector_hired',officer.name+' Töre borcu için görevlendirildi; her yeni ay borçlunun gerçek servetinden ödeme alacak.',
+    {collectorId:officer.id,convoyId:loot.id,creditorId:loot.recipientId});
+  }else{
+   loot.debt.collector.enabled=false;c.debtCollectorDismissals++;
+   caravanRecord('convoy_debt_collector_dismissed','Töre borcu için görevlendirilen lonca tahsildarı geri çağrıldı.',
+    {convoyId:loot.id});
+  }
+ },mode==='hire'?'Gerçek tüccara iki servet ödeyip Töre borcu tahsildarı görevlendirdin.':
+    'Lonca tahsildarının otomatik tahsilat görevini sonlandırdın.');
+}
+function caravanDebtCollectorMonthTick(){
+ const c=ensureCaravanTrade().guild.convoys,now=lifeSerial();
+ const ids=c.loot.filter(x=>x.status==='debt'&&x.debt?.collector?.enabled).map(x=>x.id);
+ for(const id of ids){
+  const t=ensureCaravanTrade(),c=t.guild.convoys,loot=c.loot.find(x=>x.id===id);
+  if(!loot||loot.status!=='debt'||!loot.debt?.collector?.enabled)continue;
+  const task=loot.debt.collector,bandit=npcById(loot.banditId),
+   collector=npcById(task.collectorId),creditor=caravanConvoyLootRecipient(loot.recipientId,t);
+  if(!bandit?.alive||!collector?.alive||!creditor||now>loot.debt.openedSerial+36){
+   task.enabled=false;continue;
+  }
+  // Görevlendirme ayı ve aynı ay içindeki tekrarlar işlem üretmez.
+  if(now<=task.startedSerial||task.lastSerial===now)continue;
+  task.lastSerial=now;
+  const due=loot.debt.total-loot.debt.paid;
+  const amount=Math.max(0,Math.min(2,Math.floor(bandit.wealth||0),due));
+  if(amount<1)continue;
+  bandit.wealth-=amount;creditor.person.wealth+=amount;loot.debt.paid+=amount;
+  c.courtDebtInstallments++;c.courtRestitutionPaid+=amount;
+  c.debtCollectorPayments++;c.debtCollectorPaid+=amount;
+  if(loot.debt.paid===loot.debt.total){
+   loot.status='compensated';loot.resolvedSerial=now;c.courtRestitutions++;
+   task.enabled=false;
+  }
+  caravanRivalJournal(creditor.record,'theftDebtAutoCollection',loot.goodId,amount);
+  caravanRecord('convoy_court_debt_auto',collector.name+' '+bandit.name+
+   ' adlı borçludan '+amount+' servet tahsil etti; alacaklı '+
+   creditor.person.name+' için kalan '+(loot.debt.total-loot.debt.paid)+'.',
+   {collectorId:collector.id,banditId:bandit.id,creditorId:creditor.person.id,
+    convoyId:id,amount});
+ }
+}
 function caravanConvoySummaryHtml(){
  if(!s.assets.includes('caravan_share'))return '';
  const t=ensureCaravanTrade(),g=t.guild,c=g.convoys;
@@ -5737,7 +5827,8 @@ function caravanConvoySummaryHtml(){
   ' • Devriye '+c.patrolConvictions+' • Yakalanan yol kesici '+c.arrestSuccess+
   ' • Yakalama gideri '+c.arrestFees+' • Töre davası '+c.courtCases+
   ' • Tazminat '+c.courtRestitutionPaid+' • Borç dosyası '+c.courtDebtsOpened+
-  ' • Borç tahsilatı '+c.courtDebtInstallments+' • Sürgün '+c.courtExiles+
+  ' • Borç tahsilatı '+c.courtDebtInstallments+' • Tahsildar '+c.debtCollectorHires+
+  ' • Otomatik tahsil '+c.debtCollectorPaid+' • Sürgün '+c.courtExiles+
   ' • Sigorta tazminatı '+c.claimsPaid+
   ' • Alıcı bedeli emanete ayırır, sigortacı kendi servetinden teminat verir.</p>';
  if(c.active){
@@ -5824,10 +5915,20 @@ function caravanConvoySummaryHtml(){
    html+='<div class="card"><p>'+safeText(bandit?.name||'Yol Kesici')+' → '+
     safeText(creditor?.name||'Hak Sahibi')+' • '+safeText(CARAVAN_GOODS[debt.goodId].name)+
     ' • Ödenen '+debt.debt.paid+'/'+debt.debt.total+
-    ' • Süre '+Math.max(0,debt.debt.openedSerial+36-lifeSerial())+' ay</p>'+
+    ' • Süre '+Math.max(0,debt.debt.openedSerial+36-lifeSerial())+' ay'+
+    (debt.debt.collector?' • Lonca tahsildarı: '+
+     safeText(npcById(debt.debt.collector.collectorId)?.name||'Bilinmiyor')+
+     (debt.debt.collector.enabled?' (etkin)':' (görevi sona erdi)'):'')+'</p>'+
     actionButton('Töre borcunu tahsil et',{kind:'caravanDebt',id:'collect',lootId:debt.id},
      'caravanBanditDebtCollectAction('+JSON.stringify(debt.id)+')',
-     'Bir ay • borçlunun mevcut gerçek servetinden alacaklıya')+'</div>';
+     'Bir ay • borçlunun mevcut gerçek servetinden alacaklıya')+
+    (debt.debt.collector?.enabled?
+     actionButton('Lonca tahsildarını geri çağır',{kind:'caravanCollector',id:'dismiss',lootId:debt.id},
+      'caravanDebtCollectorAction("dismiss",'+JSON.stringify(debt.id)+')',
+      'Bir ay • otomatik tahsilat görevi sona erer'):
+     actionButton('Lonca tahsildarı görevlendir',{kind:'caravanCollector',id:'hire',lootId:debt.id},
+      'caravanDebtCollectorAction("hire",'+JSON.stringify(debt.id)+')',
+      '2 servet • gerçek NPC ödemesi • sonraki aylarda otomatik tahsil'))+'</div>';
   }
   html+='</div>';
  }
@@ -6727,6 +6828,7 @@ function accessIssue(a){
   else if(a.kind==='caravanArrest'){min=18;if(a.id!=='arrest')return 'Bilinmeyen yakalama eylemi.';const issue=caravanBanditArrestIssue(a.routeId);if(issue)return issue;}
   else if(a.kind==='caravanCourt'){min=18;const issue=caravanBanditCourtIssue(a.id,a.routeId,a.lootId);if(issue)return issue;}
   else if(a.kind==='caravanDebt'){min=18;if(a.id!=='collect')return 'Bilinmeyen Töre borcu eylemi.';const issue=caravanBanditDebtCollectIssue(a.lootId);if(issue)return issue;}
+  else if(a.kind==='caravanCollector'){min=18;const issue=caravanDebtCollectorIssue(a.id,a.lootId);if(issue)return issue;}
  else if(a.kind==='toyContest'){min=12;const issue=toyIssue(a.id,a.contestType);if(issue)return issue;}
  else if(a.kind==='horseStable'){min=12;const issue=horseActionIssue(a.id,a.horseId,a.other);if(issue)return issue;}
  else if(a.kind==='asset'){
@@ -6805,7 +6907,7 @@ function monthlyTick(month,action,allowEvent=true){
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
  tickHealthMonth(month);tickDisplacementMonth(month,action);tickMobilityMonth();tickAppearanceMonth(action);tickRomanceMonth(action);tickJusticeMonth(action);tickHousingMonth(month,action);tickParentingMonth(action);tickGuardianshipMonth(action);tickFriendshipMonth(action);tickWorkplaceMonth(action);horseMonthTick(month);bereavementMonthTick(month,action);tickCommunityReputationMonth(month);
  if(s.role&&!s.captive&&!s.military.active){const r=D.careers.find(x=>x.name===s.role);if(r){addExperience(r.path);s.careerMonths[r.id]=(s.careerMonths[r.id]||0)+1;if(month%3===0){const stipend=Math.max(1,Math.round(((r.wealth?.[0]||1)+(r.wealth?.[1]||3))/5*careerDemandMultiplier(r.path)));apply({wealth:stipend});economyLedger('income',stipend,r.name+' dönem payı');}}}
- if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);caravanMarketQuarterTick(month);caravanContractMonthTick();caravanPoliticsQuarterTick(month);caravanDiplomacyQuarterTick(month);caravanConvoyMonthTick();
+ if(s.age>=18&&month%3===0)tickEconomyQuarter(month);if(month%3===0)horseQuarterTick();creditMonthTick(month);toyMonthTick(month);workshopMonthTick(month);caravanMonthTick();caravanRivalCycle(month);caravanDebtCollectorMonthTick();caravanMarketQuarterTick(month);caravanContractMonthTick();caravanPoliticsQuarterTick(month);caravanDiplomacyQuarterTick(month);caravanConvoyMonthTick();
  if(s.pregnancy&&--s.pregnancy.remaining<=0){
   if(s.married&&s.partner?.alive&&s.age>=18&&s.partner.age>=18){const gender=pick(['male','female']);const c=normalizeNPC({name:pick(D.realms[s.realm][gender]),gender,age:0,type:'Çocuk',birthYear:s.year+s.age,birthMonth:month,alive:true,rel:80,realm:s.realm,place:s.place,tribe:s.tribe,parentIds:[s.id,s.partner.id]},'Çocuk');s.children.push(c);ensureChildProfile(c);unlock('parent');log(safeText(c.name)+' dünyaya geldi.','major');}s.pregnancy=null;
  }
@@ -7245,7 +7347,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
