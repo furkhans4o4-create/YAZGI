@@ -463,6 +463,14 @@ Bu repo artık YAZGI'nın ana deposudur.
 - Vasiyet kararı bakım katkılarını artık hesaba katar: eşit miras, daha çok bakım veren çocuğu seçmek veya onu dışarıda bırakmak aile uyumunu ve gerçek NPC tepkilerini farklı etkiler. **Nakit, mal veya vasiyet tercihi gizlice değiştirilmez.** Aynı yıl aynı geçmiş dosyadan tekrar tekrar etki alınamaz.
 - Ölüm kaydı bakım emeği arşivini içerir; çocukla soyu devam ettirince bu arşiv son miras kaydında görülebilir. v59 ve eski kayıtlar v60'a yükseltilir, `yazgi_before_v60` yedeği oluşturulur.
 
+### v61 — Kardeşlerin Bağımsız Yaşamı ve Kuşaklar Arası Bakım Hatıraları
+
+- Aynı bölgede yaşayan, 18 yaş üstü iki kardeş yılda en fazla bir kez kendi özellikleri, ilişkileri, aralarındaki güven ve eski bakım kırgınlıklarına göre **dayanışma veya anlaşmazlık** yaşayabilir. Sonuçlar gerçek NPC-NPC sosyal bağını etkiler; bir yılda en fazla altı çift işlenir.
+- Kardeş bağları; katılan kişilerin kimliği, yaşanan dayanışma/sürtüşme sayısı, son durum ve yıl bazlı sınırla kaydedilir. Uzakta yaşayan, ölen veya etkileşime uygun olmayan NPC'ler zorla bir araya getirilmez.
+- v60'ta ölüm kaydına geçen bakım emeği arşivi, sonraki kuşakta çocukla devam edildiğinde **atalardan gelen hikâyelere** dönüşür. Oyuncunun sekiz yaş üstü çocukları, aynı yerdeki amca/dayı/hala/teyze üzerinden bu hikâyeyi bir kere öğrenebilir; gerçek kişiyle sosyal bağı bakım emeğinin geçmişine göre küçük ölçüde değişir.
+- Hiçbir yeni eşya, servet, miras payı veya kişi üretilmez. Anıların yeniden tekrar edilerek puan toplanması engellenir. Aile ekranında kardeş bağları ve sonraki kuşağa anlatılan hikâye sayısı görünür.
+- Eski kayıtlar v61'e yükseltilir, `yazgi_before_v61` güvenli yedeği oluşturulur.
+
 ### Dosyalar ve çalıştırma
 
 `index.html` ile `systems.js` aynı klasörde bulunmalıdır. `index.html` tarayıcıda doğrudan açılır; paket kurulumu gerekmez. Veri/görünüm ve özgün olay zincirleri `index.html`, merkezi kurallar ve kayıt göçü `systems.js` içindedir. `docs/` altındaki referans inceleme dosyaları oyunun çalışma zamanı verisi değildir.
