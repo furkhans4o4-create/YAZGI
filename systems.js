@@ -2745,6 +2745,81 @@ function familyCareLegacySummaryHtml(){
   return '<div class="card"><h3>'+safeText(rec.endedYear)+' yılı bakım kaydı • '+status+'</h3><p>'+names+'</p>'+action+'</div>';
  }).join('');
 }
+
+/* v61: Gerçek NPC kardeşler kendi ilişkilerini yaşar; aile anıları torunlara geçer. */
+function familyInheritCareAncestry(record,origin,heirId){
+ const past=Array.isArray(record?.familyCareLegacy)?record.familyCareLegacy:[];
+ if(!past.length)return;
+ const f=ensureFamilyBranches();
+ f.ancestralCare={originName:String(origin),heirId,records:JSON.parse(JSON.stringify(past.slice(0,8))),toldToIds:[],lastYear:null,stories:0};
+ ensureFamilyBranches();
+}
+function familySiblingYearTick(){
+ const f=ensureFamilyBranches(),year=s.year+s.age,groups=[s.children.filter(n=>n?.alive&&n.age>=18),s.siblings.filter(n=>n?.alive&&n.age>=18)];
+ for(const group of groups){
+  let handled=0;
+  for(let i=0;i<group.length&&handled<6;i++)for(let j=i+1;j<group.length&&handled<6;j++){
+   const a=group[i],b=group[j],key=socialKey(a,b);
+   if(!key||npcLifeBlocksNormalInteraction(a)||npcLifeBlocksNormalInteraction(b)||a.place!==b.place||a.realm!==b.realm)continue;
+   let bond=f.siblingBonds.find(row=>socialKey(row.aId,row.bId)===key);
+   if(!bond){
+    const ids=key.split('|');
+    bond={aId:ids[0],bId:ids[1],lastYear:null,cooperation:0,rivalry:0,status:'neutral',lastReason:''};
+    f.siblingBonds.unshift(bond);f.siblingBonds=f.siblingBonds.slice(0,24);
+   }
+   if(bond.lastYear===year)continue;
+   bond.lastYear=year;handled++;
+   const link=socialLinkBetween(a,b,true,{tag:'kin'}),past=f.careLegacies.find(v=>v.childIds.includes(a.id)&&v.childIds.includes(b.id)),
+    disagreement=!!past&&['tense','lasting'].includes(past.status);
+   const compatibility=socialCompatibility(a,b);
+   const positive=Math.max(.08,Math.min(.88,.42+compatibility/35+link.trust/350+link.score/450+(a.goal===b.goal?.08:0)-link.grudge/280-(disagreement?.18:0)));
+   const active=a.traits?.includes('sadik')&&b.traits?.includes('sadik')?.86:.68;
+   if(Math.random()>active)continue;
+   const helping=Math.random()<positive;
+   if(helping){
+    adjustSocialLink(a,b,{score:4,trust:3,grudge:-2,tag:'kin'},'Kardeşler kendi kararlarıyla birbirine destek verdi.');
+    bond.cooperation++;bond.lastReason='Kardeşler dayanışmayı seçti.';
+   }else{
+    adjustSocialLink(a,b,{score:-4,trust:-3,grudge:3,tag:'kin'},'Kardeşler kendi hayat tercihleri yüzünden tartıştı.');
+    bond.rivalry++;bond.lastReason=disagreement?'Eski bakım kırgınlığı yeni bir sürtüşmeye yol açtı.':'Farklı yaşam tercihleri gerginlik yarattı.';
+   }
+   const cur=socialLinkBetween(a,b);
+   bond.status=cur.score>=45&&cur.trust>=52?'close':cur.score<=15||cur.grudge>=45?'strained':'neutral';
+   f.history.unshift({year,age:s.age,type:helping?'sibling_support':'sibling_rivalry',aId:a.id,bId:b.id,note:a.name+' ile '+b.name+': '+bond.lastReason});
+   f.history=f.history.slice(0,80);
+  }
+ }
+}
+function familyAncestralMemoryYearTick(){
+ const f=ensureFamilyBranches(),record=f.ancestralCare,year=s.year+s.age;
+ if(!record||!record.records.length||record.lastYear===year)return;
+ record.lastYear=year;
+ for(const child of s.children){
+  if(!child?.alive||child.age<8||record.toldToIds.includes(child.id)||npcLifeBlocksNormalInteraction(child))continue;
+  const story=record.records.find(v=>v.childIds.includes(record.heirId)&&v.childIds.some(id=>s.siblings.some(n=>n.id===id&&n.alive)));
+  if(!story)continue;
+  const relatives=s.siblings.filter(n=>n?.alive&&story.childIds.includes(n.id)&&n.place===child.place&&n.realm===child.realm&&!npcLifeBlocksNormalInteraction(n));
+  if(!relatives.length)continue;
+  const relative=relatives[0],heirWork=story.visitsByChild[record.heirId]||0,kinWork=story.visitsByChild[relative.id]||0;
+  if(kinWork>=heirWork&&kinWork>0)adjustSocialLink(child,relative,{score:5,trust:4,grudge:-2,tag:'kin'},'Aile büyüğünün bakım emeğini öğrendi.');
+  else if(['tense','lasting'].includes(story.status)&&heirWork>=kinWork+2)adjustSocialLink(child,relative,{score:-3,trust:-2,grudge:2,tag:'kin'},'Büyüklerin arasındaki eski bakım kırgınlığını duydu.');
+  else adjustSocialLink(child,relative,{score:2,trust:1,tag:'kin'},'Önceki kuşağın bakım hikâyesini dinledi.');
+  record.toldToIds.push(child.id);record.toldToIds=record.toldToIds.slice(-60);record.stories++;
+  f.history.unshift({year,age:s.age,type:'ancestral_care_story',childId:child.id,relativeId:relative.id,note:child.name+' önceki kuşağın bakım hikâyesini '+relative.name+' üzerinden öğrendi.'});
+  f.history=f.history.slice(0,80);
+ }
+}
+function familyGenerationsSummaryHtml(){
+ const f=ensureFamilyBranches(),all=[...s.children,...s.siblings],bonds=f.siblingBonds.filter(r=>all.some(n=>n.alive&&n.id===r.aId)&&all.some(n=>n.alive&&n.id===r.bId)).slice(0,6),anc=f.ancestralCare;
+ if(!bonds.length&&!anc)return '';
+ let html='<div class="card"><h3>🌿 Kardeş Bağları ve Kuşak Hatıraları</h3><p>Yetişkin kardeşler kendi kararlarıyla destekleşir ya da tartışır. Eski bakım hatıraları çocuklara kalabilir.</p></div>';
+ if(bonds.length)html+='<div class="card"><h3>Kardeşlerin Kendi Hayatı</h3><p>'+bonds.map(r=>{
+  const a=all.find(n=>n.id===r.aId),b=all.find(n=>n.id===r.bId),link=a&&b?socialLinkBetween(a,b):null;
+  return safeText(a?.name||'Yakın')+' ↔ '+safeText(b?.name||'Yakın')+' • '+(r.status==='close'?'yakın':r.status==='strained'?'gergin':'değişken')+' • dayanışma '+r.cooperation+' • sürtüşme '+r.rivalry+(link?' • bağ '+link.score:'');
+ }).join('<br>')+'</p></div>';
+ if(anc)html+='<div class="card"><h3>Atalardan Gelen Bakım Hikâyeleri</h3><p>'+safeText(anc.originName)+' kuşağından '+anc.records.length+' bakım kaydı • anlatılan '+anc.stories+' hikâye. Çocuklar en erken 8 yaşında, aynı yerde yaşayan akrabalarından duyabilir.</p></div>';
+ return html;
+}
 function familyStewardQuarter(assetId){
  const f=ensureFamilyBranches(),child=adultChildById(f.stewards[assetId]);if(!child||!s.assets.includes(assetId)||npcLifeBlocksNormalInteraction(child))return 0;
  const st=assetState(assetId);st.condition=clamp(st.condition+1);child.wealth=(child.wealth||0)+(Math.random()<.55?1:0);
