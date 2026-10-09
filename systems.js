@@ -2572,7 +2572,7 @@ function familyCareCircleAction(mode,childId=null){
 function familyCareCircleMonthTick(){
  if(!s.familyBranches)return;
  const f=ensureFamilyBranches(),now=lifeSerial(),rota=f.careCircle;
- if(now%3===0&&f.lastCareRecoverySerial!==now){
+ if(now%3===1&&f.lastCareRecoverySerial!==now){
   for(const child of s.children||[]){
    if(!child?.alive||child.age<18||!f.children[child.id])continue;
    const care=ensureAdultChildProfile(child).elderCare;
@@ -2604,11 +2604,14 @@ function familyCareCircleMonthTick(){
  rota.visitsByChild[chosen.id]=(rota.visitsByChild[chosen.id]||0)+1;f.careCircleVisits++;
  adjustNPC(chosen,{rel:2,trust:2,respect:1},'Kardeşleriyle sırayla yaşlı ebeveyninin bakımını üstlendi.');
  familyBranchRecord(chosen,chosen.name+' aile bakım nöbetine gelerek sağlığına yardımcı oldu.','care_circle_visit',{childId:chosen.id});
- const counts=rota.childIds.map(id=>rota.visitsByChild[id]||0);
- if(Math.max(...counts)-Math.min(...counts)>=2&&!rota.disputeOpen&&!rota.mediationDone){
-  rota.disputeOpen=true;f.careCircleDisputes++;
-  const a=s.children.find(c=>c.id===rota.childIds.find(id=>rota.visitsByChild[id]===Math.max(...counts)));
-  const b=s.children.find(c=>c.id===rota.childIds.find(id=>rota.visitsByChild[id]===Math.min(...counts)));
+ // familyBranchRecord may normalize/replace f.careCircle; always mutate the current saved plan.
+ const live=ensureFamilyBranches().careCircle;
+ if(!live?.active)return;
+ const counts=live.childIds.map(id=>live.visitsByChild[id]||0);
+ if(Math.max(...counts)-Math.min(...counts)>=2&&!live.disputeOpen&&!live.mediationDone){
+  live.disputeOpen=true;f.careCircleDisputes++;
+  const a=s.children.find(c=>c.id===live.childIds.find(id=>live.visitsByChild[id]===Math.max(...counts)));
+  const b=s.children.find(c=>c.id===live.childIds.find(id=>live.visitsByChild[id]===Math.min(...counts)));
   if(a&&b)adjustSocialLink(a,b,{score:-8,trust:-5,grudge:4},'Bakım yükünün eşit dağılmaması kardeşleri gerdi.');
   f.history.unshift({year:s.year+s.age,age:s.age,type:'care_circle_dispute',note:'Bakım görevlerinin eşitsizliği kardeşler arasında gerilim yarattı.'});
   f.history=f.history.slice(0,80);
