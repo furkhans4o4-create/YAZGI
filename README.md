@@ -563,3 +563,13 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - 18 yaşında mevcut NPC yetişkinlik mesleği korunur; yeterli tecrübe ve becerisi olan genç, bu eğitimi kendi meslek seçimine dönüştürebilir. Çıkan meslek gerçek NPC rolüne ve geçmişine yazılır. Otomatik ilişki/eş/çocuk ilerleyişi mevcut NPC simülasyonundan devam eder.
 - **Soy ağacı** torunun çocuğunu gerçek torun dalının altında ayrı “4. Kuşak” olarak gösterir; ana oyuncu turkuaz vurgulu kalır. Aile ekranında 4. kuşak eğitimi, yetişkinliği ve gerçek eş/meslek durumu yer alır.
 - v69'dan geçişte `yazgi_before_v70` güvenlik yedeği. 48 yeni test, önceki sürüm testleri ve tüm oyun regresyonu ana sürüme birleşmeden önce çalıştırılır.
+
+### v71 — Kuşaklar Arası Kırgınlık, Yakınlık ve Barışma
+
+- Gerçek ebeveyn–çocuk bağları (`çocuk → torun`, `torun → dördüncü kuşak`) mevcut NPC kimlikleri ve sosyal ağ üzerinden ayrı ayrı izlenir. Yeni karakter yaratılmaz.
+- Aile bağlarının **sıcaklığı** ve **gerilimi**, NPC güven/kırgınlığı, aynı yerde yaşama ve uzaklaşma üzerinden yılda bir kez değişir. Yeni kırgınlık, yakınlaşma ve yatışma, yaşayan ilişki kayıtlarına ve aile anılarına yazılır; aynı yılda tekrar etmez.
+- Oyuncu, iki gerçek aile üyesinin de rızası ve uygun koşullarla **aile buluşması** ya da gerçekten kırgın bir bağ için **arabuluculuk** yapabilir. Kabul/ret olasılığı gerçek güven, gerilim ve oyuncunun hitabetine bağlıdır. Her görüşme **1 ay**, aynı bağda **yılda en fazla 1 kez** yapılır; başarısızlık bedelsiz değildir.
+- Uzlaşma olduğunda gerçek NPC güveni ve kırgınlığı ile iki kişilik sosyal bağ düzelir; zorla barışma veya yapay servet üretilmez. Ölü, uzak, hasta veya olmayan aile üyeleri için işlem reddedilir.
+- Yetişkin torun ile kendi ebeveyni arasındaki **yakın aile bağı**, dördüncü kuşağın yıllık öğrenim ilerlemesine +1; ciddi ve devam eden **gerilim** −1 etkiler. Normal durumda v70 ilerlemesi korunur. Bu etki gerçek becerileri veya çocukları silmez.
+- Aile ekranında kuşakların sıcaklık/gerilim durumu ve geçmiş görüşmeler görünür. v70 kayıtları v71'e taşınırken `yazgi_before_v71` güvenlik yedeği oluşturulur.
+- 49 yeni regresyon testi, önceki sürüm test geçitleri ve tüm oyun test paketiyle kontrol edilir.
