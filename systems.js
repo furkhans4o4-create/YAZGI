@@ -4039,6 +4039,175 @@ function familyFourthGenerationHtml(){
 
 
 /* v71 — recorded, voluntary ties between true living generations. */
+
+/* v72 — voluntary three-year council: one rotating obligation per calendar year. */
+const FAMILY_COUNCIL_AGENDAS={
+ education:'Kuşakların Eğitimi',relief:'Haneler Arası Dayanışma',harmony:'Ailede Uzlaşma'
+};
+function familyCouncilMembers(charter){
+ return (charter?.memberIds||[]).map(id=>s.children.find(c=>c.id===id)).filter(Boolean);
+}
+function familyCouncilCandidates(){
+ return (s.children||[]).filter(c=>c?.alive&&c.age>=18&&c.place===s.place&&c.realm===s.realm&&
+  !npcLifeBlocksNormalInteraction(c)&&(normalizeBonds(c).trust||0)>=40).slice(0,4);
+}
+function familyCouncilHistory(e,type,note){
+ e.history.unshift({year:s.year+s.age,type,note});e.history=e.history.slice(0,36);
+}
+function familyCouncilClose(e,reason){
+ const charter=e.charter;if(!charter||!charter.active)return;
+ charter.active=false;charter.finishedReason=reason;
+ if(reason==='completed')e.completed++;else e.cancellations++;
+ familyCouncilHistory(e,'end',(FAMILY_COUNCIL_AGENDAS[charter.agenda]||'Aile meclisi')+
+  ' düzeni '+(reason==='completed'?'üç yıllık dönemini tamamladı.':
+   reason==='bereaved'?'aile kayıpları yüzünden sona erdi.':'istek üzerine sona erdirildi.'));
+}
+function familyCouncilEducationYearService(e,coach){
+ const descendants=(coach.descendants||[]).flatMap(g=>[
+  ...(g?.alive&&g.age>=5&&g.age<18?[{child:g,parent:coach}]:[]),
+  ...(g?.descendants||[]).filter(n=>n?.alive&&n.age>=5&&n.age<18).map(n=>({child:n,parent:g}))
+ ]);
+ const target=descendants.find(({child,parent})=>parent?.alive&&child.place===coach.place&&
+  child.realm===coach.realm&&!npcLifeBlocksNormalInteraction(child)&&
+  !npcLifeBlocksNormalInteraction(parent));
+ if(!target)return '';
+ const {child,parent}=target;
+ const fourth=parent.id!==coach.id,students=fourth?e._fourthStudents:e._grandStudents;
+ const rec=students?.find(r=>(fourth?r.id:r.grandId)===child.id);
+ const field=rec?.field||(
+  parent.goal==='mastery'?'craft':parent.goal==='wisdom'?'literacy':'riding');
+ child.skills=child.skills||{};child.skills[field]=clamp((child.skills[field]||0)+2);
+ if(rec)rec.progress=clamp(rec.progress+2);
+ adjustSocialLink(coach,child,{score:2,trust:3,tag:'kin'},
+  'Aile meclisinin gönüllü kuşak eğitimi sorumluluğunu yerine getirdi.');
+ rememberNPC(child,'education',coach.name+' aile meclisinde '+skillName(field)+' öğretti.',3);
+ return coach.name+' '+child.name+' için '+skillName(field)+' eğitimi verdi.';
+}
+function familyCouncilReliefYearService(members,donor){
+ if((donor.wealth||0)<9)return '';
+ const needy=members.filter(c=>c.id!==donor.id&&c.alive&&(c.wealth||0)<=5&&
+  c.place===donor.place&&c.realm===donor.realm&&!npcLifeBlocksNormalInteraction(c))
+  .sort((a,b)=>(a.wealth||0)-(b.wealth||0))[0];
+ if(!needy)return '';
+ const amount=Math.min(2,Math.max(0,Math.floor(donor.wealth||0)-6));
+ if(amount<=0)return '';
+ donor.wealth-=amount;needy.wealth=Math.max(0,Math.floor(Number(needy.wealth)||0))+amount;
+ adjustSocialLink(donor,needy,{score:3,trust:4,grudge:-1,tag:'kin'},
+  'Aile meclisinde kendi gerçek varlığıyla diğer haneye gönüllü yardım etti.');
+ return donor.name+' '+needy.name+' hanesine '+amount+' gerçek servet aktardı.';
+}
+function familyCouncilHarmonyYearService(coach){
+ const candidates=(coach.descendants||[]).filter(n=>n?.alive&&n.age>=12&&
+  n.place===coach.place&&n.realm===coach.realm&&!npcLifeBlocksNormalInteraction(n));
+ const e=s.familyBranches?.intergenerationalBonds;
+ const pair=candidates.map(younger=>({
+  younger,rec:e?.pairs?.find(r=>r.olderId===coach.id&&r.youngerId===younger.id)
+ })).find(p=>p.rec&&(p.rec.tension>=30||p.rec.status==='strained'));
+ if(!pair)return '';
+ const {younger,rec}=pair,link=socialLinkBetween(coach,younger,true,{tag:'kin'});
+ const chance=Math.max(.15,Math.min(.9,.3+(link?.trust||50)/360-rec.tension/480));
+ if(Math.random()>=chance)return '';
+ rec.tension=clamp(rec.tension-9);rec.warmth=clamp(rec.warmth+6);
+ rec.status=familyIntergenerationalStatus(rec);
+ adjustSocialLink(coach,younger,{score:3,trust:4,grudge:-7,tag:'kin'},
+  'Aile meclisinin sürdürdüğü barış görüşmesi sayesinde kırgınlık azaldı.');
+ return coach.name+' ile '+younger.name+' arasındaki eski kırgınlık hafifledi.';
+}
+function familyCouncilYearTick(){
+ const f=ensureFamilyBranches(),e=f.familyCouncil,c=e.charter,year=s.year+s.age;
+ if(!c?.active||c.lastYear===year||year<=c.startYear)return;
+ if(year>c.untilYear){familyCouncilClose(e,'completed');return;}
+ const members=familyCouncilMembers(c);
+ if(members.filter(n=>n.alive&&n.age>=18).length<2){familyCouncilClose(e,'bereaved');return;}
+ c.lastYear=year;
+ const donor=members[c.nextIndex%members.length];
+ c.nextIndex=(c.nextIndex+1)%members.length;
+ let outcome='';
+ if(donor?.alive&&donor.age>=18&&!npcLifeBlocksNormalInteraction(donor)){
+  if(c.agenda==='education'){
+   // Read the normalized current learners; this does not create fake students.
+   e._fourthStudents=f.fourthGenerationLearning.students;
+   e._grandStudents=f.grandchildLearning.students;
+   outcome=familyCouncilEducationYearService(e,donor);
+   delete e._fourthStudents;delete e._grandStudents;
+  }else if(c.agenda==='relief'){
+   outcome=familyCouncilReliefYearService(members,donor);
+  }else if(c.agenda==='harmony'){
+   outcome=familyCouncilHarmonyYearService(donor);
+  }
+ }
+ if(outcome){
+  c.fulfilled++;e.yearlyFulfilled++;c.lastOutcome=outcome;
+  familyCouncilHistory(e,'served',outcome);
+ }else{
+  c.missed++;e.yearlyMissed++;c.lastOutcome=donor?.name+' bu yıl uygun ortak sorumluluk bulamadı.';
+  familyCouncilHistory(e,'missed',c.lastOutcome);
+ }
+ if(year>=c.untilYear)familyCouncilClose(e,'completed');
+}
+function familyCouncilIssue(mode,agenda=null){
+ if(!['start','end'].includes(mode))return 'Aile meclisi eylemi bilinmiyor.';
+ if(s.age<18)return 'Aile meclisi için yetişkin olmalısın.';
+ const e=ensureFamilyBranches().familyCouncil,year=s.year+s.age;
+ if(mode==='end')return e.charter?.active?'':'Sona erdirilecek etkin bir meclis yok.';
+ if(!Object.hasOwn(FAMILY_COUNCIL_AGENDAS,agenda))return 'Görüşülecek meclis gündemi bulunamadı.';
+ if(e.charter?.active)return 'Üç yıllık aile meclisi hâlâ devam ediyor.';
+ if(e.lastOfferYear===year)return 'Bu yıl bir aile meclisi teklif ettin.';
+ if(familyCouncilCandidates().length<2)return 'Aynı yerde yaşayan güvenilir en az iki yetişkin çocuğun olmalı.';
+ return '';
+}
+function familyCouncilAction(mode,agenda=null){
+ const issue=familyCouncilIssue(mode,agenda);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'familyCouncil',id:mode,agenda},()=>{
+  const e=ensureFamilyBranches().familyCouncil,year=s.year+s.age;
+  if(mode==='end'){familyCouncilClose(e,'cancelled');return;}
+  e.lastOfferYear=year;e.offers++;
+  const accepted=familyCouncilCandidates().filter(n=>{
+   const chance=Math.max(.15,Math.min(.94,.27+(normalizeBonds(n).trust||0)/290+
+    (n.rel||0)/650+(n.goal==='family'?.07:0)));
+   return Math.random()<chance;
+  });
+  if(accepted.length<2){
+   e.declines++;familyCouncilHistory(e,'declined',
+    'Yetişkin çocuklar üç yıllık aile meclisinde ortak görev üstlenmeyi kabul etmedi.');
+   return;
+  }
+  e.charter={agenda,startYear:year,untilYear:year+3,memberIds:accepted.map(n=>n.id),
+   active:true,lastYear:null,nextIndex:0,fulfilled:0,missed:0,
+   finishedReason:'',lastOutcome:'Üyeler kendi istekleriyle sorumlulukları paylaştı.'};
+  e.established++;
+  familyCouncilHistory(e,'start',
+   accepted.map(n=>n.name).join(', ')+' üç yıl için '+FAMILY_COUNCIL_AGENDAS[agenda]+' gündemini kabul etti.');
+ },'Üç yıllık aile meclisi için bir ay ayırdın.');
+}
+function familyCouncilHtml(){
+ const e=ensureFamilyBranches().familyCouncil,c=e.charter;
+ const members=familyCouncilMembers(c);
+ if(familyCouncilCandidates().length<2&&!c&&!e.history.length)return '';
+ let html='<div class="card"><h3>🏛️ Aile Meclisi ve Uzun Dayanışma</h3><p>'+
+  'Meclis '+e.established+' • tamamlanan '+e.completed+' • ret '+e.declines+
+  ' • yerine gelen sorumluluk '+e.yearlyFulfilled+' • yerine gelmeyen '+e.yearlyMissed+
+  '<br>Aile meclisi, yaşlılık bakım nöbetinden ayrıdır; her üç yılda yeni bir gönüllü düzen kurabilir.</p>';
+ if(c?.active){
+  html+='<p><b>'+safeText(FAMILY_COUNCIL_AGENDAS[c.agenda])+'</b> • '+c.startYear+'–'+c.untilYear+
+   ' • üyeler: '+safeText(members.map(n=>n.name).join(', '))+
+   ' • başarı '+c.fulfilled+' • aksama '+c.missed+
+   '<br>Son durum: '+safeText(c.lastOutcome)+'</p>'+
+   actionButton('Meclis düzenini bitir',{kind:'familyCouncil',id:'end'},
+    'familyCouncilAction("end")','Bir ay • üç yıllık ortak görev düzeni durur');
+ }else{
+  html+='<p>En az iki yetişkin çocuğun kabul ederse üç yıl boyunca sırayla sorumluluk üstlenir.</p>'+
+   Object.entries(FAMILY_COUNCIL_AGENDAS).map(([id,label])=>
+    actionButton('Üç yıllık meclis: '+safeText(label),{kind:'familyCouncil',id:'start',agenda:id},
+     'familyCouncilAction("start",'+JSON.stringify(id)+')','Bir ay • gönüllü aile meclisi')).join('');
+ }
+ html+='</div>';
+ if(e.history.length)html+='<div class="card"><h3>Meclis Kararları</h3><p>'+
+  e.history.slice(0,6).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p></div>';
+ return html;
+}
+
 function familyIntergenerationalPairs(){
  const result=[],seen=new Set();
  const add=(older,younger)=>{if(!older?.id||!younger?.id||older.id===younger.id)return;
