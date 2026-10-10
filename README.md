@@ -750,3 +750,12 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Miras yalnız **bir varise tek silah** olarak geçer. Kılıç, mevcut varlık paylaştırma kurallarına entegredir; belirlenen çocuğa bırakılmışsa diğer çocuklara kopyalanmaz. Mızrak için ayrı seçilen varis önceliklidir, seçim yoksa ana vasiyet sahibi (eşit paylaşımda ilk yaşayan çocuk) alır. Müşteri siparişleri, varlıklar ve başka envanter eşyaları yeniden yaratılmaz.
 - Aktarılan silah orijinal **usta adı, dövüm yılı, kalite, kalan kondisyon ve nesil sayısını** korur; eski oyun kayıtlarında eksik alanlar güvenli varsayılanlarla tamamlanır. Ölüm kaydı ve son miras özetinde gerçek yadigârlar belirtilir. Satılan veya kaybolan silahın varis ataması bir sonraki kontrolde temizlenir.
 - v89→v90 geçişinde `yazgi_before_v90` ham kayıt yedeği oluşturulur. **30 yeni v90 testi**; satış, miras paylaşımı, nesil devri, yedekleme ve envanter bütünlüğünü sınar.
+
+
+### v91 — Aile Yadigârının Kuşak Belleği ve Anma
+
+- Gerçekten sahip olunan ve kuşanılan **kişisel dövme kılıç/mızrak**, kullanıldığında hizmet geçmişi tutar: etkin sefer ayları ve talim/nöbet ayları ayrı sayılır. Çantada bekleyen, kullanılmayan veya kondisyonu 20 altındaki silah için sahte hizmet yazılmaz; aynı ayın aynı eylemi ikinci defa puan getirmez.
+- **Sahipler silsilesi**, ilk demirciden yeni varise doğru korunur. Kayıt 12 ada kadar gösterilir; usta kimliği, orijinal dövüm yılı, kalite, kondisyon ve toplam kuşak sayısı eski kurallarla aynen korunur.
+- En az ikinci kuşağa gerçekten miras kalmış bir silah için yılda **bir kez Ataları An** kararı verilebilir. Anma 1 ay ve **2 servet** gerektirir; mutluluk +3, prestij +1 ve aile uyumu +3 sağlar. Tutsaklık, sürgün, açık karar, düşük kondisyon veya yetersiz para bunu engeller.
+- Satılan veya envanterden çıkan dövme silahın aile belleği silinerek başka eşyaya taşınamaz. Yeni yaşamda olmayan, eski v90 kayıtları için eksik geçmiş güvenle tamamlanır ve `yazgi_before_v91` yedeği alınır.
+- Test iş akışı **v91 odak testleri + tüm regresyon paketini** çalıştırır; önceki sürümlerin tekrar tekrar ayrı ayrı çalıştırılması yerine tüm testler bir kez kontrol edilir.
