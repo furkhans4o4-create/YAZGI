@@ -637,3 +637,12 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - **Oyuncu ölünce aile tarihi aktarılır:** Ölüm anında gerçekten gözlenmiş, doğrudan öz çocuklar arasında gerçekleşmiş ve sosyal bağ tarafından doğrulanmış **barışma veya açık kırgınlık** kayıtları, ölüm kaydına sınırlı bir `siblingHeritage` özeti olarak girer. Oyuncu çocuklarından biriyle devam ederse yalnız **o varisi doğrudan ilgilendiren** ilişki kaydı bir sonraki yaşamına geçer.
 - **Sekiz yaşından itibaren aile hikâyeleri:** Yeni yaşamda çocuklar, gerçekten yaşayan ve aynı bölgede bulunan teyze/hala/dayı/amca ile geçmişi yılda en fazla bir kez, çocuk başına toplam **bir kez** konuşabilir. Geçmişteki uzlaşma hâlâ mevcut bağla destekleniyorsa küçük bir yakınlık güçlenebilir. Eski kavga çocuklara otomatik düşmanlık, kin, mal yükümlülüğü veya kader olarak aktarılmaz.
 - Aile soy ekranında görüşme geçmişi, miras tepkileri ve kimlere aktarıldığı izlenir. v77 kayıtları için `yazgi_before_v78` güvenlik yedeği alınır. 42 odaklı regresyon testi ve önceki sürümler için tüm kontrol kapıları çalıştırılır.
+
+
+### v79 — Eski Aile Hatıralarından Gerçek Kuşak Olayları
+
+- v78'den **gerçekten aktarılmış** ve yaşayan çocuğa anlatılmış bir kardeşlik hikâyesi, ancak çocuk **12 yaşına** geldikten, aynı bölgede yaşayan gerçek amca/dayı/hala/teyze ile temas kurulabildiğinde ve hikâyenin anlatılmasının üzerinden en az bir yıl geçtikten sonra **oynanabilir bir aile olayı** olabilir.
+- Oyuncunun aile ekranında üç **anlamlı kararı** vardır: **Çocuğumla açıkça konuş** (ebeveyn-çocuk bağına küçük destek), **Akrabasıyla görüştür** (gerçek yaşayan akraba reddedebilir; yalnız kabul ederse mevcut çocuk-akraba bağı güçlenir) veya **Bu kez karışma** (hiçbir aile bağı zorla değiştirilmez).
+- Bütün seçeneklerde **bir ay** harcanır. Aynı çocuk-akraba hikâyesinden tek olay çıkar; görüşülmezse iki yıl sonra olay **kin veya zorlama üretmeden** kapanır. Ölüm, uzaklaşma, uygun olmayan yaş, sahte NPC ve geçersiz aile belleği kontrol edilir.
+- Olayın kişi ID'leri, sonucu, gerçek buluşma veya ret ve kapanma gerekçesi `familyEcho` arşivinde tutulur. Mevcut yaşanmış miras payları, servet, mülk ve soy ağacı değişmez.
+- Kayıt yükseltmesinde `yazgi_before_v79` güvenlik yedeği oluşturulur. 40 yeni bağımsız test eski sürüm regresyonlarıyla birlikte çalıştırılır.
