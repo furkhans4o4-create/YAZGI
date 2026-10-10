@@ -741,3 +741,12 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Her silah türünden şimdilik **bir adet** taşınabilir. Aynı tür mevcutken yeniden dövülüp sınırsız silah elde edilemez; kılıç veya mızrak satın alınıp sahip olunmuşsa kişisel üretim yolu kapalıdır. Müşteriye ait sipariş malı hiçbir zaman kişisel envantere çekilmez.
 - Oyuncunun kendi yaptığı silahın yöntemi ve kalitesi `s.equipment.crafted` içinde saklanır. **70+ kaliteli** silah aktif kuşanıldığında seferde daha yavaş yıpranır; 70/85+ kalite çok küçük, üst sınırlandırılmış yaralanma koruması sağlar. Sadece envanterde bulunması bu avantajları vermez. Satışla üretim kökeni silinir.
 - v88→v89 kayıt yükseltmesinde `yazgi_before_v89` yedeği oluşturulur. **26 yeni test**, önceki regresyon testleri ve tam oyun test paketiyle izlenir.
+
+
+### v90 — Dövme Silah Değeri ve Aile Yadigârları
+
+- Kendi dövdüğün **mızrak ve kılıcın** satış fiyatı yalnızca gerçekten sahip olduğun silahın **kalitesi ve mevcut dayanıklılığına** göre hesaplanır. Normal satın alınmış eşyaların önceki fiyatı değişmez. Mızrak satış değeri ürünün mağaza bedelini geçemez; kılıçta varlık ekonomisi ve aşınma hesaba katılır. Satılan silahtan tekrar kalite primi alınamaz.
+- **Kuşanma ve Eşya Çantası → Aile Yadigârları** bölümünden yaşayan bir çocuğa dövdüğün kılıç veya mızrağı vasiyet edebilir ya da belirlediğin varisi kaldırabilirsin. Bu seçim ay hakkı tüketmez; esaret, ölüm ve açık karar kartları sırasında değiştirilemez.
+- Miras yalnız **bir varise tek silah** olarak geçer. Kılıç, mevcut varlık paylaştırma kurallarına entegredir; belirlenen çocuğa bırakılmışsa diğer çocuklara kopyalanmaz. Mızrak için ayrı seçilen varis önceliklidir, seçim yoksa ana vasiyet sahibi (eşit paylaşımda ilk yaşayan çocuk) alır. Müşteri siparişleri, varlıklar ve başka envanter eşyaları yeniden yaratılmaz.
+- Aktarılan silah orijinal **usta adı, dövüm yılı, kalite, kalan kondisyon ve nesil sayısını** korur; eski oyun kayıtlarında eksik alanlar güvenli varsayılanlarla tamamlanır. Ölüm kaydı ve son miras özetinde gerçek yadigârlar belirtilir. Satılan veya kaybolan silahın varis ataması bir sonraki kontrolde temizlenir.
+- v89→v90 geçişinde `yazgi_before_v90` ham kayıt yedeği oluşturulur. **30 yeni v90 testi**; satış, miras paylaşımı, nesil devri, yedekleme ve envanter bütünlüğünü sınar.
