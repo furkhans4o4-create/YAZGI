@@ -3587,8 +3587,8 @@ function familySiblingEchoHtml(){
 /* v80: Earlier mutual contact can mature into one later, freely chosen encounter.
    Neither inherited feuds nor consent can be created by a menu click. */
 function familyEchoFollowEvidence(childId,relativeId,year){
- const e=ensureFamilyBranches().familyEcho;
- return !!familySiblingEchoEvidence(childId,relativeId)&&e.history.some(h=>
+ const e=s.familyBranches?.familyEcho;
+ return !!familySiblingEchoEvidence(childId,relativeId)&&e?.history?.some(h=>
   h.type==='meet'&&h.childId===childId&&h.relativeId===relativeId&&h.year===year);
 }
 function familyEchoFollowYearTick(){
