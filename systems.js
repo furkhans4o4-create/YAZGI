@@ -3503,8 +3503,8 @@ function familySiblingEchoAction(childId,relativeId,mode){
    relative=s.siblings.find(n=>n.id===relativeId),year=s.year+s.age;
   let note='',type=mode;
   if(mode==='reflect'){
-   adjustSocialLink(s,child,{score:2,trust:2,tag:'kin'},
-    'Çocuğunla eskiden yaşanmış aile anlaşmazlığını açıkça konuştun.');
+   adjustNPC(child,{rel:2,trust:2},
+    'Ebeveyniyle eskiden yaşanmış aile anlaşmazlığını açıkça konuştu.');
    e.reflected++;
    note=child.name+' ile geçmişi konuştun; çocuk kendi düşüncesini oluşturacak.';
   }else if(mode==='meet'){
