@@ -4339,6 +4339,22 @@ function familyCouncilHtml(){
      'familyCouncilAction("start",'+JSON.stringify(id)+')','Bir ay • gönüllü aile meclisi')).join('');
  }
  html+='</div>';
+ const legacy=ensureFamilyBranches().familyCouncilLegacy;
+ if(legacy.entries.length||legacy.history.length){
+  html+='<div class="card"><h3>📜 Aile Meclisinin İzleri</h3><p>'+
+   'Devam eden ilişki '+legacy.followups+' • sönümlenen iz '+legacy.faded+
+   ' • hatıra '+legacy.entries.filter(v=>v.status==='active').length+
+   '<br>Gerçek görevlerin etkisi sonraki iki yılda, yalnız yakınlar bir aradaysa sürebilir. Yardım parası bir kez aktarılır.</p>';
+  if(legacy.entries.length)html+='<p>'+legacy.entries.slice(0,4).map(v=>{
+   const a=npcById(v.actorId),b=npcById(v.targetId);
+   return safeText(v.year+' • '+(FAMILY_COUNCIL_AGENDAS[v.agenda]||'')+' • '+
+    (a?.name||'Eski aile üyesi')+' → '+(b?.name||'Eski aile üyesi')+
+    ' • '+(v.status==='active'?'Sürüyor':v.status==='finished'?'Tamamlandı':'Sona erdi'));
+  }).join('<br>')+'</p>';
+  if(legacy.history.length)html+='<p>'+
+   legacy.history.slice(0,4).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p>';
+  html+='</div>';
+ }
  if(e.history.length)html+='<div class="card"><h3>Meclis Kararları</h3><p>'+
   e.history.slice(0,6).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p></div>';
  return html;
