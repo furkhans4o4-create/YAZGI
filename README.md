@@ -713,4 +713,4 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Kuşanma ekranına üç **oyuncu tarafından kaydedilen** dizilim eklendi: Sefer, Meslek ve Yol. Altı kuşanma yuvasındaki gerçek eşyalar anlık görüntü olarak saklanır; düzeni kuşanmak/yeniden kaydetmek aylık eylem hakkı tüketmez.
 - Kayıtlı düzende bulunan eşya daha sonra satılmış veya kaybolmuşsa dizilimi kuşanma **tümüyle reddedilir**, diğer takılı eşyalar da değiştirilmez. Henüz sahip olunmayan eşya oluşturulmaz, yaş kısıtı aşılmaz ve yay-kalkan gibi iki el çakışmaları reddedilir.
 - Tutsaklıkta, ölümde ve çözülmemiş karar kartı varken dizilim değiştirilemez. Yeni dizilimlerin kaydı eski eşyaları korur, eski v85 kayıtları `yazgi_before_v86` yedeğinden göç ettirilir.
-- Görünüş ve elde tutulan eşya katmanı yeni kuşanma dizilimine göre hemen güncellenir. Eski v82–v85 ekipman, portre ve olay kuralları korunur; v86 için ayrıca 17 otomatik regresyon testi eklendi.
+- Görünüş ve elde tutulan eşya katmanı yeni kuşanma dizilimine göre hemen güncellenir. Eski v82–v85 ekipman, portre ve olay kuralları korunur; v86 için ayrıca 18 otomatik regresyon testi eklendi.
