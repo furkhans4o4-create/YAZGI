@@ -554,3 +554,12 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - Oyuncu torununa sağlığında **5 gerçek servetlik miras payı** aktarabilir; bu para oyuncudan çıkar, toruna girer ve torunun NPC mülk kökeni kaydına geçer. Her torun için yaşam boyu 3, yılda 1 hak; bu aktarım ölüm sonrası vasiyete ek bir sahte ödeme yaratmaz.
 - Hane kararı, mülkiyet, miras geçmişi ve dördüncü kuşak istatistiği yetişkin torunlar ekranında görünür. v68 kayıtları v69'a yükseltilirken `yazgi_before_v69` güvenlik yedeği alınır.
 - 46 yeni regresyon testi, önceki sürümler ve tam oyun test paketiyle doğrulanır.
+
+### v70 — Dördüncü Kuşağın Yaşamı, Öğrenimi ve Soy Ağacı
+
+- Dördüncü kuşak çocukları, gerçek `s.children[].descendants[].descendants[]` soy bağları üzerinden takip edilir. Mevcut NPC kimliği, doğum yılı, ebeveyni, özellikleri ve yaş alma akışı korunur; ikinci bir çocuk yaratılmaz.
+- 5–17 yaş arasında ebeveyniyle aynı yerde ve görüşmeye uygun çocuklar yılda bir kez gerçek `riding`, `craft` veya `literacy` becerisi geliştirir. Eğitim yılı, ilerleme ve ebeveyn bağları kalıcı olarak kaydedilir; 5 ve 12 yaş dönüm noktaları tekrarlanmaz.
+- Aile büyüğü, bir aylık eylem hakkıyla yılda bir kez **dördüncü kuşak çocuğuna özel ders** verebilir. Ders gerçek NPC becerisini, aile bağını ve kayıtlı ilerlemeyi değiştirir. Uzak yerde, hasta, ölmüş veya yaş sınırının dışındaki çocuğa yapılamaz.
+- 18 yaşında mevcut NPC yetişkinlik mesleği korunur; yeterli tecrübe ve becerisi olan genç, bu eğitimi kendi meslek seçimine dönüştürebilir. Çıkan meslek gerçek NPC rolüne ve geçmişine yazılır. Otomatik ilişki/eş/çocuk ilerleyişi mevcut NPC simülasyonundan devam eder.
+- **Soy ağacı** torunun çocuğunu gerçek torun dalının altında ayrı “4. Kuşak” olarak gösterir; ana oyuncu turkuaz vurgulu kalır. Aile ekranında 4. kuşak eğitimi, yetişkinliği ve gerçek eş/meslek durumu yer alır.
+- v69'dan geçişte `yazgi_before_v70` güvenlik yedeği. 48 yeni test, önceki sürüm testleri ve tüm oyun regresyonu ana sürüme birleşmeden önce çalıştırılır.
