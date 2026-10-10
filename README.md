@@ -676,4 +676,4 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Yeni eşya satın alma veya satma **bir ay** harcar; yaş ve servet kontrolünden geçer. Kuşanmak/çıkarmak ay hakkı tüketmez, fakat esaret, karar kartı, ölüm, yaş ve sahiplik kuralları uygulanır. İki elli yayla kalkan birlikte kuşanılamaz.
 - Karakterin rolü, yaşı, cinsiyeti, mevcut işi, savaşta/tutsak/hasta olma durumu ve **gerçekte kuşanılmış eşyaları** tek bir `characterVisualLoadout()` görünüş arayüzünden okunabilir; gerçek pixel art çizimleri ve yeni meslek modelleri **bu sürümün kapsamı dışındadır**.
 - Mevcut CSS portrede kuşanılmış silah/kalkan için geçici küçük simgeler ve kuşanılmış başlık gösterilir. Varlıklar ekranındaki çanta, pazar ve eşyalar bölümünden yönetim yapılır.
-- Kayıtlar `s.equipment` içinde saklanır; eski v81 kaydını ilk kez yüklerken `yazgi_before_v82` yedeği oluşturulur. 42 yeni v82 testi ve eski tüm testler çalıştırılır.
+- Kayıtlar `s.equipment` içinde saklanır; eski v81 kaydını ilk kez yüklerken `yazgi_before_v82` yedeği oluşturulur. 44 yeni v82 testi ve eski tüm testler çalıştırılır.
