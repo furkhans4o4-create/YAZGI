@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=81,ADULT_AGE=18;
+const SAVE_VERSION=82,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -6276,13 +6276,13 @@ function appearanceConditionLabel(){const a=ensureAppearance(),h=ensureHealthPro
 function appearanceScarCount(){return Math.min(3,ensureHealthProfile().scars.length);}
 function appearanceHairTone(){const base={black:'#211b16',darkbrown:'#3a2b21',brown:'#5a3f2c',auburn:'#70402c',lightbrown:'#806044'}[ensureAppearance().hairColor]||'#30241c',grey=appearanceGreyLevel();if(grey<30)return base;if(grey<65)return 'linear-gradient(90deg,'+base+' 0 55%,#aaa69e 56% 72%,'+base+' 73%)';return '#aaa79f';}
 function appearanceAvatarHtml(){
- const a=ensureAppearance(),band=appearanceAgeBand(),grey=appearanceGreyLevel(),scars=appearanceScarCount(),showBeard=s.gender==='male'&&s.age>=16&&a.beard!=='none',ageLines=s.age>=45?Math.min(3,1+Math.floor((s.age-45)/15)):0;
+ const a=ensureAppearance(),visual=characterVisualLoadout(),headwear=visual.headwear,band=appearanceAgeBand(),grey=appearanceGreyLevel(),scars=appearanceScarCount(),showBeard=s.gender==='male'&&s.age>=16&&a.beard!=='none',ageLines=s.age>=45?Math.min(3,1+Math.floor((s.age-45)/15)):0;
  return '<div class="portrait age-'+band+' face-'+a.face+' skin-'+a.skin+' hair-'+a.hair+' '+(s.health<30?'portrait-sick ':'')+(s.captive?'portrait-captive ':'')+'">'+
   '<div class="portrait-neck"></div><div class="portrait-head"><div class="portrait-hair" style="--hair:'+appearanceHairTone()+'"></div><div class="portrait-brow left"></div><div class="portrait-brow right"></div><div class="portrait-eye left"></div><div class="portrait-eye right"></div><div class="portrait-nose"></div><div class="portrait-mouth"></div>'+
   (showBeard?'<div class="portrait-beard beard-'+a.beard+'" style="--hair:'+appearanceHairTone()+'"></div>':'')+
   Array.from({length:ageLines},(_,i)=>'<i class="portrait-age-line line-'+(i+1)+'"></i>').join('')+
   Array.from({length:scars},(_,i)=>'<i class="portrait-scar scar-'+(i+1)+'"></i>').join('')+
-  '</div>'+(a.headwear!=='none'?'<div class="portrait-headwear headwear-'+a.headwear+'"></div>':'')+(!s.alive?'<div class="portrait-status">†</div>':s.captive?'<div class="portrait-status">⛓</div>':'')+'<span class="portrait-grey-dot" title="Ağarma '+grey+'"></span></div>';
+  '</div>'+(headwear!=='none'?'<div class="portrait-headwear headwear-'+headwear+'"></div>':'')+(visual.slots.weapon?'<span class="portrait-equipped weapon">'+EQUIPMENT_CATALOG[visual.slots.weapon].icon+'</span>':'')+(visual.slots.offhand?'<span class="portrait-equipped offhand">'+EQUIPMENT_CATALOG[visual.slots.offhand].icon+'</span>':'')+(!s.alive?'<div class="portrait-status">†</div>':s.captive?'<div class="portrait-status">⛓</div>':'')+'<span class="portrait-grey-dot" title="Ağarma '+grey+'"></span></div>';
 }
 function appearanceChoiceAllowed(group,id){if(!appearanceOption(group,id))return false;if(group==='beard'&&(s.gender!=='male'||s.age<16)&&id!=='none')return false;if(group==='headwear'&&id==='war'&&!s.military.served&&!['Alp','Akıncı','Tarkan'].includes(s.role))return false;return true;}
 function setAppearancePart(group,id){if(!appearanceChoiceAllowed(group,id)){notice('Bu görünüş seçeneği şu an uygun değil.');return false;}const a=ensureAppearance();if(!['face','skin','hair','hairColor','beard','headwear'].includes(group))return false;a[group]=id;a.history.unshift({year:s.year+s.age,age:s.age,month:currentMonth(),group,id});a.history=a.history.slice(0,30);render();save();return true;}
@@ -6292,6 +6292,150 @@ function appearanceSummaryHtml(){
  const a=ensureAppearance(),scar=appearanceScarCount(),grey=appearanceGreyLevel();
  const select=(group,label)=>'<div class="card"><h3>'+label+'</h3><div class="actions">'+APPEARANCE_OPTIONS[group].map(x=>{const active=a[group]===x.id,allowed=appearanceChoiceAllowed(group,x.id);return '<button class="mini '+(active?'active':'')+'" '+(!allowed?'disabled':'')+' onclick="setAppearancePart('+JSON.stringify(group)+','+JSON.stringify(x.id)+')">'+safeText(x.name)+(active?' ✓':'')+'</button>';}).join('')+'</div></div>';
  return '<div class="card"><h3>🪞 Görünüş</h3><div class="appearancePreview">'+appearanceAvatarHtml()+'</div><p>'+appearanceConditionLabel()+' • bakım '+a.care+'/100 • ağarma '+grey+'/100 • görünen yara izi '+scar+'</p>'+actionButton('Bakım yap',{kind:'appearance',id:'groom'},"groomAppearance()",'Bir ay sürer • bakım, dirlik ve küçük itibar artışı')+'</div><div class="grid2">'+select('face','Yüz yapısı')+select('skin','Ten tonu')+select('hair','Saç')+select('hairColor','Saç rengi')+select('beard','Sakal / bıyık')+select('headwear','Başlık')+'</div>';
+}
+
+
+/* v82: A real, paid equipment inventory layered over existing asset ownership.
+   Portrait sprites can later use the stable slot IDs without a new game engine. */
+const EQUIPMENT_CATALOG={
+ sword:{name:'Demir Kılıç',icon:'⚔️',slot:'weapon',age:18,asset:'sword',roles:['Alp','Akıncı','Tarkan']},
+ bow:{name:'İyi Yay',icon:'🏹',slot:'weapon',age:12,asset:'bow',twoHanded:true,roles:['Avcı','Akıncı','Alp']},
+ armor:{name:'Zırh',icon:'🛡️',slot:'body',age:18,asset:'armor',roles:['Alp','Akıncı','Tarkan']},
+ spear:{name:'Mızrak',icon:'🔱',slot:'weapon',age:16,cost:16,roles:['Alp','Akıncı','Tarkan']},
+ dagger:{name:'Bıçak',icon:'🗡️',slot:'weapon',age:12,cost:7,roles:['Avcı','Kervan Rehberi']},
+ shield:{name:'Kalkan',icon:'🛡️',slot:'offhand',age:16,cost:15,roles:['Alp','Tarkan']},
+ sickle:{name:'Orak',icon:'🌾',slot:'tool',age:12,cost:6,roles:['Çoban']},
+ hammer:{name:'Demirci Çekici',icon:'🔨',slot:'tool',age:12,cost:9,roles:['Demirci','Demirci Çırağı']},
+ staff:{name:'Çoban Değneği',icon:'🪵',slot:'tool',age:10,cost:5,roles:['Çoban']},
+ kopuz:{name:'Kopuz',icon:'🪕',slot:'tool',age:16,cost:13,roles:['Ozan']},
+ writingKit:{name:'Bitig Takımı',icon:'📜',slot:'tool',age:16,cost:10,roles:['Bitigçi','Elçi','Boy Beyi']},
+ reins:{name:'Yular ve Kayış',icon:'🐎',slot:'tool',age:12,cost:7,roles:['At Bakıcısı','Kervan Rehberi']},
+ scales:{name:'Tartı ve Kese',icon:'⚖️',slot:'tool',age:16,cost:11,roles:['Tüccar']},
+ feltHat:{name:'Keçe Börk',icon:'🧢',slot:'head',age:5,cost:5,roles:[]},
+ helmet:{name:'Savaş Miğferi',icon:'⛑️',slot:'head',age:18,cost:21,roles:['Alp','Akıncı','Tarkan']},
+ satchel:{name:'Deri Heybe',icon:'🎒',slot:'accessory',age:10,cost:6,roles:['Kervan Rehberi','Tüccar','Avcı']}
+};
+const EQUIPMENT_SLOTS=['weapon','offhand','body','head','tool','accessory'];
+const EQUIPMENT_SLOT_LABELS={weapon:'Silah',offhand:'Diğer El',body:'Zırh',head:'Başlık',tool:'İş Aleti',accessory:'Aksesuar'};
+function equipmentHasItem(id){
+ const d=EQUIPMENT_CATALOG[id];
+ return !!d&&(d.asset?(s.assets||[]).includes(d.asset):Array.isArray(s.equipment?.owned)&&s.equipment.owned.includes(id));
+}
+function ensureEquipment(){
+ if(!s.equipment||typeof s.equipment!=='object'||Array.isArray(s.equipment))s.equipment={};
+ const e=s.equipment;
+ e.owned=Array.isArray(e.owned)?[...new Set(e.owned.filter(id=>typeof id==='string'&&EQUIPMENT_CATALOG[id]&&!EQUIPMENT_CATALOG[id].asset))].slice(0,32):[];
+ if(!e.slots||typeof e.slots!=='object'||Array.isArray(e.slots))e.slots={};
+ for(const slot of EQUIPMENT_SLOTS){
+  const id=e.slots[slot],d=EQUIPMENT_CATALOG[id];
+  if(!d||d.slot!==slot||!equipmentHasItem(id)||s.age<d.age)e.slots[slot]=null;
+ }
+ if(e.slots.weapon==='bow'&&e.slots.offhand)e.slots.offhand=null;
+ e.history=Array.isArray(e.history)?e.history.filter(h=>h&&typeof h==='object'&&
+  Number.isFinite(h.year)&&EQUIPMENT_CATALOG[h.id]&&
+  ['buy','sell','equip','unequip'].includes(h.action)).slice(0,24).map(h=>({
+   year:Math.floor(h.year),id:h.id,action:h.action
+  })):[];
+ return e;
+}
+function equipmentTradeIssue(mode,id){
+ const d=EQUIPMENT_CATALOG[id];if(!d||d.asset||!['buy','sell'].includes(mode))return 'Bu ürün pazardan takas edilemez.';
+ const e=ensureEquipment();
+ if(s.age<d.age)return d.age+' yaşında açılır.';
+ if(mode==='buy'){
+  if(e.owned.includes(id))return 'Bu eşyaya zaten sahipsin.';
+  if(e.owned.length>=32)return 'Envanter dolu.';
+  if(s.wealth<d.cost)return d.cost+' servet gerekiyor.';
+ }else if(!e.owned.includes(id))return 'Bu eşyaya sahip değilsin.';
+ return '';
+}
+function equipmentRecord(id,action){
+ const e=ensureEquipment();e.history.unshift({year:s.year+s.age,id,action});e.history=e.history.slice(0,24);
+}
+function tradeEquipment(id,mode){
+ return performAction({kind:'equipmentTrade',id,mode},()=>{
+  const d=EQUIPMENT_CATALOG[id],e=ensureEquipment();
+  if(mode==='buy'){s.wealth-=d.cost;e.owned.push(id);economyLedger('equipment',-d.cost,d.name+' satın alındı.');}
+  else{
+   const value=Math.max(1,Math.floor(d.cost/2));
+   e.owned=e.owned.filter(x=>x!==id);s.wealth+=value;
+   for(const slot of EQUIPMENT_SLOTS)if(e.slots[slot]===id)e.slots[slot]=null;
+   economyLedger('equipment',value,d.name+' satıldı.');
+  }
+  equipmentRecord(id,mode);
+ },'Eşya pazarında alım satımla bir ay geçti.');
+}
+function equipmentChoiceIssue(id){
+ const d=EQUIPMENT_CATALOG[id];if(!d)return 'Bu eşya yok.';
+ if(!s.alive)return 'Bu yaşam sona erdi.';
+ if(s.captive)return 'Tutsakken eşya kuşanamazsın.';
+ if(s.pendingEventId||s.pendingDecision)return 'Önce karar kartını çöz.';
+ if(s.age<d.age)return d.age+' yaşında kuşanılabilir.';
+ if(!equipmentHasItem(id))return 'Önce eşyaya sahip olmalısın.';
+ if(d.slot==='offhand'&&ensureEquipment().slots.weapon==='bow')return 'Yay iki elle tutulur; önce yayı çıkar.';
+ return '';
+}
+function equipItem(id){
+ const issue=equipmentChoiceIssue(id);
+ if(issue){notice(issue);return false;}
+ const e=ensureEquipment(),d=EQUIPMENT_CATALOG[id];
+ if(e.slots[d.slot]===id)return true;
+ e.slots[d.slot]=id;
+ if(d.twoHanded)e.slots.offhand=null;
+ equipmentRecord(id,'equip');render();save();return true;
+}
+function unequipSlot(slot){
+ if(!EQUIPMENT_SLOTS.includes(slot)||!s.alive||s.captive||s.pendingEventId||s.pendingDecision)return false;
+ const e=ensureEquipment(),id=e.slots[slot];
+ if(!id)return false;
+ e.slots[slot]=null;equipmentRecord(id,'unequip');render();save();return true;
+}
+function characterVisualLoadout(){
+ const slots={...ensureEquipment().slots};
+ let pose='idle';
+ if(!s.alive)pose='dead';
+ else if(s.captive)pose='captive';
+ else if(s.health<30||s.ailments.some(a=>['fever','deep_wound','injury'].includes(a.id)))pose='injured';
+ else if(s.military.active)pose='battle';
+ else if(s.lastAction?.kind==='work'||s.lastAction?.kind==='workshop'||s.lastAction?.kind==='venture')pose='work';
+ else if(s.lastAction?.kind==='period'&&['av','summer_hunt'].includes(s.lastAction.id))pose='hunt';
+ else if(s.lastAction?.kind==='caravanTrade'||s.lastAction?.kind==='migration')pose='travel';
+ const appearance=ensureAppearance();
+ return {gender:s.gender,ageBand:appearanceAgeBand(),role:s.role||null,pose,slots,
+  headwear:slots.head==='helmet'?'war':slots.head==='feltHat'?'bork':appearance.headwear};
+}
+function equipmentSummaryHtml(){
+ const e=ensureEquipment(),v=characterVisualLoadout();
+ const own=Object.entries(EQUIPMENT_CATALOG).filter(([id])=>equipmentHasItem(id));
+ const role=s.role||'Görevi yok';
+ const chosen=EQUIPMENT_SLOTS.map(slot=>{
+  const id=e.slots[slot],d=EQUIPMENT_CATALOG[id];
+  return '<div class="card"><h3>'+safeText(EQUIPMENT_SLOT_LABELS[slot])+'</h3><p>'+
+   (d?d.icon+' '+safeText(d.name):'Boş')+'</p>'+
+   (d?'<button class="mini" onclick="unequipSlot('+JSON.stringify(slot)+')">Çıkar</button>':'')+'</div>';
+ }).join('');
+ const worn=own.map(([id,d])=>{
+  const selected=e.slots[d.slot]===id,issue=equipmentChoiceIssue(id);
+  return '<div class="card"><h3>'+d.icon+' '+safeText(d.name)+'</h3><p>'+
+   safeText(EQUIPMENT_SLOT_LABELS[d.slot])+' • '+(d.roles.includes(role)?'Mesleğine uygun':'Kişisel eşya')+
+   (d.asset?' • Mevcut varlığın':'')+'</p>'+
+   '<button class="mini '+(selected?'active':'')+'" '+(issue?'disabled title="'+safeText(issue)+'"':'')+
+   ' onclick="equipItem('+JSON.stringify(id)+')">'+(selected?'Kuşanıldı ✓':'Kuşan')+'</button>'+
+   (!d.asset?'<button class="mini" '+(accessIssue({kind:'equipmentTrade',id,mode:'sell'})?'disabled':'')+
+   ' onclick="tradeEquipment('+JSON.stringify(id)+',"sell")">Sat ('+Math.max(1,Math.floor(d.cost/2))+' servet)</button>':'')+'</div>';
+ }).join('');
+ const store=Object.entries(EQUIPMENT_CATALOG).filter(([id,d])=>!d.asset&&!e.owned.includes(id)).map(([id,d])=>
+  actionButton(d.icon+' '+d.name,{kind:'equipmentTrade',id,mode:'buy'},
+   'tradeEquipment('+JSON.stringify(id)+',"buy")',
+   d.cost+' servet • '+d.age+' yaş • '+safeText(EQUIPMENT_SLOT_LABELS[d.slot]))).join('');
+ return '<h3 class="sectionTitle">🛡️ Kuşanma ve Eşya Çantası</h3>'+
+  '<div class="card"><h3>Karakterin Üzerindekiler</h3><p>Meslek: '+safeText(role)+
+  ' • Görünüş pozu: '+safeText(v.pose)+' • Kuşanma/çıkarma eylem hakkı tüketmez.<br>'+
+  'Sadece sahip olduğun gerçek eşyalar kuşanılır. Savaş ve çalışma pozlarının pixel art çizimleri sonraki aşamadadır.</p></div>'+
+  '<div class="grid2">'+chosen+'</div>'+
+  '<h3 class="sectionTitle">Çantandaki Eşyalar</h3><div class="grid2">'+
+  (worn||'<div class="card"><p>Henüz kuşanılacak eşyan yok.</p></div>')+
+  '</div><h3 class="sectionTitle">Eşya Pazarı</h3><div class="grid2">'+store+'</div>';
 }
 
 const EDUCATION_TRACKS={
@@ -9836,6 +9980,7 @@ function accessIssue(a){
  if(['activity','training'].includes(a.kind)){if(!ACTION_RULES[a.id])return 'Eylem bulunamadı.';min=ACTION_RULES[a.id].age;}
  else if(a.kind==='education'){const d=EDUCATION_TRACKS[a.id];if(!d)return 'Yetişme yolu bulunamadı.';min=d.age;if(s.captive)return 'Tutsakken düzenli eğitim sürdüremezsin.';if(s.military.active)return 'Aktif seferde düzenli eğitim sürdüremezsin.';}
  else if(a.kind==='educationContact'){const n=ensureEducation().contacts[a.index];if(!n?.alive)return 'Bu kişiyle görüşemezsin.';min=5;}
+ else if(a.kind==='equipmentTrade'){const issue=equipmentTradeIssue(a.mode,a.id);if(issue)return issue;min=EQUIPMENT_CATALOG[a.id].age;}
  else if(a.kind==='appearance'){min=5;if(a.id!=='groom')return 'Görünüş eylemi bulunamadı.';}
  else if(a.kind==='romance'){min=16;if(!s.partner?.alive)return 'Yaşayan eş adayı veya eş gerekiyor.';const lifeIssue=npcNormalInteractionIssue(s.partner);if(lifeIssue)return lifeIssue;if(!['time','future','family','work','repair','reassure'].includes(a.id))return 'İlişki eylemi bulunamadı.';}
  else if(a.kind==='breakup'){min=16;if(!s.partner?.alive)return 'Sona erdirilecek ilişki yok.';}
@@ -10011,7 +10156,7 @@ function workRole(){performAction({kind:'work'},()=>{
 },'Görevin üzerinde çalıştın.');}
 function retireRole(){performAction({kind:'retire'},()=>{const cur=currentCareer();if(cur){cur.profile.history.push({year:s.year+s.age,retired:true});s.retiredRole=s.role;}if(s.workplace?.roleId)archiveWorkplace('görevi bırakma');s.role=null;apply({health:2,happiness:2});},'Ağır görevini bıraktın.');}
 function buyAsset(id){performAction({kind:'asset',id},()=>{const price=assetBuyPrice(id);s.wealth-=price;s.assets.push(id);ensureEconomy();assetState(id).condition=88;economyLedger('purchase',-price,id+' alımı');if(id==='horse'){const stable=ensureHorseStable();if(!stable.horses.length)stable.horses.push(createHorse());}if(id==='yurt'){const h=ensureHousing();h.ownCapacity=4+h.expansions*2;recordHousing('Kendi yurdunu kurmaya uygun bir yurt edindin.');}apply({happiness:3});},'Alım ve takasla bir ay geçti.');}
-function sellAsset(id){if(id==='horse'){const h=horses()[0];return h?horseAction('sell',h.id):false;}performAction({kind:'asset',id,sell:true},()=>{const value=assetSaleValue(id);s.assets=s.assets.filter(x=>x!==id);s.wealth+=value;delete ensureEconomy().assetState[id];if(id==='smithy'){const w=ensureWorkshop();w.materials={iron:0,charcoal:0,leather:0};w.items=[];w.clients=[];}if(id==='caravan_share')s.caravanTrade=null;economyLedger('sale',value,id+' satışı');},'Varlığını takas ettin.');}
+function sellAsset(id){if(id==='horse'){const h=horses()[0];return h?horseAction('sell',h.id):false;}performAction({kind:'asset',id,sell:true},()=>{const value=assetSaleValue(id);s.assets=s.assets.filter(x=>x!==id);s.wealth+=value;delete ensureEconomy().assetState[id];ensureEquipment();if(id==='smithy'){const w=ensureWorkshop();w.materials={iron:0,charcoal:0,leather:0};w.items=[];w.clients=[];}if(id==='caravan_share')s.caravanTrade=null;economyLedger('sale',value,id+' satışı');},'Varlığını takas ettin.');}
 function manageVenture(id){performAction({kind:'venture',id},()=>{
  const e=ensureEconomy(),asset={herd:'flock',forge:'smithy',caravan:'caravan_share'}[id],st=assetState(asset),expert=id==='forge'?s.skills.craft:s.skills.trade;
  skillGain(id==='forge'?'craft':'trade',2);st.lastManagedYear=s.year+s.age;st.condition=clamp(st.condition+4);
@@ -10357,7 +10502,7 @@ function renderActivities(){
 }
 function renderAssets(){
  ensureEconomy();ensureHousing();
- $('tab-varlik').innerHTML=housingSummaryHtml()+economySummaryHtml()+creditSummaryHtml()+workshopSummaryHtml()+caravanTradeSummaryHtml()+horseSummaryHtml()+`<h3 class="sectionTitle">Pazar</h3><div class="grid2">${D.assets.filter(a=>!s.assets.includes(a.id)).map(a=>actionButton(a.icon+' '+a.name,{kind:'asset',id:a.id},`buyAsset('${a.id}')`,assetBuyPrice(a.id)+' servet • '+ASSET_AGES[a.id]+' yaş • fiyat pazara göre değişir')).join('')}</div><h3>Sahip oldukların</h3><div class="grid2">${s.assets.map(id=>{if(id==='horse')return '';const a=D.assets.find(x=>x.id===id);if(!a)return '';const st=assetState(id);return '<div class="card"><h3>'+a.icon+' '+a.name+'</h3><p>Durum '+st.condition+'/100 • Satış '+assetSaleValue(id)+' servet</p><div class="grid2">'+actionButton('Bakım yap',{kind:'maintenance',id},`maintainAsset('${id}')`,maintenanceCost(id)+' servet')+actionButton('Takas et',{kind:'asset',id,sell:true},`sellAsset('${id}')`,'Pazar değeri '+assetSaleValue(id))+'</div></div>';}).join('')}</div><h3>Üretim</h3><div class="grid2">${[['herd','Sürüyü yönet','flock'],['forge','Ocakta üret','smithy']].map(([id,n,a])=>actionButton(n,{kind:'venture',id},`manageVenture('${id}')`,s.assets.includes(a)?'Durum '+assetState(a).condition+'/100 • sonuç garanti değil':'İlgili varlık gerekli')).join('')}</div>`;
+ $('tab-varlik').innerHTML=equipmentSummaryHtml()+housingSummaryHtml()+economySummaryHtml()+creditSummaryHtml()+workshopSummaryHtml()+caravanTradeSummaryHtml()+horseSummaryHtml()+`<h3 class="sectionTitle">Pazar</h3><div class="grid2">${D.assets.filter(a=>!s.assets.includes(a.id)).map(a=>actionButton(a.icon+' '+a.name,{kind:'asset',id:a.id},`buyAsset('${a.id}')`,assetBuyPrice(a.id)+' servet • '+ASSET_AGES[a.id]+' yaş • fiyat pazara göre değişir')).join('')}</div><h3>Sahip oldukların</h3><div class="grid2">${s.assets.map(id=>{if(id==='horse')return '';const a=D.assets.find(x=>x.id===id);if(!a)return '';const st=assetState(id);return '<div class="card"><h3>'+a.icon+' '+a.name+'</h3><p>Durum '+st.condition+'/100 • Satış '+assetSaleValue(id)+' servet</p><div class="grid2">'+actionButton('Bakım yap',{kind:'maintenance',id},`maintainAsset('${id}')`,maintenanceCost(id)+' servet')+actionButton('Takas et',{kind:'asset',id,sell:true},`sellAsset('${id}')`,'Pazar değeri '+assetSaleValue(id))+'</div></div>';}).join('')}</div><h3>Üretim</h3><div class="grid2">${[['herd','Sürüyü yönet','flock'],['forge','Ocakta üret','smithy']].map(([id,n,a])=>actionButton(n,{kind:'venture',id},`manageVenture('${id}')`,s.assets.includes(a)?'Durum '+assetState(a).condition+'/100 • sonuç garanti değil':'İlgili varlık gerekli')).join('')}</div>`;
 }
 function familyCard(n,group,index){
  normalizeNPC(n,n.type);
@@ -10385,7 +10530,7 @@ function migrateState(x){
  if(!x||!D.realms[x.realm]||!Number.isFinite(x.age)||!Number.isFinite(x.year))throw new Error('Geçersiz kayıt');const sourceVersion=x.version||0;x.version=SAVE_VERSION;x.age=Math.max(0,Math.floor(x.age));x.monthsRemaining=Math.max(0,Math.min(12,Math.floor(x.monthsRemaining??12)));x.alive=x.alive!==false;
  for(const k of ['health','happiness','skill','prestige'])x[k]=clamp(Number.isFinite(x[k])?x[k]:50);x.wealth=Math.max(0,Math.round(Number.isFinite(x.wealth)?x.wealth:0));
  for(const k of ['parents','siblings','relatives','friends','rivals','children','careerContacts','socialLinks','delayedEvents','assets','achievements','eventHistory','eventArchive','crimeRecord','timeline','ailments','exPartners'])if(!Array.isArray(x[k]))x[k]=[];
- for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureWorkplace();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureElderLife();ensureEconomy();ensureWorkshop();ensureCaravanTrade();ensureCredit();ensureHorseStable();ensureDisplacement();ensureLifeVariety();ensureToyFestival();ensureLifePurpose();ensureMobility();ensureEducation();ensureAppearance();ensureRomance();ensureJustice();ensureHousing();ensureExtendedFamily();ensureFamilyDynamics();ensureParenting();ensureFamilyBranches();if(sourceVersion<60&&s.familyBranches.careCircle&&!s.familyBranches.careCircle.active)familyCareLegacyClose('legacy');ensureGuardianship();ensureSocialLife();ensureNPCWorld();ensureBereavement();ensureNPCEstates();ensureCommunityReputation();if(s.role)ensureWorkplaceForRole();if(s.partner?.alive)ensurePartnerFamily();refreshKinRoles();if(s.age<18)ensureMinorGuardianship('kayıt göçü');
+ for(const k of ['experience','careerMonths','careerProfiles','eventCooldowns','flags','skills'])x[k]=x[k]||{};x.storyArcs=x.storyArcs&&typeof x.storyArcs==='object'&&!Array.isArray(x.storyArcs)?x.storyArcs:{};x.will=x.will||'equal';x.pregnancy=x.pregnancy||null;x.deathRecord=x.deathRecord||null;x.legacy=x.legacy||{generation:1,familyName:x.tribe,past:[]};x.legacy.past=x.legacy.past||[];s=x;ensureSkills();ensureMilitary();ensureCareerSystems();ensureWorkplace();ensureStateCourt();ensureHealthProfile();ensureSuccession();ensureElderLife();ensureEconomy();ensureEquipment();ensureWorkshop();ensureCaravanTrade();ensureCredit();ensureHorseStable();ensureDisplacement();ensureLifeVariety();ensureToyFestival();ensureLifePurpose();ensureMobility();ensureEducation();ensureAppearance();ensureRomance();ensureJustice();ensureHousing();ensureExtendedFamily();ensureFamilyDynamics();ensureParenting();ensureFamilyBranches();if(sourceVersion<60&&s.familyBranches.careCircle&&!s.familyBranches.careCircle.active)familyCareLegacyClose('legacy');ensureGuardianship();ensureSocialLife();ensureNPCWorld();ensureBereavement();ensureNPCEstates();ensureCommunityReputation();if(s.role)ensureWorkplaceForRole();if(s.partner?.alive)ensurePartnerFamily();refreshKinRoles();if(s.age<18)ensureMinorGuardianship('kayıt göçü');
  if(sourceVersion<5&&x.military?.wounds>0&&!x.healthProfile.scars.length){
   const count=Math.min(3,x.military.wounds);for(let i=0;i<count;i++)x.healthProfile.scars.push({id:'legacy_scar_'+i,kind:'battle',severity:i===0&&x.military.wounds>=3?2:1,source:'eski sefer kaydı',location:['omuzda','kolda','bacakta'][i%3],year:x.year+Math.max(18,x.age-5-i),age:Math.max(18,x.age-5-i),lastFlareYear:null});
  }
@@ -10403,7 +10548,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v81'))localStorage.setItem('yazgi_before_v81',raw);if(!localStorage.getItem('yazgi_before_v80'))localStorage.setItem('yazgi_before_v80',raw);if(!localStorage.getItem('yazgi_before_v79'))localStorage.setItem('yazgi_before_v79',raw);if(!localStorage.getItem('yazgi_before_v78'))localStorage.setItem('yazgi_before_v78',raw);if(!localStorage.getItem('yazgi_before_v77'))localStorage.setItem('yazgi_before_v77',raw);if(!localStorage.getItem('yazgi_before_v76'))localStorage.setItem('yazgi_before_v76',raw);if(!localStorage.getItem('yazgi_before_v75'))localStorage.setItem('yazgi_before_v75',raw);if(!localStorage.getItem('yazgi_before_v74'))localStorage.setItem('yazgi_before_v74',raw);if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v82'))localStorage.setItem('yazgi_before_v82',raw);if(!localStorage.getItem('yazgi_before_v81'))localStorage.setItem('yazgi_before_v81',raw);if(!localStorage.getItem('yazgi_before_v80'))localStorage.setItem('yazgi_before_v80',raw);if(!localStorage.getItem('yazgi_before_v79'))localStorage.setItem('yazgi_before_v79',raw);if(!localStorage.getItem('yazgi_before_v78'))localStorage.setItem('yazgi_before_v78',raw);if(!localStorage.getItem('yazgi_before_v77'))localStorage.setItem('yazgi_before_v77',raw);if(!localStorage.getItem('yazgi_before_v76'))localStorage.setItem('yazgi_before_v76',raw);if(!localStorage.getItem('yazgi_before_v75'))localStorage.setItem('yazgi_before_v75',raw);if(!localStorage.getItem('yazgi_before_v74'))localStorage.setItem('yazgi_before_v74',raw);if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
