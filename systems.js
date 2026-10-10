@@ -2795,7 +2795,7 @@ function familyBranchYearTick(){
  }
  for(const [asset,id] of Object.entries({...f.stewards}))if(!adultChildById(id)||!s.assets.includes(asset))delete f.stewards[asset];
  for(const [asset,id] of Object.entries({...f.assetHeirs}))if(!adultChildById(id)||!s.assets.includes(asset))delete f.assetHeirs[asset];
- familyCareLegacyYearTick();familySiblingRepairYearTick();familySiblingYearTick();familyAncestralMemoryYearTick();familySiblingHeritageYearTick();familyHouseholdCrisisYearTick();familyGrandchildEducationYearTick();familyGrandchildApprenticeshipYearTick();familyGrandchildCareersYearTick();familyGrandchildHomesYearTick();familyFourthGenerationYearTick();familyIntergenerationalBondsYearTick();familyCouncilYearTick();familyBudgetYearTick();familySiblingEconomyYearTick();
+ familyCareLegacyYearTick();familySiblingRepairYearTick();familySiblingYearTick();familyAncestralMemoryYearTick();familySiblingHeritageYearTick();familySiblingEchoYearTick();familyHouseholdCrisisYearTick();familyGrandchildEducationYearTick();familyGrandchildApprenticeshipYearTick();familyGrandchildCareersYearTick();familyGrandchildHomesYearTick();familyFourthGenerationYearTick();familyIntergenerationalBondsYearTick();familyCouncilYearTick();familyBudgetYearTick();familySiblingEconomyYearTick();
 }
 function adultChildActionIssue(childId,id,extra=null){
  const child=adultChildById(childId);if(!child)return '18 yaşını geçmiş yaşayan bir çocuğun gerekiyor.';if(npcLifeBlocksNormalInteraction(child))return npcNormalInteractionIssue(child);
@@ -3426,6 +3426,140 @@ function familySiblingHeritageYearTick(){
   h.history=h.history.slice(0,24);
  }
 }
+/* v79 — a remembered family story may become an actual encounter, but the
+   player decides how to respond and living relatives retain agency. */
+function familySiblingEchoKey(childId,relativeId){
+ return socialKey(childId,relativeId);
+}
+function familySiblingEchoEvidence(childId,relativeId){
+ const h=s.familyBranches?.siblingHeritage;
+ if(!h||h.heirId!==s.id||!h.toldToIds.includes(childId))return null;
+ const story=h.stories.find(r=>r.id===relativeId);
+ const history=h.history.find(r=>r.childId===childId&&r.relativeId===relativeId);
+ if(!story||!history||history.year<story.year)return null;
+ return {story,history};
+}
+function familySiblingEchoYearTick(){
+ const f=ensureFamilyBranches(),e=f.familyEcho,h=f.siblingHeritage,year=s.year+s.age;
+ if(e.lastYear===year)return;
+ e.lastYear=year;
+ if(e.pending){
+  const p=e.pending,child=s.children.find(x=>x.id===p.childId),
+   kin=s.siblings.find(x=>x.id===p.relativeId);
+  if(year>p.createdYear+2||!child?.alive||!kin?.alive||
+     !familySiblingEchoEvidence(p.childId,p.relativeId)){
+   e.resolvedKeys.push(familySiblingEchoKey(p.childId,p.relativeId));
+   e.resolvedKeys=e.resolvedKeys.slice(-80);
+   e.closed++;
+   e.history.unshift({year,childId:p.childId,relativeId:p.relativeId,
+    type:'expired',note:'Aile olayı görüşülmeden kapandı; kimseye kin yüklenmedi.'});
+   e.history=e.history.slice(0,40);e.pending=null;
+  }
+  return;
+ }
+ if(!h||h.heirId!==s.id||!h.history.length)return;
+ const candidate=h.history.find(row=>{
+  const key=familySiblingEchoKey(row.childId,row.relativeId);
+  if(!key||e.resolvedKeys.includes(key)||row.year>=year||year>row.year+8)return false;
+  const child=s.children.find(n=>n.id===row.childId),
+   kin=s.siblings.find(n=>n.id===row.relativeId);
+  return child?.alive&&child.age>=12&&kin?.alive&&kin.age>=18&&
+   child.place===s.place&&child.realm===s.realm&&
+   kin.place===s.place&&kin.realm===s.realm&&
+   !npcLifeBlocksNormalInteraction(child)&&!npcLifeBlocksNormalInteraction(kin)&&
+   !!familySiblingEchoEvidence(row.childId,row.relativeId);
+ });
+ if(!candidate)return;
+ const story=h.stories.find(x=>x.id===candidate.relativeId);
+ e.pending={childId:candidate.childId,relativeId:candidate.relativeId,
+  kind:story.status,storyYear:story.year,createdYear:year};
+ e.opened++;
+}
+function familySiblingEchoIssue(childId,relativeId,mode){
+ if(!['reflect','meet','leave'].includes(mode))return 'Bu aile olayı seçeneği bulunmuyor.';
+ if(s.age<18)return 'Aile büyüğü bu görüşmeyi yetişkin olarak yürütmeli.';
+ const e=ensureFamilyBranches().familyEcho,p=e.pending,year=s.year+s.age;
+ if(!p||p.childId!==childId||p.relativeId!==relativeId)
+  return 'Bu aile olayı artık açık değil.';
+ if(year<p.createdYear||year>p.createdYear+2)return 'Bu aile olayı süresini doldurdu.';
+ const evidence=familySiblingEchoEvidence(childId,relativeId);
+ if(!evidence||p.storyYear!==evidence.story.year||p.kind!==evidence.story.status)
+  return 'Yaşanmış aile hatırası doğrulanamadı.';
+ const child=s.children.find(n=>n.id===childId),
+  kin=s.siblings.find(n=>n.id===relativeId);
+ if(!child?.alive||child.age<12||!kin?.alive||kin.age<18)
+  return 'Görüşmeye katılan gerçek aile üyeleri hayatta ve uygun yaşta olmalı.';
+ if([child,kin].some(n=>n.place!==s.place||n.realm!==s.realm||
+     npcLifeBlocksNormalInteraction(n)))
+  return 'Bu görüşme için çocuk ve akraba seninle aynı yerde olmalı.';
+ return '';
+}
+function familySiblingEchoAction(childId,relativeId,mode){
+ const issue=familySiblingEchoIssue(childId,relativeId,mode);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'familySiblingEcho',childId,relativeId,id:mode},()=>{
+  const e=ensureFamilyBranches().familyEcho,p=e.pending,
+   child=s.children.find(n=>n.id===childId),
+   relative=s.siblings.find(n=>n.id===relativeId),year=s.year+s.age;
+  let note='',type=mode;
+  if(mode==='reflect'){
+   adjustSocialLink(s,child,{score:2,trust:2,tag:'kin'},
+    'Çocuğunla eskiden yaşanmış aile anlaşmazlığını açıkça konuştun.');
+   e.reflected++;
+   note=child.name+' ile geçmişi konuştun; çocuk kendi düşüncesini oluşturacak.';
+  }else if(mode==='meet'){
+   const parentLink=socialLinkBetween(s,relative);
+   const trust=socialLinkBetween(child,relative);
+   const chance=Math.max(.12,Math.min(.88,.24+
+    (parentLink?.trust??50)/450+(trust?.trust??50)/450-
+    (parentLink?.grudge??0)/450-(trust?.grudge??0)/500));
+   if(Math.random()<chance){
+    adjustSocialLink(child,relative,{score:5,trust:4,grudge:-2,tag:'kin'},
+     'Gerçek aile buluşmasında birbirlerini tanımayı kendi istekleriyle seçtiler.');
+    e.meetings++;
+    note=child.name+' ile '+relative.name+' aile geçmişini konuşmayı kabul etti.';
+   }else{
+    e.declined++;type='refused';
+    note=relative.name+' bu kez görüşmeyi istemedi; aile ilişkisi zorla değiştirilmedi.';
+   }
+  }else{
+   e.closed++;
+   note=child.name+' için geçmiş aile meselesine karışmamayı seçtin.';
+  }
+  const key=familySiblingEchoKey(childId,relativeId);
+  e.resolvedKeys.push(key);e.resolvedKeys=e.resolvedKeys.slice(-80);
+  e.history.unshift({year,childId,relativeId,type,note});
+  e.history=e.history.slice(0,40);e.pending=null;
+ },'Geçmiş aile hikâyesi hakkında bir ay geçirdin.');
+}
+function familySiblingEchoHtml(){
+ const e=ensureFamilyBranches().familyEcho,p=e.pending;
+ if(!p&&!e.history.length)return '';
+ let html='<div class="card"><h3>🪶 Geçmişten Gelen Aile Olayı</h3><p>'+
+  'Açılan '+e.opened+' • konuşulan '+e.reflected+' • kabul edilen buluşma '+
+  e.meetings+' • reddedilen '+e.declined+
+  '<br>Geçmişteki kırgınlık veya uzlaşma kimseyi zorunlu olarak dost ya da düşman yapmaz.</p>';
+ if(p){
+  const child=s.children.find(x=>x.id===p.childId),
+   relative=s.siblings.find(x=>x.id===p.relativeId),
+   title=p.kind==='strained'?'Eski bir aile kırgınlığı':'Eski bir aile uzlaşması';
+  html+='<p><b>'+safeText(title)+'</b>: '+safeText(child?.name||'Çocuk')+
+   ', '+safeText(relative?.name||'Akraba')+' ile geçmişi yeniden konuşmak istiyor. Nasıl davranacaksın?</p>';
+  for(const [mode,label] of [['reflect','Çocuğumla açıkça konuş'],
+   ['meet','Akrabasıyla görüştür'],['leave','Bu kez karışma']]){
+   const issue=familySiblingEchoIssue(p.childId,p.relativeId,mode);
+   if(!issue)html+=actionButton(label,
+    {kind:'familySiblingEcho',childId:p.childId,relativeId:p.relativeId,id:mode},
+    'familySiblingEchoAction('+JSON.stringify(p.childId)+','+
+     JSON.stringify(p.relativeId)+','+JSON.stringify(mode)+')',
+    'Bir ay • aile üyelerinin gerçek kararları geçerlidir');
+   else html+='<p>'+safeText(issue)+'</p>';
+  }
+ }
+ if(e.history.length)html+='<p>'+e.history.slice(0,5).map(h=>
+  safeText(h.year+' • '+h.note)).join('<br>')+'</p>';
+ return html+'</div>';
+}
 function familySiblingLegacyHtml(){
  const f=ensureFamilyBranches(),e=f.siblingWillMemory,h=f.siblingHeritage;
  if(!e.history.length&&!h?.history.length)return '';
@@ -3497,14 +3631,14 @@ function familyAncestralMemoryYearTick(){
 }
 function familyGenerationsSummaryHtml(){
  const f=ensureFamilyBranches(),all=[...s.children,...s.siblings],bonds=f.siblingBonds.filter(r=>all.some(n=>n.alive&&n.id===r.aId)&&all.some(n=>n.alive&&n.id===r.bId)).slice(0,6),anc=f.ancestralCare;
- if(!bonds.length&&!anc&&!f.siblingWillMemory.history.length&&!f.siblingHeritage?.history.length)return '';
+ if(!bonds.length&&!anc&&!f.siblingWillMemory.history.length&&!f.siblingHeritage?.history.length&&!f.familyEcho.pending&&!f.familyEcho.history.length)return '';
  let html='<div class="card"><h3>🌿 Kardeş Bağları ve Kuşak Hatıraları</h3><p>Yetişkin kardeşler kendi kararlarıyla destekleşir ya da tartışır. Eski bakım hatıraları çocuklara kalabilir.</p></div>';
  if(bonds.length)html+='<div class="card"><h3>Kardeşlerin Kendi Hayatı</h3><p>'+bonds.map(r=>{
   const a=all.find(n=>n.id===r.aId),b=all.find(n=>n.id===r.bId),link=a&&b?socialLinkBetween(a,b):null;
   return safeText(a?.name||'Yakın')+' ↔ '+safeText(b?.name||'Yakın')+' • '+(r.status==='close'?'yakın':r.status==='strained'?'gergin':'değişken')+' • dayanışma '+r.cooperation+' • sürtüşme '+r.rivalry+(link?' • bağ '+link.score:'');
  }).join('<br>')+'</p></div>';
  if(anc)html+='<div class="card"><h3>Atalardan Gelen Bakım Hikâyeleri</h3><p>'+safeText(anc.originName)+' kuşağından '+anc.records.length+' bakım kaydı • anlatılan '+anc.stories+' hikâye. Çocuklar en erken 8 yaşında, aynı yerde yaşayan akrabalarından duyabilir.</p></div>';
- return html+familySiblingLegacyHtml();
+ return html+familySiblingLegacyHtml()+familySiblingEchoHtml();
 }
 
 /* v62: Yetişkin kardeşlerin gerçek NPC servetiyle aile içi yardım ve ödünç.
@@ -9530,6 +9664,7 @@ function accessIssue(a){
  }else if(a.kind==='familyCareCircle'){const issue=familyCareCircleIssue(a.id,a.childId??null);if(issue)return issue;min=18;
  }else if(a.kind==='familyCareLegacy'){const issue=familyCareLegacyIssue(a.legacyId,a.id);if(issue)return issue;min=18;
  }else if(a.kind==='familySiblingRepair'){const issue=familySiblingRepairIssue(a.aId,a.bId,a.id);if(issue)return issue;min=18;
+ }else if(a.kind==='familySiblingEcho'){const issue=familySiblingEchoIssue(a.childId,a.relativeId,a.id);if(issue)return issue;min=18;
   }else if(a.kind==='grandchildEducation'){const issue=familyGrandchildEducationIssue(a.grandId,a.field);if(issue)return issue;min=18;
   }else if(a.kind==='grandchildCare'){const issue=familyGrandchildCareIssue(a.grandId,a.helperId);if(issue)return issue;min=18;
   }else if(a.kind==='grandchildApprentice'){const issue=familyGrandchildApprenticeIssue(a.grandId,a.mentorId);if(issue)return issue;min=18;
