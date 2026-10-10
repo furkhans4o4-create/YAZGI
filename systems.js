@@ -3990,7 +3990,7 @@ function familyFourthGenerationYearTick(){
     const role={riding:'At Bakıcısı',craft:'Demirci',literacy:'Bitigçi'}[rec.field];
     const eligible=rec.years>=2&&(child.skills?.[rec.field]||0)>=18&&
      !child.aspiration?.protectedRole&&!child.statusFlags?.workshopGraduate;
-    if(eligible&&Math.random()<Math.min(.88,.28+rec.years*.06+(child.skills?.[rec.field]||0)/300+familyCouncilYouthCareerBoost(child))){
+    if(eligible&&Math.random()<Math.min(.80+familyCouncilYouthCareerBoost(child),.28+rec.years*.06+(child.skills?.[rec.field]||0)/300+familyCouncilYouthCareerBoost(child))){
      child.role=role;child.roleHistory=Array.isArray(child.roleHistory)?child.roleHistory:[];
      child.roleHistory.push({year,role,source:'fourth_generation_learning'});
      rec.choseCareer=true;e.selfChosenCareers++;
@@ -4227,7 +4227,7 @@ function familyCouncilReliefBond(a,b){
 function familyCouncilSiblingModifier(a,b){
  if(!familyCouncilReliefBond(a,b))return 0;
  const link=socialLinkBetween(a,b);
- return (link?.trust??50)>=35&&(link?.grudge??0)<40?.11:0;
+ return (link?.trust??50)>=35&&(link?.grudge??0)<40 ? .11 : 0;
 }
 /* Estate amounts and who inherits remain the player's existing explicit choice.
    A remembered real transfer only changes how available adult relatives respond. */
@@ -4417,7 +4417,15 @@ function familyCouncilHtml(){
    legacy.history.slice(0,4).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p>';
   html+='</div>';
  }
- if(e.history.length)html+='<div class="card"><h3>Meclis Kararları</h3><p>'+
+ const decisions=ensureFamilyBranches().familyCouncilChoices;
+ if(decisions.history.length){
+  html+='<div class="card"><h3>⚖ Meclisin Sonraki Kararlara Etkisi</h3><p>'+
+   'Miras görüşmeleri '+decisions.willTalks+' • aile uyumu etkisi '+
+   (decisions.harmonyChanges>=0?'+':'')+decisions.harmonyChanges+
+   '<br>Gerçek yardım hatırası kardeşlerin gönüllü kararlarını etkileyebilir; miras dağılımı veya meslek otomatik seçilmez.</p><p>'+
+   decisions.history.slice(0,4).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p></div>';
+ }
+  if(e.history.length)html+='<div class="card"><h3>Meclis Kararları</h3><p>'+
   e.history.slice(0,6).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p></div>';
  return html;
 }
