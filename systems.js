@@ -6290,9 +6290,9 @@ function appearanceAvatarHtml(){
   Array.from({length:ageLines},(_,i)=>'<i class="portrait-age-line line-'+(i+1)+'"></i>').join('')+
   Array.from({length:scars},(_,i)=>'<i class="portrait-scar scar-'+(i+1)+'"></i>').join('')+
   '</div>'+(headwear!=='none'?'<div class="portrait-headwear headwear-'+headwear+'"></div>':'')+
-  (visual.visibleEquipment&&visual.slots.weapon?'<span class="portrait-equipped weapon">'+equipmentDef(visual.slots.weapon).icon+'</span>':'')+
+  (visual.visibleEquipment&&visual.slots.weapon&&visual.activeSlot!=='weapon'?'<span class="portrait-equipped weapon">'+equipmentDef(visual.slots.weapon).icon+'</span>':'')+
   (visual.visibleEquipment&&visual.slots.offhand?'<span class="portrait-equipped offhand">'+equipmentDef(visual.slots.offhand).icon+'</span>':'')+
-  (visual.visibleEquipment&&visual.slots.tool?'<span class="portrait-equipped tool">'+equipmentDef(visual.slots.tool).icon+'</span>':'')+
+  (visual.visibleEquipment&&visual.slots.tool&&visual.activeSlot!=='tool'?'<span class="portrait-equipped tool">'+equipmentDef(visual.slots.tool).icon+'</span>':'')+
   (visual.visibleEquipment&&visual.slots.accessory?'<span class="portrait-equipped accessory">'+equipmentDef(visual.slots.accessory).icon+'</span>':'')+
   (visual.activeItem?'<span class="portrait-active-item" title="'+safeText(PORTRAIT_STANCE_LABELS[visual.stance])+'">'+equipmentDef(visual.activeItem).icon+'</span>':'')+
   (!s.alive?'<div class="portrait-status">†</div>':s.captive?'<div class="portrait-status">⛓</div>':'')+
@@ -6485,7 +6485,8 @@ function portraitCostumeFor(role,gender,ageBand){
 }
 function portraitSceneFor(pose,base){
  const special={dead:'memorial',captive:'captivity',injured:'sickroom',battle:'battlefield',
-  forge:'forge',hunt:'forest',herding:'pasture',horsecare:'stable',travel:'road'};
+  forge:'forge',hunt:'forest',archery:'forest',herding:'pasture',gather:'pasture',
+  horsecare:'stable',travel:'road',trade:'market',perform:'camp'};
  return special[pose]|| (PORTRAIT_SCENE_LABELS[base]?base:'steppe');
 }
 function portraitSpriteManifest(v){
@@ -6541,7 +6542,9 @@ const PORTRAIT_STANCE_LABELS={
 function portraitStanceFor(pose,slots,role){
  const roleId=D.careers.find(c=>c.name===role)?.id||null;
  if(['dead','captive','injured'].includes(pose))return {id:pose,item:null,slot:null};
- const weapon=slots.weapon,offhand=slots.offhand,tool=slots.tool;
+ const weapon=slots.weapon&&equippedForTask(slots.weapon,'weapon')?slots.weapon:null,
+  offhand=slots.offhand&&equippedForTask(slots.offhand,'offhand')?slots.offhand:null,
+  tool=slots.tool&&equippedForTask(slots.tool,'tool')?slots.tool:null;
  if(pose==='battle'||pose==='guard'){
   if(weapon==='bow')return {id:'archer',item:'bow',slot:'weapon'};
   if(weapon==='sword'&&offhand==='shield')return {id:'swordshield',item:'sword',slot:'weapon'};
