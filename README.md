@@ -573,3 +573,13 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - Yetişkin torun ile kendi ebeveyni arasındaki **yakın aile bağı**, dördüncü kuşağın yıllık öğrenim ilerlemesine +1; ciddi ve devam eden **gerilim** −1 etkiler. Normal durumda v70 ilerlemesi korunur. Bu etki gerçek becerileri veya çocukları silmez.
 - Aile ekranında kuşakların sıcaklık/gerilim durumu ve geçmiş görüşmeler görünür. v70 kayıtları v71'e taşınırken `yazgi_before_v71` güvenlik yedeği oluşturulur.
 - 49 yeni regresyon testi, önceki sürüm test geçitleri ve tüm oyun test paketiyle kontrol edilir.
+
+### v72 — Üç Yıllık Gönüllü Aile Meclisi
+
+- Yaşlılık bakım nöbetinden **ayrı**, üç yıllık bir aile dayanışması anlaşması. En az iki yetişkin çocuğun aynı yerde yaşaması ve **gönüllü kabulü** gerekir; kabul etmeyen NPC zorlanmaz. Teklif bir aylık haktır, ret sonrası aynı yıl yeniden denenmez.
+- Meclis şu üç gündemden birini seçer: **Kuşakların Eğitimi**, **Haneler Arası Dayanışma**, **Ailede Uzlaşma**. Kabul eden gerçek yetişkin çocuklar üç yıl boyunca her yıl sırayla bir görev üstlenir. İlgili çocuk/yardım ihtiyacı yoksa görev yerine getirilmiş sayılmaz, aksama kaydedilir.
+- **Eğitim:** Yakın yerdeki gerçek torun veya dördüncü kuşak NPC'si yıllık ek dersle beceri +2 alır; var olan eğitim ilerleme kayıtları güncellenir. Karakter, para veya sahte öğrenme yılı yaratılmaz.
+- **Dayanışma:** Varlıklı çocuk 6 servetlik gerçek hane yedeği korunacak şekilde başka bir yetişkin kardeşinin ihtiyaç sahibi hanesine en fazla **2 gerçek servet** aktarabilir. Her iki gerçek NPC'nin cüzdanı değişir, oyuncunun malı veya hazine yoktan artmaz.
+- **Uzlaşma:** Meclis üyesi ile genç kuşaktan yakınının v71'de kayıtlı gerçek kırgınlığı varsa, **karşılıklı rızaya bağlı** olarak gerilim azaltılabilir. Toplumsal bağ ve güven gerçekten güncellenir; mevcut bir kırgınlık yoksa sahte barışma sayılmaz.
+- Meclis en fazla **3 yıllık** görev süresini tamamlayınca otomatik biter; üyelerin ölümü düzeni sona erdirebilir, oyuncu dilerse bir ay harcayarak sonlandırabilir. Tek yıllık işlemin tekrarlanması engellenir. Meclis kararları aile ekranında tarihçeyle görünür.
+- `familyCouncil` kaydı v71'den güvenle taşınır ve `yazgi_before_v72` yedeği oluşturulur. 45 yeni test ile eski sürümlerin tüm regresyonları birleştirme öncesi çalıştırılır.
