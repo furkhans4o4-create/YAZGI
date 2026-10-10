@@ -6838,6 +6838,22 @@ function equipmentSummaryHtml(){
    (chosen?'<button class="mini" onclick="equipEquipmentPreset(&quot;'+id+'&quot;)">Dizilimi kuşan</button>':'')+
    '</div></div>';
  }).join('');
+ const heirCandidates=s.children.filter(n=>n.alive),heirloomSelections=ensureSuccession().heirloomHeirs;
+ const heirloomCards=['sword','spear'].filter(id=>equipmentCraftedInfo(id)).map(id=>{
+  const d=EQUIPMENT_CATALOG[id],craft=equipmentCraftedInfo(id),target=heirCandidates.find(n=>n.id===heirloomSelections[id]);
+  const picked=target?safeText(target.name):'Özel varis yok; genel vasiyet kuralları geçerli';
+  return '<div class="card"><h3>'+d.icon+' '+safeText(d.name)+' • Aile Yadigârı</h3><p>'+
+   'Usta: '+safeText(craft.originMaker||s.name)+' • dövüm yılı '+craft.originYear+
+   ' • '+craft.generations+'. kuşak • kalite '+craft.quality+'/100 • dayanıklılık '+equipmentCondition(id)+'/100'+
+   '<br>Varis: '+picked+'</p><div class="actions">'+
+   heirCandidates.map(n=>{
+    const issue=heirloomAssignIssue(id,n.id),selected=heirloomSelections[id]===n.id;
+    return '<button class="mini '+(selected?'active':'')+'" '+(issue?'disabled':'')+
+     ' onclick="assignHeirloom(&quot;'+id+'&quot;,&quot;'+safeText(n.id)+'&quot;)">'+safeText(n.name)+(selected?' ✓':'')+'</button>';
+   }).join('')+
+   (target?'<button class="mini" onclick="assignHeirloom(&quot;'+id+'&quot;,null)">Özel varisi kaldır</button>':'')+
+   '</div></div>';
+ }).join('');
  const store=Object.entries(EQUIPMENT_CATALOG).filter(([id,d])=>!d.asset&&!e.owned.includes(id)).map(([id,d])=>
   actionButton(d.icon+' '+d.name,{kind:'equipmentTrade',id,mode:'buy'},
    'tradeEquipment('+JSON.stringify(id)+',"buy")',
@@ -6850,6 +6866,7 @@ function equipmentSummaryHtml(){
   'Sadece sahip olduğun gerçek eşyalar kuşanılır. Dayanıklılık 20 altına düşerse etkin fayda durur; bakım bir ay ve servet tüketir. Varlıkların bakımı kendi bölümündedir. Savaş ve çalışma pozlarının pixel art çizimleri sonraki aşamadadır.</p></div>'+
   '<div class="grid2">'+chosen+'</div>'+
   '<h3 class="sectionTitle">Hazır Kuşanma Dizilimleri</h3><p class="note">Sefer, meslek ve yol için üç düzen kaydedebilirsin. Kayıt veya kuşanma ay hakkı tüketmez; sahip olmadığın eşyalar uygulanmaz.</p><div class="grid2">'+presetCards+'</div>'+
+  (heirloomCards?'<h3 class="sectionTitle">🪶 Aile Yadigârları</h3><p class="note">Kendi dövdüğün silahı yaşayan çocuklarından birine bırakabilirsin. Karar ay hakkı harcamaz. Her silah yalnız tek varise geçer.</p><div class="grid2">'+heirloomCards+'</div>':'')+
   '<h3 class="sectionTitle">Çantandaki Eşyalar</h3><div class="grid2">'+
   (worn||'<div class="card"><p>Henüz kuşanılacak eşyan yok.</p></div>')+
   '</div><h3 class="sectionTitle">Eşya Pazarı</h3><div class="grid2">'+store+'</div>';
@@ -10481,7 +10498,11 @@ function elderLifeSummaryHtml(){
 function successionSummaryHtml(){
  const q=ensureSuccession();if(s.age<45&&!q.prepared)return '';
  const heirs=livingHeirs(),wish=q.lastWish?'<br>Son dilek: '+safeText(q.lastWish):'';
- return '<h3 class="sectionTitle">Vasiyet ve Soy Devri</h3><div class="card"><h3>🪶 '+successionModeText()+'</h3><p>Aile uyumu '+q.familyHarmony+' • '+(q.prepared?'Vasiyet konuşuldu':'Henüz aile meclisi yapılmadı')+' • '+heirs.length+' yaşayan çocuk'+wish+'</p></div>';
+ const heirloom=Object.entries(q.heirloomHeirs).filter(([id])=>equipmentCraftedInfo(id)).map(([id,childId])=>
+  EQUIPMENT_CATALOG[id].name+': '+(heirs.find(n=>n.id===childId)?.name||'varis yok'));
+ return '<h3 class="sectionTitle">Vasiyet ve Soy Devri</h3><div class="card"><h3>🪶 '+successionModeText()+'</h3><p>Aile uyumu '+q.familyHarmony+' • '+(q.prepared?'Vasiyet konuşuldu':'Henüz aile meclisi yapılmadı')+
+  ' • '+heirs.length+' yaşayan çocuk'+wish+
+  (heirloom.length?'<br>Aile yadigârı: '+safeText(heirloom.join(' • ')):'')+'</p></div>';
 }
 
 function physicalHealthIssue(a){
