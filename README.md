@@ -602,3 +602,11 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - **Uzlaşma:** Başarılmış ve sonradan korunmuş barış görüşmesi, gerçek ebeveyn–çocuk bağında en fazla iki kez gerilimi **−2** azaltabilir. Yeni husumet varsa veya kişilerden biri kaybolmuşsa geçmişteki meclis kararı kimseyi zorla barıştırmaz.
 - Başlangıçtan itibaren en fazla **iki sonraki yıl** etkili olabilen izler, oyuncu meclisi iptal etmiş veya meclis normal süresini tamamlamış olsa da gerçek insanlara bağlı kalır. Ölüm, uzaklaşma veya geçersiz bağ sürdürmeyi bitirir; yıllar atlandığında geçmiş hizmetler sonradan toplu halde yazılmaz.
 - Aile ekranında gerçek katılımcıların isimleri, tamamlanan ve sönen izler görünür. v73'ten v74'e geçerken `yazgi_before_v74` yedeği alınır. 34 özel regresyon testi ve tüm eski testler CI tarafından korunur.
+
+
+### v75 — Meclis Kararlarının Kardeşlik, Miras ve Gençlerin Yoluna Etkisi
+
+- **Gerçek yardım hatırası:** v74'te kaydedilen kardeşler arasındaki gerçek servet aktarımı, güven sürüyor ve açık husumet yoksa sonraki üç takvim yılı boyunca kendi kararlarıyla dayanışmayı seçme olasılıklarına en çok **+%11** katkıda bulunabilir. Otomatik barış, yeni mal veya sınırsız ilişki puanı yoktur.
+- **Vasiyetin aileye yansıması:** Gerçekten yardımlaşmış, yaşayan, birlikte bulunan iki yetişkin çocuğun eski katkıları vasiyet görüşmesinde hatırlanır. Eşit paylaşım aile uyumuna **+2** etki edebilir; bunlardan yalnız birinin seçilmesi diğerinde hafif kırgınlık yaratabilir. Diğer varislere otomatik pay, ödeme veya geçersiz vasiyet yüklenmez. Bu tepki aynı yılda en fazla bir kez işlenir ve 12 yıl sonra artık tetiklenmez.
+- **Gençlerin özerk meslek seçimi:** v74'te kayda geçmiş gerçek meclis dersleri, dördüncü kuşak gencinin 18 yaşında kendi uygun mesleğini seçme olasılığına en fazla **+%8** katkıda bulunabilir. Asgari eğitim, beceri ve korunmuş meslek koşulları geçerlidir. Meclis çocuğa otomatik meslek dayatmaz ve etki on iki yıldan sonra sona erer.
+- Aile ekranında miras görüşmelerinin kaydı ve gerçek kararların etkileri görünür; v74'ten v75'e geçişte `yazgi_before_v75` kaydı oluşturulur. 33 özel regresyon testi, önceki sürümlerle birlikte koşulur.
