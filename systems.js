@@ -6291,6 +6291,7 @@ function appearanceAvatarHtml(){
   (visual.visibleEquipment&&visual.slots.weapon?'<span class="portrait-equipped weapon">'+equipmentDef(visual.slots.weapon).icon+'</span>':'')+
   (visual.visibleEquipment&&visual.slots.offhand?'<span class="portrait-equipped offhand">'+equipmentDef(visual.slots.offhand).icon+'</span>':'')+
   (visual.visibleEquipment&&visual.slots.tool?'<span class="portrait-equipped tool">'+equipmentDef(visual.slots.tool).icon+'</span>':'')+
+  (visual.visibleEquipment&&visual.slots.accessory?'<span class="portrait-equipped accessory">'+equipmentDef(visual.slots.accessory).icon+'</span>':'')+
   (!s.alive?'<div class="portrait-status">†</div>':s.captive?'<div class="portrait-status">⛓</div>':'')+
   '<span class="portrait-grey-dot" title="Ağarma '+grey+'"></span></div>';
 }
@@ -6299,9 +6300,9 @@ function setAppearancePart(group,id){if(!appearanceChoiceAllowed(group,id)){noti
 function groomAppearance(){return performAction({kind:'appearance',id:'groom'},()=>{const a=ensureAppearance();a.care=clamp(a.care+22);a.lastGroomYear=s.year+s.age;a.lastGroomMonth=currentMonth();apply({happiness:3,prestige:1});log('Saç, sakal ve günlük bakımına özen gösterdin.','good');},'Kişisel bakım ve görünüşüne bir ay ayırdın.');}
 function tickAppearanceMonth(action={}){const a=ensureAppearance();if(action.kind!=='appearance')a.care=clamp(a.care-(s.captive?3:s.military.active?2:1));if(s.ailments.length)a.care=clamp(a.care-1);}
 function appearanceSummaryHtml(){
- const a=ensureAppearance(),scar=appearanceScarCount(),grey=appearanceGreyLevel();
+ const a=ensureAppearance(),scar=appearanceScarCount(),grey=appearanceGreyLevel(),visual=characterVisualLoadout();
  const select=(group,label)=>'<div class="card"><h3>'+label+'</h3><div class="actions">'+APPEARANCE_OPTIONS[group].map(x=>{const active=a[group]===x.id,allowed=appearanceChoiceAllowed(group,x.id);return '<button class="mini '+(active?'active':'')+'" '+(!allowed?'disabled':'')+' onclick="setAppearancePart('+JSON.stringify(group)+','+JSON.stringify(x.id)+')">'+safeText(x.name)+(active?' ✓':'')+'</button>';}).join('')+'</div></div>';
- return '<div class="card"><h3>🪞 Görünüş</h3><div class="appearancePreview">'+appearanceAvatarHtml()+'</div><p>'+appearanceConditionLabel()+' • bakım '+a.care+'/100 • ağarma '+grey+'/100 • görünen yara izi '+scar+'</p>'+actionButton('Bakım yap',{kind:'appearance',id:'groom'},"groomAppearance()",'Bir ay sürer • bakım, dirlik ve küçük itibar artışı')+'</div><div class="grid2">'+select('face','Yüz yapısı')+select('skin','Ten tonu')+select('hair','Saç')+select('hairColor','Saç rengi')+select('beard','Sakal / bıyık')+select('headwear','Başlık')+'</div>';
+ return '<div class="card"><h3>🪞 Görünüş</h3><div class="appearancePreview">'+appearanceAvatarHtml()+'</div><p>'+safeText(visual.costume.label)+' • '+safeText(PORTRAIT_SCENE_LABELS[visual.scene])+' • '+safeText(visual.gender==='female'?'Kadın':'Erkek')+'<br>'+appearanceConditionLabel()+' • bakım '+a.care+'/100 • ağarma '+grey+'/100 • görünen yara izi '+scar+'</p>'+actionButton('Bakım yap',{kind:'appearance',id:'groom'},"groomAppearance()",'Bir ay sürer • bakım, dirlik ve küçük itibar artışı')+'</div><div class="grid2">'+select('face','Yüz yapısı')+select('skin','Ten tonu')+select('hair','Saç')+select('hairColor','Saç rengi')+select('beard','Sakal / bıyık')+select('headwear','Başlık')+'</div>';
 }
 
 
