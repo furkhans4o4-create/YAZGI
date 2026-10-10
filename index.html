@@ -889,8 +889,8 @@ const PERIOD_ACTIVITIES=[
  {id:"horserace",age:12,cat:"Toy & Eğlence",icon:"🏇",name:"At Yarışına Katıl",desc:"Binicilik seviyesi sonucu etkiler.",do:()=>{ensureSkills();const win=Math.random()<.25+(s.skills.riding||0)/180;if(win){s.wealth+=5;apply({prestige:4,happiness:4});log("At yarışında iyi bir derece aldın.","good")}else log("At yarışında istediğin sonucu alamadın.")}},
  {id:"market",age:12,cat:"Pazar & Ticaret",icon:"🧺",name:"Pazara Git",desc:"Takas yap, fiyatları öğren.",do:()=>{skillGain("trade",2);apply({wealth:rng(-1,3)});apply({skill:1})}},
  {id:"caravanmarket",age:15,cat:"Pazar & Ticaret",icon:"🐫",name:"Kervan Pazarını Gez",desc:"Uzak malları ve kervanları tanı.",do:()=>{skillGain("trade",3);apply({skill:2,prestige:1})}},
- {id:"horsecare",age:8,cat:"Hayvanlar",icon:"🐎",name:"Atlarla İlgilen",desc:"At bakımı ve binicilik tecrübesi.",do:()=>{skillGain("riding",2);apply({happiness:2})}},
- {id:"herdcare",age:10,cat:"Hayvanlar",icon:"🐑",name:"Sürüyle İlgilen",desc:"Sürü yönetimini öğren.",do:()=>{skillGain("trade",1);apply({skill:2,wealth:1})}},
+ {id:"horsecare",age:8,cat:"Hayvanlar",icon:"🐎",name:"Atlarla İlgilen",desc:"At bakımı ve binicilik tecrübesi.",do:()=>{skillGain("riding",2+equipmentActivityEffect('horsecare'));apply({happiness:2})}},
+ {id:"herdcare",age:10,cat:"Hayvanlar",icon:"🐑",name:"Sürüyle İlgilen",desc:"Sürü yönetimini öğren.",do:()=>{skillGain("trade",1+equipmentActivityEffect('herdcare'));apply({skill:2,wealth:1})}},
  {id:"council",age:16,cat:"Boy & Devlet",icon:"🏕",name:"Kurultayı Dinle",desc:"Boy ve devlet işlerini takip et.",do:()=>{skillGain("literacy",1);skillGain("speech",1);apply({prestige:2,skill:2})}},
  {id:"petition",age:18,cat:"Boy & Devlet",icon:"📜",name:"Beyin Otağına Git",desc:"Görev ve anlaşmazlıkları takip et.",do:()=>{apply({prestige:2});skillGain("speech",2)}}
 ];
