@@ -59,6 +59,40 @@ button,input,select{font:inherit}
 .portrait.pose-forge .portrait-equipped.tool{transform:translate(4px,-7px) rotate(-18deg)}
 .portrait-equipped.tool{left:35px;bottom:1px;font-size:15px}.portrait-equipped.accessory{right:8px;bottom:25px;font-size:12px}
 
+
+/* v85: CSS-only temporary poses. Later pixel-art replaces the same keyed stances.
+   Props are never spawned: an active held icon requires real equipped gear. */
+.portrait-arm{position:absolute;z-index:3;width:12px;height:31px;top:68px;
+ background:var(--skin);border:1px solid #70452d60;border-radius:8px;
+ transform-origin:50% 8%;box-shadow:inset -2px 0 #0001;pointer-events:none}
+.portrait-arm.left{left:11px;transform:rotate(28deg)}
+.portrait-arm.right{right:11px;transform:rotate(-28deg)}
+.portrait.stance-archer .portrait-arm.left{top:57px;left:8px;transform:rotate(-63deg)}
+.portrait.stance-archer .portrait-arm.right{top:57px;right:6px;transform:rotate(58deg)}
+.portrait.stance-swordshield .portrait-arm.left,
+.portrait.stance-armed .portrait-arm.left,
+.portrait.stance-spearfighter .portrait-arm.left{top:61px;left:7px;transform:rotate(-58deg)}
+.portrait.stance-swordshield .portrait-arm.right{top:57px;right:6px;transform:rotate(58deg)}
+.portrait.stance-hammering .portrait-arm.right{top:57px;right:8px;transform:rotate(-66deg)}
+.portrait.stance-hammering .portrait-arm.left{top:66px;left:8px;transform:rotate(42deg)}
+.portrait.stance-riding .portrait-arm.left,.portrait.stance-herding .portrait-arm.left{transform:rotate(50deg)}
+.portrait.stance-writing .portrait-arm.right,.portrait.stance-trading .portrait-arm.right{top:65px;transform:rotate(-55deg)}
+.portrait.stance-bard .portrait-arm.left{top:62px;transform:rotate(65deg)}
+.portrait.stance-bard .portrait-arm.right{top:63px;transform:rotate(-64deg)}
+.portrait.stance-resting .portrait-arm,.portrait.stance-injured .portrait-arm{transform:rotate(8deg);opacity:.75}
+.portrait.stance-celebrating .portrait-arm.left{top:57px;transform:rotate(-105deg)}
+.portrait.stance-celebrating .portrait-arm.right{top:57px;transform:rotate(105deg)}
+.portrait-active-item{position:absolute;z-index:19;left:3px;bottom:8px;font-size:21px;
+ line-height:1;text-shadow:0 2px 3px #14130dd9;pointer-events:none}
+.portrait.stance-archer .portrait-active-item{left:25px;bottom:13px;transform:rotate(-30deg)}
+.portrait.stance-swordshield .portrait-active-item,.portrait.stance-armed .portrait-active-item,
+.portrait.stance-spearfighter .portrait-active-item{left:0;bottom:24px;transform:rotate(-30deg)}
+.portrait.stance-hammering .portrait-active-item{left:auto;right:3px;bottom:26px;transform:rotate(-23deg)}
+.portrait.stance-riding .portrait-active-item,.portrait.stance-herding .portrait-active-item,
+.portrait.stance-reaping .portrait-active-item{left:12px;bottom:8px}
+.portrait.stance-writing .portrait-active-item,.portrait.stance-trading .portrait-active-item,
+.portrait.stance-bard .portrait-active-item{left:28px;bottom:12px}
+
 .portrait-neck{position:absolute;width:24px;height:29px;left:31px;top:57px;background:var(--skin);border-radius:7px 7px 3px 3px;box-shadow:inset 0 -8px #0001}
 .portrait-head{position:absolute;width:52px;height:62px;left:17px;top:13px;background:var(--skin);border-radius:47% 47% 44% 44%;box-shadow:inset -4px -5px #0000000c,inset 3px 0 #fff1}
 .portrait.face-round .portrait-head{width:56px;height:58px;left:15px;border-radius:48%}
