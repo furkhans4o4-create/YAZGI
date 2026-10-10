@@ -3467,14 +3467,14 @@ function familyAncestralMemoryYearTick(){
 }
 function familyGenerationsSummaryHtml(){
  const f=ensureFamilyBranches(),all=[...s.children,...s.siblings],bonds=f.siblingBonds.filter(r=>all.some(n=>n.alive&&n.id===r.aId)&&all.some(n=>n.alive&&n.id===r.bId)).slice(0,6),anc=f.ancestralCare;
- if(!bonds.length&&!anc)return '';
+ if(!bonds.length&&!anc&&!f.siblingWillMemory.history.length&&!f.siblingHeritage?.history.length)return '';
  let html='<div class="card"><h3>🌿 Kardeş Bağları ve Kuşak Hatıraları</h3><p>Yetişkin kardeşler kendi kararlarıyla destekleşir ya da tartışır. Eski bakım hatıraları çocuklara kalabilir.</p></div>';
  if(bonds.length)html+='<div class="card"><h3>Kardeşlerin Kendi Hayatı</h3><p>'+bonds.map(r=>{
   const a=all.find(n=>n.id===r.aId),b=all.find(n=>n.id===r.bId),link=a&&b?socialLinkBetween(a,b):null;
   return safeText(a?.name||'Yakın')+' ↔ '+safeText(b?.name||'Yakın')+' • '+(r.status==='close'?'yakın':r.status==='strained'?'gergin':'değişken')+' • dayanışma '+r.cooperation+' • sürtüşme '+r.rivalry+(link?' • bağ '+link.score:'');
  }).join('<br>')+'</p></div>';
  if(anc)html+='<div class="card"><h3>Atalardan Gelen Bakım Hikâyeleri</h3><p>'+safeText(anc.originName)+' kuşağından '+anc.records.length+' bakım kaydı • anlatılan '+anc.stories+' hikâye. Çocuklar en erken 8 yaşında, aynı yerde yaşayan akrabalarından duyabilir.</p></div>';
- return html;
+ return html+familySiblingLegacyHtml();
 }
 
 /* v62: Yetişkin kardeşlerin gerçek NPC servetiyle aile içi yardım ve ödünç.
@@ -5035,7 +5035,7 @@ function adultChildrenSummaryHtml(){
    actionButton('Kardeşler arasında bakım nöbeti kur',{kind:'familyCareCircle',id:'start'},
     'familyCareCircleAction("start")','Bir ay • gönüllü kabul • üç ayda bir bakım ziyareti')+'</div>';
  }
- html+=familyCareLegacySummaryHtml()+familySiblingRepairHtml()+familySiblingLegacyHtml()+familySiblingRipplesHtml()+familyGrandchildLearningHtml()+familyGrandchildCareersHtml()+familyGrandchildHomesHtml()+familyFourthGenerationHtml()+familyIntergenerationalHtml()+familyCouncilHtml()+familyBudgetSummaryHtml()+familyHouseholdCrisisSummaryHtml()+familySiblingEconomySummaryHtml();
+ html+=familyCareLegacySummaryHtml()+familySiblingRepairHtml()+familySiblingRipplesHtml()+familyGrandchildLearningHtml()+familyGrandchildCareersHtml()+familyGrandchildHomesHtml()+familyFourthGenerationHtml()+familyIntergenerationalHtml()+familyCouncilHtml()+familyBudgetSummaryHtml()+familyHouseholdCrisisSummaryHtml()+familySiblingEconomySummaryHtml();
  html+='<div class="grid2">';
  const btn=(child,label,id,extra=null)=>{const issue=adultChildActionIssue(child.id,id,extra),x=JSON.stringify(extra);return '<button class="mini" '+(issue?'disabled':'')+' title="'+safeText(issue)+'" onclick=\'adultChildAction('+JSON.stringify(child.id)+','+JSON.stringify(id)+','+x+')\'>'+safeText(label)+'</button>';};
  html+=kids.map(child=>{const p=ensureAdultChildProfile(child),gcs=(child.descendants||[]).filter(g=>g?.alive),matches=!child.partner?.alive?adultChildMatchCandidates(child).slice(0,2):[],opp=adultChildCareerOpportunity(child),stewards=Object.entries(f.stewards).filter(([,id])=>id===child.id).map(([a])=>FAMILY_BRANCH_ENTERPRISES[a]?.name||a),inherit=Object.entries(f.assetHeirs).filter(([,id])=>id===child.id).map(([a])=>D.assets.find(x=>x.id===a)?.name||a);
