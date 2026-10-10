@@ -723,3 +723,12 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Dayanıklılık 20'nin altına düşen ekipmanın **mevcut iş/koruma avantajı ve aktif elde tutulan poz görünümü devre dışı kalır**. Eşya çantadan silinmez, dizilimlere geri dönebilir ve bakımla yeniden kullanılabilir.
 - Satın alınan eşyalar için **Bakım yap** komutu bir ay ve dayanıklılığa/ürün bedeline göre servet tüketir; her seferinde +45 dayanıklılık sağlar, 100'ü aşamaz. Parası olmayan, karar kartı bekleyen, tutsak veya seferdeki oyuncu bakım yapamaz. Mevcut varlıklar çift ücretlenmez; onların bakımı mevcut varlık bölümündedir.
 - Satılan eşyanın kondisyonu temizlenir, yeniden alınan ürün tam durumda gelir. v86→v87 geçişte `yazgi_before_v87` yedeği oluşturulur. 30 yeni v87 testi, önceki regresyon kapıları ve tam test paketi eklenmiştir.
+
+
+### v88 — Malzeme Kalitesi, Ustalık ve Sipariş Değeri
+
+- Demir ocağına gerçek stok ve satın alma bedeli olan **Arıtılmış Demir** ile **İşlenmiş Deri** eklendi. Var olan demir, kömür ve deri tarifleri korunur; yeni malzemeler yalnız oyuncu satın alırsa kullanılır.
+- Aynı müşterinin gerçek siparişi için üç dövme yöntemi bulunur: **Standart** (mevcut tarif), **Arıtılmış** (zanaat ≥35, 2 arıtılmış demir; +12 kalite) ve **Usta İşi** (zanaat ≥65, demircilik ustalığı ≥30; 2 arıtılmış demir + 1 işlenmiş deri; +18 kalite). İşçilik için temel tarif malzemeleri de gerekir.
+- Üretim sonucunda 0–100 kalite değeri ve **Ham iş / Sağlam / Nitelikli / Usta işi** sınıfı kalıcı kaydedilir. Düzeltme işleminden sonra ürünün sınıfı güncellenir. Gerçek ustalık, zanaat becerisi, atölye durumu, varsa çırak katkısı ve kuşanılmış çekiç mevcut kalite hesabına katılmaya devam eder.
+- Kalitesi müşterinin şartlarını geçen arıtılmış ve usta işi siparişler teslimde sırasıyla sipariş bedelinin %30 ve %55'i kadar ek ödeme alır (önceki 80+ kalite ödülü korunur). Başarısız ve teslim edilmemiş siparişler ödeme kazandırmaz. Üretilen yöntemin adı, kalite ve teslim bedeli sipariş defterinde kalıcıdır.
+- v87 kayıtlarının ürünleri kaybolmadan standart üretim yöntemiyle okunur; `yazgi_before_v88` ham kayıt yedeği oluşturulur. **22 yeni v88 testi** ile eski sürüm kapıları ve tam regresyon paketi çalıştırılır. Bu aşama müşteri siparişleri içindir; üretilen ürünlerin kişisel kuşanma sistemine aktarılması ayrıca geliştirilecektir.
