@@ -677,3 +677,13 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Karakterin rolü, yaşı, cinsiyeti, mevcut işi, savaşta/tutsak/hasta olma durumu ve **gerçekte kuşanılmış eşyaları** tek bir `characterVisualLoadout()` görünüş arayüzünden okunabilir; gerçek pixel art çizimleri ve yeni meslek modelleri **bu sürümün kapsamı dışındadır**.
 - Mevcut CSS portrede kuşanılmış silah/kalkan için geçici küçük simgeler ve kuşanılmış başlık gösterilir. Varlıklar ekranındaki çanta, pazar ve eşyalar bölümünden yönetim yapılır.
 - Kayıtlar `s.equipment` içinde saklanır; eski v81 kaydını ilk kez yüklerken `yazgi_before_v82` yedeği oluşturulur. 44 yeni v82 testi ve eski tüm testler çalıştırılır.
+
+
+### v83 — Meslek Aletlerinin Gerçek İş Sonuçları ve Durumsal Pozlar
+
+- **14 mevcut meslek** için gerçek kuşanılmış ilgili iş aleti tanımlandı; diğer meslek aletleri iş başarısını etkilemez. Yalnızca gerçekten sahip olunan, yaşa uygun ve doğru yuvaya kuşanılmış araç **+%3,5 iş başarı olasılığı** sağlar. Boş çanta, başka mesleğin aleti ve bakımsız yay/kılıç avantaj vermez. Temel kariyer yaş, beceri, sağlık ve tecrübe kontrolleri korunur.
+- **Demirci çekici**, ocakta gerçekten kuşanılmışsa sipariş dövme kalitesine **+4** verir; hem malzeme hem de ocak gereksinimleri aynı kalır. Çekiç sahibi olmak tek başına yetmez.
+- **Yay**, yaz avı başarı olasılığına **+%6**; kuşanılmış **yular** at bakımında, **çoban değneği** sürü işinde, **orak** kışlık hazırlığında **+1 ilgili beceri** kazandırabilir. Eşyalar bedava mal, hazine veya iş sonucu üretmez.
+- **Sefer sonu:** Kuşanılmış kalkanın tutsaklık eşiği **-%1,5**, bakımlı zırhın yaralanma eşiği **-%4** kadar düşebilir (mevcut asgari risk ve meclis politikaları korunur). Sadece satın alma koruma vermez.
+- **Görsel altyapı:** `characterVisualLoadout()` içinde demir dövme, at bakımı, sürü işi, av, yolculuk, savaş, hastalık, ölüm ve esaret gibi ayrı durum pozları bulunur. Bu adlar ilerideki kadın–erkek pixel art sprite katmanlarına bağlanabilecek; henüz yeni karakter çizimleri üretilmedi.
+- Oyuncunun görev sayfasında kuşanılmış işe uygun ekipman ve etkin bonusu görünür. Eski v82 kayıtları `yazgi_before_v83` adıyla ilk yüklemede yedeklenir. **43 yeni odaklı test** ve önceki regresyon kontrol kapıları çalıştırılır.
