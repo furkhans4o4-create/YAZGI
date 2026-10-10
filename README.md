@@ -610,3 +610,12 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - **Vasiyetin aileye yansıması:** Gerçekten yardımlaşmış, yaşayan, birlikte bulunan iki yetişkin çocuğun eski katkıları vasiyet görüşmesinde hatırlanır. Eşit paylaşım aile uyumuna **+2** etki edebilir; bunlardan yalnız birinin seçilmesi diğerinde hafif kırgınlık yaratabilir. Diğer varislere otomatik pay, ödeme veya geçersiz vasiyet yüklenmez. Bu tepki aynı yılda en fazla bir kez işlenir ve 12 yıl sonra artık tetiklenmez.
 - **Gençlerin özerk meslek seçimi:** v74'te kayda geçmiş gerçek meclis dersleri, dördüncü kuşak gencinin 18 yaşında kendi uygun mesleğini seçme olasılığına en fazla **+%8** katkıda bulunabilir. Asgari eğitim, beceri ve korunmuş meslek koşulları geçerlidir. Meclis çocuğa otomatik meslek dayatmaz ve etki on iki yıldan sonra sona erer.
 - Aile ekranında miras görüşmelerinin kaydı ve gerçek kararların etkileri görünür; v74'ten v75'e geçişte `yazgi_before_v75` kaydı oluşturulur. 33 özel regresyon testi, önceki sürümlerle birlikte koşulur.
+
+
+### v76 — Kardeş Rekabetinin Meslek, Hane ve Dördüncü Kuşağa Etkisi
+
+- Kardeşler arasındaki mevcut **gerçek ve son iki takvim yılına ait** ilişki kayıtları; yaşayan, aynı yerde bulunan yetişkin kardeşlerin karşılıklı güvenine ve husumetine göre `−1 / 0 / +1` aile ortamı göstergesi oluşturur. Yeni karakter veya hayalî ilişki kaydı oluşturulmaz. Uzaklık, ölüm, eski kayıt veya artık güvenilmeyen bağlar etkisiz kalır.
+- **Yetişkin torunların mesleği:** Yakın/gergin aile ortamı işe geri dönme ve terfi olasılığını en fazla **±%4,5**, iş kaybı riskini **±%0,8** değiştirir. Asıl beceri, tecrübe, iş yeri uygunluğu ve korunmuş meslek kararları geçerlidir. Otomatik terfi veya işsizlik dayatılmaz.
+- **Bağımsız hane:** Torunun kendi kararıyla ayrı eve çıkma veya ortak haneye dönme olasılığında aile ortamının etkisi en fazla **±%6** olur. Kira koşulları, gerçek varlık yeterliliği ve karar başına yıllık sınır korunur; bedelsiz mülk veya gelir üretilmez.
+- **Dördüncü kuşağın öğrenimi:** Aynı evren içindeki mevcut öğrenim ilerlemesi, gerçek ebeveynle ders gerçekleşiyorsa aile içi dayanışmaya göre yıllık **+1**, gerçek çatışmaya göre **−1** etkilenir. Var olan beceriler geri alınmaz ve yeni öğrenci yaratılmaz.
+- Yalnız gerçekleşmiş sonuçların `siblingRipples` aile kaydı oluşturulur; yıllık tekrarlar engellenir. Yetişkin Çocuklar ekranında katılan gerçek kişilerin isimleri ve sonuçlar görünür. v75 kayıtları `yazgi_before_v76` adıyla yedeklenir. Yeni 34 regresyon testi önceki testlerle birlikte çalıştırılır.
