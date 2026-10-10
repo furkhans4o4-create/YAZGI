@@ -667,3 +667,13 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 ### İleride EXE ve pixel art portre planı
 
 YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak yerine Windows için Electron paketleme değerlendirilecek. Kadın ve erkek karakterler, mesleğe göre kıyafet, başlık, zırh, silah ve iş aletleri; savaş/av/çalışma/hastalık durumlarına göre ayrı poz katmanlarıyla gösterilecek. Bu görseller henüz v81'de üretilmiş ya da oyuna entegre edilmiş değildir.
+
+
+### v82 — Sahip Olunan Eşyaların Kuşanılması ve Görünüş Hazırlığı
+
+- Mevcut gerçek `s.assets` **kılıç, yay ve zırh** varlıkları kuşanma sistemine bağlandı: iki kez satın alınmaz ve varlık satıldığında kuşanma otomatik kaldırılır. Eşya henüz edinilmediyse oyun kendiliğinden üretmez.
+- Silah, diğer el, zırh, başlık, iş aleti ve aksesuar için altı ayrı kuşanma yuvası vardır. Kalkan, mızrak, bıçak, orak, demirci çekici, çoban değneği, kopuz, bitig takımı, yular, terazi, börk, miğfer ve heybe gibi **13 yeni, ücretli fiziksel eşya** pazarda açılır.
+- Yeni eşya satın alma veya satma **bir ay** harcar; yaş ve servet kontrolünden geçer. Kuşanmak/çıkarmak ay hakkı tüketmez, fakat esaret, karar kartı, ölüm, yaş ve sahiplik kuralları uygulanır. İki elli yayla kalkan birlikte kuşanılamaz.
+- Karakterin rolü, yaşı, cinsiyeti, mevcut işi, savaşta/tutsak/hasta olma durumu ve **gerçekte kuşanılmış eşyaları** tek bir `characterVisualLoadout()` görünüş arayüzünden okunabilir; gerçek pixel art çizimleri ve yeni meslek modelleri **bu sürümün kapsamı dışındadır**.
+- Mevcut CSS portrede kuşanılmış silah/kalkan için geçici küçük simgeler ve kuşanılmış başlık gösterilir. Varlıklar ekranındaki çanta, pazar ve eşyalar bölümünden yönetim yapılır.
+- Kayıtlar `s.equipment` içinde saklanır; eski v81 kaydını ilk kez yüklerken `yazgi_before_v82` yedeği oluşturulur. 42 yeni v82 testi ve eski tüm testler çalıştırılır.
