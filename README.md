@@ -687,3 +687,13 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - **Sefer sonu:** Kuşanılmış kalkanın tutsaklık eşiği **-%1,5**, bakımlı zırhın yaralanma eşiği **-%4** kadar düşebilir (mevcut asgari risk ve meclis politikaları korunur). Sadece satın alma koruma vermez.
 - **Görsel altyapı:** `characterVisualLoadout()` içinde demir dövme, at bakımı, sürü işi, av, yolculuk, savaş, hastalık, ölüm ve esaret gibi ayrı durum pozları bulunur. Bu adlar ilerideki kadın–erkek pixel art sprite katmanlarına bağlanabilecek; henüz yeni karakter çizimleri üretilmedi.
 - Oyuncunun görev sayfasında kuşanılmış işe uygun ekipman ve etkin bonusu görünür. Eski v82 kayıtları `yazgi_before_v83` adıyla ilk yüklemede yedeklenir. **43 yeni odaklı test** ve önceki regresyon kontrol kapıları çalıştırılır.
+
+
+### v84 — Kadın-Erkek Meslek Kıyafetleri ve Duruma Göre Portre Katmanları
+
+- Var olan **14 meslek + sivil yaşam** için iki cinsiyete göre ayrı kıyafet kimlikleri, görünüm biçimleri, renkler ve meslek ortamları hazırlandı. Rol değiştirince kostüm de otomatik değişir. Bebeklikte sivil kıyafet gösterilir.
+- Portrede CSS ile çizilen iş önlüğü, kaftan, seyis giysisi, avcı derisi, çoban yeleği ve yol kıyafeti görünür. Bunlar **gerçek pixel art dosyası değil**, sprite üretimine kadar bekleme görselleridir.
+- Rol ile varsayılan çevre (oba, bozkır, avlak, atlık, pazar, demir ocağı, yol) eşleştirilir. Anlık savaş, dövme, av, hastalık, tutsaklık ve ölüm pozları çevreyi öncelikli olarak değiştirir.
+- **Sahiplik gerçeği korunur:** Meslek kıyafeti ücretsiz savaş zırhına dönüşmez. Zırh yalnız elde edilip kuşanıldıysa, miğfer yalnız gerçekten kuşanıldıysa görünür. Silahlar, kalkan, çalışma araçları ve aksesuarlar gerçek kuşanma yuvasından okunur. Tutsakken veya ölümden sonra teçhizat görüntüsü gizlenir, asıl kayıt keyfi biçimde silinmez.
+- Gelecekteki kadın/erkek pixel art çizimleri için `characterVisualLoadout().spriteKeys` içinde gövde, kostüm, poz, arka plan, zırh, başlık, silah, kalkan, iş aleti ve aksesuar katmanlarının **dosya kimlikleri** üretilir. Bunlar henüz gerçek görsel URL'si veya mevcut dosya değildir.
+- Mevcut HTML/JavaScript sürer. `yazgi_before_v84` eski kayıt yedeği ve **43 yeni v84 testi** eklendi. Gerçek sprite üretimi, daha fazla meslek ve Electron Windows EXE paketlemesi gelecek aşamalardır.

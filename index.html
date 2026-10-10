@@ -23,6 +23,42 @@ button,input,select{font:inherit}
 .avatar{width:96px;height:96px;border-radius:50%;display:grid;place-items:center;margin:auto;background:radial-gradient(circle,#e4ce98,#9d7740);border:5px solid #f8edd0;overflow:hidden;position:relative}
 .portrait{width:86px;height:86px;position:relative;overflow:hidden;border-radius:50%;--skin:#c99565}
 .portrait.skin-light{--skin:#e7bd91}.portrait.skin-wheat{--skin:#c99565}.portrait.skin-tan{--skin:#a97349}.portrait.skin-deep{--skin:#754b34}
+
+/* v84: CSS preview silhouettes, all backed by a real career. Sprite keys in
+   characterVisualLoadout() can later replace these without changing gameplay. */
+.portrait{background:radial-gradient(circle at 75% 18%,#ffe0a7 0 13%,transparent 14%),linear-gradient(#9dc5bb 0 62%,#bd9a64 63% 100%)}
+.portrait.scene-pasture{background:linear-gradient(#a9cad0 0 58%,#83a26d 59%,#9c9861 100%)}
+.portrait.scene-forest{background:linear-gradient(#749b8c 0 45%,#486d59 46%,#82936b 100%)}
+.portrait.scene-stable{background:linear-gradient(#baa77f 0 45%,#7c6347 46%,#a08765 100%)}
+.portrait.scene-forge{background:radial-gradient(circle at 14% 82%,#dc8241,#804b32 36%,#3d4141 75%)}
+.portrait.scene-camp{background:linear-gradient(#adc5bd 0 52%,#baab81 53%,#8c805f 100%)}
+.portrait.scene-market{background:linear-gradient(#c8c4b1 0 52%,#aa886b 53%,#91816a 100%)}
+.portrait.scene-road{background:linear-gradient(#b7c7b1 0 55%,#ae9b74 56%,#998060 100%)}
+.portrait.scene-battlefield{background:linear-gradient(#8f9b94 0 48%,#837e6e 49%,#9e856d 100%)}
+.portrait.scene-sickroom{background:linear-gradient(#aaa698,#847966)}
+.portrait.scene-captivity{background:repeating-linear-gradient(90deg,#615b56 0 18px,#76706a 19px 21px)}
+.portrait.scene-memorial{background:linear-gradient(#787d76,#a7a38b)}
+.portrait-garment{position:absolute;z-index:1;left:5px;top:65px;width:76px;height:38px;
+ background:var(--outfit-base,#857156);border:2px solid #382e2547;
+ border-radius:44% 44% 12% 12%;box-shadow:inset 0 5px #ffffff14;pointer-events:none}
+.portrait-garment:before{content:"";position:absolute;top:-2px;left:28px;width:16px;height:13px;border:3px solid var(--outfit-trim,#d5b989);
+ border-radius:0 0 10px 10px;border-top:0}
+.portrait-garment:after{content:"";position:absolute;top:10px;left:36px;width:3px;height:23px;background:var(--outfit-trim,#d5b989);opacity:.85}
+.portrait-garment.shape-robe{left:7px;width:72px;top:65px;border-radius:32% 32% 7% 7%;clip-path:polygon(19% 0,81% 0,100% 100%,0 100%)}
+.portrait-garment.shape-vest{left:9px;width:68px;background:linear-gradient(90deg,#392d2480 0 18%,var(--outfit-base) 19% 81%,#392d2480 82%)}
+.portrait-garment.shape-leather{border:3px solid #4f3926;box-shadow:inset 0 6px #987453}
+.portrait-garment.shape-apron{left:8px;width:70px;background:linear-gradient(90deg,var(--outfit-base) 0 26%,#4b392c 27% 73%,var(--outfit-base) 74%);border-color:#c1a080}
+.portrait-garment.shape-kaftan{border-color:var(--outfit-trim);box-shadow:inset 0 5px #efe0b31d}
+.portrait-garment.shape-rider{left:7px;width:72px;border-radius:38% 38% 15% 15%;border-width:3px}
+.portrait.gender-female .portrait-garment.shape-robe{top:64px;width:74px;left:6px}
+.portrait-armor{position:absolute;z-index:2;left:8px;top:67px;width:70px;height:30px;
+ background:repeating-linear-gradient(0deg,#58615e 0 5px,#929b96 6px 9px);
+ border:2px solid #394542;border-radius:27% 27% 9% 9%;box-shadow:inset 0 3px #d0d3c450}
+.portrait.pose-battle .portrait-equipped.weapon{transform:translate(-1px,-6px) rotate(-24deg)}
+.portrait.pose-battle .portrait-equipped.offhand{transform:translate(0,-4px) rotate(15deg)}
+.portrait.pose-forge .portrait-equipped.tool{transform:translate(4px,-7px) rotate(-18deg)}
+.portrait-equipped.tool{left:35px;bottom:1px;font-size:15px}.portrait-equipped.accessory{right:8px;bottom:25px;font-size:12px}
+
 .portrait-neck{position:absolute;width:24px;height:29px;left:31px;top:57px;background:var(--skin);border-radius:7px 7px 3px 3px;box-shadow:inset 0 -8px #0001}
 .portrait-head{position:absolute;width:52px;height:62px;left:17px;top:13px;background:var(--skin);border-radius:47% 47% 44% 44%;box-shadow:inset -4px -5px #0000000c,inset 3px 0 #fff1}
 .portrait.face-round .portrait-head{width:56px;height:58px;left:15px;border-radius:48%}
