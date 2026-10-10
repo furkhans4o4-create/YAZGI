@@ -654,3 +654,16 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - Oyuncu yeniden buluşma önerebilir, çocuğu dinleyebilir veya kararı onlara bırakabilir. **İki tarafın ayrı rızası** gerekir; reddedilirse bağ zorla değişmez.
 - Her seçenek bir ay harcar. Altı yıllık geçmiş sınırı, açık olay için iki yıllık süre, gerçek kimlik/ölüm/bölge ve tekrar kontrolleri vardır.
 - Aile ekranında gerçek buluşmalar, retler ve dinleme sonuçları gösterilir. Yapay NPC, servet veya mülk üretilmez. Eski v79 kayıtları ayrı yazgi_before_v80 yedeğiyle korunur.
+
+
+### v81 — Gençlerin Kendi Akrabalık Bağlarını Kurması
+
+- Yalnız v79'da gerçekten kabul edilmiş, yaşayan çocuk–amca/dayı/hala/teyze buluşmasından sonra 14 yaşına erişen gençler en erken **sonraki yıldan itibaren** kendi bağlarını sürdürebilir. Aynı yıl ikinci otomatik temas yoktur.
+- v80'de **karar bekleyen ikinci buluşma** çözülmeden bağımsız ilerleme olmaz. Taraflardan birinin kayda geçmiş açık reddi, otomatik yakınlaştırmayı durdurur.
+- Her yıl iki tarafın **ayrı tercihleri** hesaplanır. İki taraf da isterse küçük ve gerçek sosyal bağ güçlenmesi; istemezlerse zoraki kin olmadan sessizlik; üst üste üç sessiz yılda en fazla bir puan yakınlık azalması. Ölüm, farklı bölge, tutsaklık ve görüşmeye engel yaşam durumları korunur.
+- Başlangıçtaki kabul tarihinden on yıl sonra otomatik yakınlaşma kapanır. Kimseye servet, eşya, rızasız meslek, yapay akraba veya ücretsiz hak üretilmez; oyuncunun yıllık 12 hakkı harcanmaz.
+- Aile ekranında durum, iki gerçek isim, bağımsız görüşme sayısı ve yakın tarihçe görünür. Kayıtlar sınırlı `familyEcho.kinPaths` arşivinde tutulur; eski v80 kayıtları için `yazgi_before_v81` yedeği oluşturulur. 30 yeni test ve tam regresyon paketi ile sınanır.
+
+### İleride EXE ve pixel art portre planı
+
+YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak yerine Windows için Electron paketleme değerlendirilecek. Kadın ve erkek karakterler, mesleğe göre kıyafet, başlık, zırh, silah ve iş aletleri; savaş/av/çalışma/hastalık durumlarına göre ayrı poz katmanlarıyla gösterilecek. Bu görseller henüz v81'de üretilmiş ya da oyuna entegre edilmiş değildir.
