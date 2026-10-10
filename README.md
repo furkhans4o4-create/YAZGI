@@ -646,3 +646,11 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - Bütün seçeneklerde **bir ay** harcanır. Aynı çocuk-akraba hikâyesinden tek olay çıkar; görüşülmezse iki yıl sonra olay **kin veya zorlama üretmeden** kapanır. Ölüm, uzaklaşma, uygun olmayan yaş, sahte NPC ve geçersiz aile belleği kontrol edilir.
 - Olayın kişi ID'leri, sonucu, gerçek buluşma veya ret ve kapanma gerekçesi `familyEcho` arşivinde tutulur. Mevcut yaşanmış miras payları, servet, mülk ve soy ağacı değişmez.
 - Kayıt yükseltmesinde `yazgi_before_v79` güvenlik yedeği oluşturulur. 40 yeni bağımsız test eski sürüm regresyonlarıyla birlikte çalıştırılır.
+
+
+### v80 — Aile Buluşmalarının Yıllar Sonraki Gönüllü Devamı
+
+- Yalnız v79'da karşılıklı kabul edilmiş, kayıtlı aile buluşmasından **en erken sonraki yıl** ve çocuk en az **14 yaşındayken** tek bir takip olayı oluşabilir. Önceki ret ikinci görüşme oluşturmaz.
+- Oyuncu yeniden buluşma önerebilir, çocuğu dinleyebilir veya kararı onlara bırakabilir. **İki tarafın ayrı rızası** gerekir; reddedilirse bağ zorla değişmez.
+- Her seçenek bir ay harcar. Altı yıllık geçmiş sınırı, açık olay için iki yıllık süre, gerçek kimlik/ölüm/bölge ve tekrar kontrolleri vardır.
+- Aile ekranında gerçek buluşmalar, retler ve dinleme sonuçları gösterilir. Yapay NPC, servet veya mülk üretilmez. Eski v79 kayıtları ayrı yazgi_before_v80 yedeğiyle korunur.
