@@ -2734,7 +2734,7 @@ function familyBranchYearTick(){
  }
  for(const [asset,id] of Object.entries({...f.stewards}))if(!adultChildById(id)||!s.assets.includes(asset))delete f.stewards[asset];
  for(const [asset,id] of Object.entries({...f.assetHeirs}))if(!adultChildById(id)||!s.assets.includes(asset))delete f.assetHeirs[asset];
- familyCareLegacyYearTick();familySiblingYearTick();familyAncestralMemoryYearTick();familyHouseholdCrisisYearTick();familyGrandchildEducationYearTick();familyGrandchildApprenticeshipYearTick();familyGrandchildCareersYearTick();familyGrandchildHomesYearTick();familyFourthGenerationYearTick();familyIntergenerationalBondsYearTick();familyCouncilYearTick();familyBudgetYearTick();familySiblingEconomyYearTick();
+ familyCareLegacyYearTick();familySiblingRepairYearTick();familySiblingYearTick();familyAncestralMemoryYearTick();familyHouseholdCrisisYearTick();familyGrandchildEducationYearTick();familyGrandchildApprenticeshipYearTick();familyGrandchildCareersYearTick();familyGrandchildHomesYearTick();familyFourthGenerationYearTick();familyIntergenerationalBondsYearTick();familyCouncilYearTick();familyBudgetYearTick();familySiblingEconomyYearTick();
 }
 function adultChildActionIssue(childId,id,extra=null){
  const child=adultChildById(childId);if(!child)return '18 yaşını geçmiş yaşayan bir çocuğun gerekiyor.';if(npcLifeBlocksNormalInteraction(child))return npcNormalInteractionIssue(child);
@@ -3136,6 +3136,137 @@ function familySiblingRipplesHtml(){
     ' • '+(h.climate>0?'dayanışma':'rekabet')+' • '+(parent?.name||'Aile büyüğü')+
     ': '+h.note);
   }).join('<br>')+'</p></div>';
+}
+/* v77: repairing a documented adult-sibling rift takes two separate years
+   and explicit agreement from both people at each step. */
+function familySiblingRepairPair(aId,bId){
+ const key=socialKey(aId,bId);
+ if(!key)return null;
+ return ensureFamilyBranches().siblingHealing.pairs.find(p=>socialKey(p.aId,p.bId)===key)||null;
+}
+function familySiblingRepairIssue(aId,bId,mode){
+ if(!['talk','followup'].includes(mode))return 'Bu kardeş görüşmesi bilinmiyor.';
+ if(s.age<18)return 'Bu görüşmeyi yetişkin bir ebeveyn yürütmeli.';
+ const a=s.children.find(n=>n.id===aId),b=s.children.find(n=>n.id===bId);
+ if(!a?.alive||!b?.alive||a.id===b.id||a.age<18||b.age<18)
+  return 'Birbirinden farklı, yaşayan iki yetişkin çocuğun gerekiyor.';
+ if([a,b].some(n=>n.place!==s.place||n.realm!==s.realm||npcLifeBlocksNormalInteraction(n)))
+  return 'Her iki kardeşin de seninle aynı yerde ve görüşmeye uygun olması gerekir.';
+ const f=ensureFamilyBranches(),key=socialKey(a,b),
+  bond=f.siblingBonds.find(p=>socialKey(p.aId,p.bId)===key),
+  link=socialLinkBetween(a,b),rec=f.siblingHealing.pairs.find(p=>socialKey(p.aId,p.bId)===key),
+  year=s.year+s.age;
+ if(!bond||!link)return 'Kardeşler arasında henüz gözlemlenmiş bir ilişki bulunmuyor.';
+ if(rec?.lastAttemptYear===year)return 'Kardeşlerle bu yıl zaten görüştün.';
+ if(mode==='talk'){
+  if(rec?.stage===1&&rec.status==='talking'&&year<=rec.startedYear+3)
+   return 'İlk görüşme yapıldı; güveni yeniden konuşmak için sonraki yılı bekle.';
+  if(bond.status!=='strained'&&link.grudge<40&&link.score>15)
+   return 'Şu anda onarılacak belirgin bir kardeş kırgınlığı bulunmuyor.';
+ }else{
+  if(rec?.stage!==1||rec.status!=='talking')return 'Önce iki kardeşin de ilk görüşmeyi kabul etmesi gerekir.';
+  if(year<=rec.startedYear)return 'İkinci görüşme en erken sonraki yıl yapılabilir.';
+  if(year>rec.startedYear+3)return 'İlk anlaşmanın süresi doldu; yeni bir görüşmeyle başlanmalı.';
+ }
+ return '';
+}
+function familySiblingRepairNote(e,a,b,type,note){
+ e.history.unshift({year:s.year+s.age,aId:a.id,bId:b.id,type,note});
+ e.history=e.history.slice(0,40);
+}
+function familySiblingRepairAction(aId,bId,mode){
+ const issue=familySiblingRepairIssue(aId,bId,mode);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'familySiblingRepair',aId,bId,id:mode},()=>{
+  const f=ensureFamilyBranches(),e=f.siblingHealing,year=s.year+s.age,
+   a=s.children.find(n=>n.id===aId),b=s.children.find(n=>n.id===bId),
+   key=socialKey(a,b),bond=f.siblingBonds.find(p=>socialKey(p.aId,p.bId)===key);
+  let rec=e.pairs.find(p=>socialKey(p.aId,p.bId)===key);
+  if(!rec){
+   const ids=key.split('|');
+   rec={aId:ids[0],bId:ids[1],stage:0,status:'expired',startedYear:null,lastAttemptYear:null,refusals:0};
+   e.pairs.unshift(rec);e.pairs=e.pairs.slice(0,24);
+  }
+  e.offers++;rec.lastAttemptYear=year;
+  const link=socialLinkBetween(a,b),trust=(normalizeBonds(a).trust+normalizeBonds(b).trust)/2,
+   chance=Math.max(.12,Math.min(.91,.30+trust/450+(a.rel+b.rel)/1400+
+    (s.skills?.speech||0)/850-(link?.grudge||0)/650));
+  // The two independent draws represent two independent choices.
+  const consentA=Math.random()<chance,consentB=Math.random()<chance;
+  if(!consentA||!consentB){
+   rec.refusals++;e.refusals++;
+   if(mode==='talk'){rec.stage=0;rec.status='refused';}
+   familySiblingRepairNote(e,a,b,'refused',
+    'Kardeşler bu yıl '+(mode==='talk'?'ilk görüşmede':'ikinci görüşmede')+' ortak karar veremedi; barışma dayatılmadı.');
+   return;
+  }
+  e.agreements++;
+  if(mode==='talk'){
+   rec.stage=1;rec.status='talking';rec.startedYear=year;
+   adjustSocialLink(a,b,{score:15,trust:15,grudge:-18,tag:'kin'},
+    'İki kardeş kendi istekleriyle ilk barışma görüşmesini yaptı.');
+   bond.lastReason='Kardeşler yeniden konuşmaya başladı.';
+   familySiblingRepairNote(e,a,b,'talk',
+    a.name+' ile '+b.name+' eski kırgınlığı konuştu; güvenin onarılması zaman alacak.');
+  }else{
+   rec.stage=2;rec.status='reconciled';e.reconciled++;
+   adjustSocialLink(a,b,{score:30,trust:24,grudge:-30,tag:'kin'},
+    'İki kardeş sonraki yıl kendi istekleriyle uzlaşmayı sürdürdü.');
+   bond.lastReason='Kardeşler karşılıklı rızayla güveni yeniden kurdu.';
+   familySiblingRepairNote(e,a,b,'followup',
+    a.name+' ile '+b.name+' bir yıl sonra yeniden buluşup barışmayı güçlendirdi.');
+  }
+  const current=socialLinkBetween(a,b);
+  bond.status=current.score>=45&&current.trust>=52?'close':
+   current.score<=15||current.grudge>=45?'strained':'neutral';
+  // Count a genuine meeting as this year's sibling relation observation.
+  bond.lastYear=year;
+  rememberNPC(a,'family',bond.lastReason,3);rememberNPC(b,'family',bond.lastReason,3);
+ },'Kardeşlerin birbirini dinlemesi için bir ay ayırdın.');
+}
+function familySiblingRepairYearTick(){
+ const e=ensureFamilyBranches().siblingHealing,year=s.year+s.age;
+ for(const r of e.pairs){
+  if(r.status!=='talking'||r.stage!==1)continue;
+  const a=s.children.find(n=>n.id===r.aId),b=s.children.find(n=>n.id===r.bId);
+  if(year<=r.startedYear+3&&a?.alive&&b?.alive)continue;
+  r.status='expired';r.stage=0;e.expired++;
+  e.history.unshift({year,aId:r.aId,bId:r.bId,type:'expired',
+   note:'İlk görüşmeden sonraki buluşma gerçekleşmedi veya taraflardan biri artık yaşamıyor.'});
+  e.history=e.history.slice(0,40);
+ }
+}
+function familySiblingRepairHtml(){
+ const f=ensureFamilyBranches(),e=f.siblingHealing,year=s.year+s.age;
+ const eligible=f.siblingBonds.filter(p=>{
+  const a=s.children.find(n=>n.id===p.aId),b=s.children.find(n=>n.id===p.bId);
+  if(!a?.alive||!b?.alive)return false;
+  const link=socialLinkBetween(a,b),r=e.pairs.find(x=>socialKey(x.aId,x.bId)===socialKey(a,b));
+  return p.status==='strained'||(link&&(link.grudge>=40||link.score<=15))||
+   r?.status==='talking'&&year<=r.startedYear+3;
+ }).slice(0,8);
+ if(!eligible.length&&!e.history.length)return '';
+ let html='<div class="card"><h3>🤝 Kardeşlerin Güvenini Onarma</h3><p>'+
+  'Görüşme '+e.offers+' • kabul '+e.agreements+' • iki aşamalı uzlaşma '+
+  e.reconciled+' • ret '+e.refusals+' • süresi dolan '+e.expired+
+  '<br>İki yetişkin kardeşin ayrı ayrı kabul etmesi gerekir. İkinci görüşme ancak sonraki yıl yapılabilir; ilk konuşma tek başına barışma sayılmaz.</p>';
+ for(const p of eligible){
+  const a=s.children.find(n=>n.id===p.aId),b=s.children.find(n=>n.id===p.bId);
+  if(!a||!b)continue;
+  const r=e.pairs.find(x=>socialKey(x.aId,x.bId)===socialKey(a,b));
+  const mode=r?.status==='talking'&&r.stage===1?'followup':'talk',issue=familySiblingRepairIssue(a.id,b.id,mode);
+  html+='<p>'+safeText(a.name)+' ↔ '+safeText(b.name)+' • '+
+   (r?.status==='talking'?'ilk görüşme yapıldı':p.status==='strained'?'kırgınlık sürüyor':'ilişki onarılıyor')+
+   (issue?' • '+safeText(issue):'')+'</p>';
+  if(!issue)html+=actionButton(mode==='talk'?'İlk barışma görüşmesini yap':'Sonraki yıl yeniden görüş',
+   {kind:'familySiblingRepair',aId:a.id,bId:b.id,id:mode},
+   'familySiblingRepairAction('+JSON.stringify(a.id)+','+JSON.stringify(b.id)+','+JSON.stringify(mode)+')',
+   'Bir ay • iki kardeşin ayrı ayrı rızası gerekir');
+ }
+ html+='</div>';
+ if(e.history.length)html+='<div class="card"><h3>Güvenin Onarım Geçmişi</h3><p>'+
+  e.history.slice(0,6).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p></div>';
+ return html;
 }
 function familySiblingYearTick(){
  const f=ensureFamilyBranches(),year=s.year+s.age,groups=[s.children.filter(n=>n?.alive&&n.age>=18),s.siblings.filter(n=>n?.alive&&n.age>=18)];
@@ -4762,7 +4893,7 @@ function adultChildrenSummaryHtml(){
    actionButton('Kardeşler arasında bakım nöbeti kur',{kind:'familyCareCircle',id:'start'},
     'familyCareCircleAction("start")','Bir ay • gönüllü kabul • üç ayda bir bakım ziyareti')+'</div>';
  }
- html+=familyCareLegacySummaryHtml()+familySiblingRipplesHtml()+familyGrandchildLearningHtml()+familyGrandchildCareersHtml()+familyGrandchildHomesHtml()+familyFourthGenerationHtml()+familyIntergenerationalHtml()+familyCouncilHtml()+familyBudgetSummaryHtml()+familyHouseholdCrisisSummaryHtml()+familySiblingEconomySummaryHtml();
+ html+=familyCareLegacySummaryHtml()+familySiblingRepairHtml()+familySiblingRipplesHtml()+familyGrandchildLearningHtml()+familyGrandchildCareersHtml()+familyGrandchildHomesHtml()+familyFourthGenerationHtml()+familyIntergenerationalHtml()+familyCouncilHtml()+familyBudgetSummaryHtml()+familyHouseholdCrisisSummaryHtml()+familySiblingEconomySummaryHtml();
  html+='<div class="grid2">';
  const btn=(child,label,id,extra=null)=>{const issue=adultChildActionIssue(child.id,id,extra),x=JSON.stringify(extra);return '<button class="mini" '+(issue?'disabled':'')+' title="'+safeText(issue)+'" onclick=\'adultChildAction('+JSON.stringify(child.id)+','+JSON.stringify(id)+','+x+')\'>'+safeText(label)+'</button>';};
  html+=kids.map(child=>{const p=ensureAdultChildProfile(child),gcs=(child.descendants||[]).filter(g=>g?.alive),matches=!child.partner?.alive?adultChildMatchCandidates(child).slice(0,2):[],opp=adultChildCareerOpportunity(child),stewards=Object.entries(f.stewards).filter(([,id])=>id===child.id).map(([a])=>FAMILY_BRANCH_ENTERPRISES[a]?.name||a),inherit=Object.entries(f.assetHeirs).filter(([,id])=>id===child.id).map(([a])=>D.assets.find(x=>x.id===a)?.name||a);
@@ -9226,6 +9357,7 @@ function accessIssue(a){
  }else if(a.kind==='adultChild'){const issue=adultChildActionIssue(a.childId,a.id,a.extra??null);if(issue)return issue;min=18;
  }else if(a.kind==='familyCareCircle'){const issue=familyCareCircleIssue(a.id,a.childId??null);if(issue)return issue;min=18;
  }else if(a.kind==='familyCareLegacy'){const issue=familyCareLegacyIssue(a.legacyId,a.id);if(issue)return issue;min=18;
+ }else if(a.kind==='familySiblingRepair'){const issue=familySiblingRepairIssue(a.aId,a.bId,a.id);if(issue)return issue;min=18;
   }else if(a.kind==='grandchildEducation'){const issue=familyGrandchildEducationIssue(a.grandId,a.field);if(issue)return issue;min=18;
   }else if(a.kind==='grandchildCare'){const issue=familyGrandchildCareIssue(a.grandId,a.helperId);if(issue)return issue;min=18;
   }else if(a.kind==='grandchildApprentice'){const issue=familyGrandchildApprenticeIssue(a.grandId,a.mentorId);if(issue)return issue;min=18;
