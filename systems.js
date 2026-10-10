@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=84,ADULT_AGE=18;
+const SAVE_VERSION=85,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -6278,11 +6278,13 @@ function appearanceHairTone(){const base={black:'#211b16',darkbrown:'#3a2b21',br
 function appearanceAvatarHtml(){
  const a=ensureAppearance(),visual=characterVisualLoadout(),headwear=visual.headwear,band=appearanceAgeBand(),grey=appearanceGreyLevel(),scars=appearanceScarCount(),showBeard=s.gender==='male'&&s.age>=16&&a.beard!=='none',ageLines=s.age>=45?Math.min(3,1+Math.floor((s.age-45)/15)):0;
  return '<div class="portrait age-'+band+' face-'+a.face+' skin-'+a.skin+' hair-'+a.hair+
-  ' outfit-'+visual.costume.roleId+' gender-'+visual.gender+' pose-'+visual.pose+' scene-'+visual.scene+
+  ' outfit-'+visual.costume.roleId+' gender-'+visual.gender+' pose-'+visual.pose+
+  ' stance-'+visual.stance+' scene-'+visual.scene+
   ' '+(s.health<30?'portrait-sick ':'')+(s.captive?'portrait-captive ':'')+
   '" style="--outfit-base:'+visual.costume.base+';--outfit-trim:'+visual.costume.trim+'">'+
   '<div class="portrait-garment shape-'+visual.costume.shape+'" title="'+safeText(visual.costume.label)+'"></div>'+
   (visual.visibleEquipment&&visual.slots.body==='armor'?'<div class="portrait-armor"></div>':'')+
+  '<div class="portrait-arm left"></div><div class="portrait-arm right"></div>'+
   '<div class="portrait-neck"></div><div class="portrait-head"><div class="portrait-hair" style="--hair:'+appearanceHairTone()+'"></div><div class="portrait-brow left"></div><div class="portrait-brow right"></div><div class="portrait-eye left"></div><div class="portrait-eye right"></div><div class="portrait-nose"></div><div class="portrait-mouth"></div>'+
   (showBeard?'<div class="portrait-beard beard-'+a.beard+'" style="--hair:'+appearanceHairTone()+'"></div>':'')+
   Array.from({length:ageLines},(_,i)=>'<i class="portrait-age-line line-'+(i+1)+'"></i>').join('')+
@@ -6292,6 +6294,7 @@ function appearanceAvatarHtml(){
   (visual.visibleEquipment&&visual.slots.offhand?'<span class="portrait-equipped offhand">'+equipmentDef(visual.slots.offhand).icon+'</span>':'')+
   (visual.visibleEquipment&&visual.slots.tool?'<span class="portrait-equipped tool">'+equipmentDef(visual.slots.tool).icon+'</span>':'')+
   (visual.visibleEquipment&&visual.slots.accessory?'<span class="portrait-equipped accessory">'+equipmentDef(visual.slots.accessory).icon+'</span>':'')+
+  (visual.activeItem?'<span class="portrait-active-item" title="'+safeText(PORTRAIT_STANCE_LABELS[visual.stance])+'">'+equipmentDef(visual.activeItem).icon+'</span>':'')+
   (!s.alive?'<div class="portrait-status">†</div>':s.captive?'<div class="portrait-status">⛓</div>':'')+
   '<span class="portrait-grey-dot" title="Ağarma '+grey+'"></span></div>';
 }
@@ -6302,7 +6305,8 @@ function tickAppearanceMonth(action={}){const a=ensureAppearance();if(action.kin
 function appearanceSummaryHtml(){
  const a=ensureAppearance(),scar=appearanceScarCount(),grey=appearanceGreyLevel(),visual=characterVisualLoadout();
  const select=(group,label)=>'<div class="card"><h3>'+label+'</h3><div class="actions">'+APPEARANCE_OPTIONS[group].map(x=>{const active=a[group]===x.id,allowed=appearanceChoiceAllowed(group,x.id);return '<button class="mini '+(active?'active':'')+'" '+(!allowed?'disabled':'')+' onclick="setAppearancePart('+JSON.stringify(group)+','+JSON.stringify(x.id)+')">'+safeText(x.name)+(active?' ✓':'')+'</button>';}).join('')+'</div></div>';
- return '<div class="card"><h3>🪞 Görünüş</h3><div class="appearancePreview">'+appearanceAvatarHtml()+'</div><p>'+safeText(visual.costume.label)+' • '+safeText(PORTRAIT_SCENE_LABELS[visual.scene])+' • '+safeText(visual.gender==='female'?'Kadın':'Erkek')+'<br>'+appearanceConditionLabel()+' • bakım '+a.care+'/100 • ağarma '+grey+'/100 • görünen yara izi '+scar+'</p>'+actionButton('Bakım yap',{kind:'appearance',id:'groom'},"groomAppearance()",'Bir ay sürer • bakım, dirlik ve küçük itibar artışı')+'</div><div class="grid2">'+select('face','Yüz yapısı')+select('skin','Ten tonu')+select('hair','Saç')+select('hairColor','Saç rengi')+select('beard','Sakal / bıyık')+select('headwear','Başlık')+'</div>';
+ return '<div class="card"><h3>🪞 Görünüş</h3><div class="appearancePreview">'+appearanceAvatarHtml()+'</div><p>'+safeText(visual.costume.label)+' • '+safeText(PORTRAIT_SCENE_LABELS[visual.scene])+' • '+safeText(visual.gender==='female'?'Kadın':'Erkek')+
+  ' • '+safeText(PORTRAIT_STANCE_LABELS[visual.stance])+'<br>'+appearanceConditionLabel()+' • bakım '+a.care+'/100 • ağarma '+grey+'/100 • görünen yara izi '+scar+'</p>'+actionButton('Bakım yap',{kind:'appearance',id:'groom'},"groomAppearance()",'Bir ay sürer • bakım, dirlik ve küçük itibar artışı')+'</div><div class="grid2">'+select('face','Yüz yapısı')+select('skin','Ten tonu')+select('hair','Saç')+select('hairColor','Saç rengi')+select('beard','Sakal / bıyık')+select('headwear','Başlık')+'</div>';
 }
 
 
@@ -6496,6 +6500,82 @@ function portraitSpriteManifest(v){
   accessory:v.visibleEquipment&&v.slots.accessory?'equipment/'+v.slots.accessory+'/'+v.pose:null};
 }
 
+
+/* v85 — Actions affect the way a character stands and holds REAL worn gear.
+   This view-only interpreter never purchases, awards or equips an item. */
+const PORTRAIT_ACTION_POSES={
+ activity:{at:'horsecare',ok:'archery',av:'hunt',toy:'celebrate'},
+ military:{horse:'horsecare',bow:'archery',drill:'battle',watch:'guard'},
+ period:{horsecare:'horsecare',foal_training:'horsecare',herdcare:'herding',
+  autumn_store:'gather',summer_hunt:'hunt',summer_caravan:'travel',
+  spring_move:'travel',caravanmarket:'trade',market:'trade',bardlisten:'listen',
+  council:'listen',petition:'talk',watchwrestling:'listen',
+  winter_hearth:'rest',rest:'rest',healer:'rest',horserace:'horsecare'},
+ workshop:{forge:'forge',rework:'forge',stock:'work',take:'talk',
+  deliver:'trade',hire:'talk',release:'talk'},
+ education:{horse:'horsecare',archery:'archery',smith:'forge',
+  bitig:'write',story:'perform',trade:'trade'}
+};
+function portraitActionPose(action){
+ if(!action||typeof action!=='object')return null;
+ const byKind=Object.prototype.hasOwnProperty.call(PORTRAIT_ACTION_POSES,action.kind)?
+  PORTRAIT_ACTION_POSES[action.kind]:null;
+ if(byKind&&typeof action.id==='string'&&Object.prototype.hasOwnProperty.call(byKind,action.id))
+  return byKind[action.id];
+ if(action.kind==='work')return 'work';
+ if(action.kind==='caravanTrade'||action.kind==='migration')return 'travel';
+ if(action.kind==='caravanWholesale'||action.kind==='caravanConvoy')return 'trade';
+ if(action.kind==='venture')return action.id==='herd'?'herding':'work';
+ if(action.kind==='health')return 'rest';
+ return null;
+}
+const PORTRAIT_STANCE_LABELS={
+ normal:'Rahat duruş',armed:'Silahlı duruş',swordshield:'Kılıç ve kalkan',
+ spearfighter:'Mızraklı duruş',archer:'Yayı geriyor',hunter:'Avı gözlüyor',
+ hammering:'Çekiçle dövüyor',working:'İş başında',riding:'Atlarla ilgileniyor',
+ herding:'Sürüyle ilgileniyor',reaping:'Orakla çalışıyor',travel:'Yolda',
+ bard:'Kopuz çalıyor',writing:'Bitig yazıyor',trading:'Ticaret yapıyor',
+ resting:'Dinleniyor',speaking:'Söz söylüyor',celebrating:'Toyda eğleniyor',
+ guard:'Nöbette',captive:'Tutsak',injured:'Yaralı',dead:'Yaşamı sona erdi'
+};
+function portraitStanceFor(pose,slots,role){
+ const roleId=D.careers.find(c=>c.name===role)?.id||null;
+ if(['dead','captive','injured'].includes(pose))return {id:pose,item:null,slot:null};
+ const weapon=slots.weapon,offhand=slots.offhand,tool=slots.tool;
+ if(pose==='battle'||pose==='guard'){
+  if(weapon==='bow')return {id:'archer',item:'bow',slot:'weapon'};
+  if(weapon==='sword'&&offhand==='shield')return {id:'swordshield',item:'sword',slot:'weapon'};
+  if(weapon==='spear')return {id:'spearfighter',item:'spear',slot:'weapon'};
+  if(weapon==='sword')return {id:'armed',item:'sword',slot:'weapon'};
+  return {id:pose==='guard'?'guard':'armed',item:null,slot:null};
+ }
+ if(pose==='archery'||pose==='hunt'){
+  if(weapon==='bow')return {id:'archer',item:'bow',slot:'weapon'};
+  return {id:'hunter',item:null,slot:null};
+ }
+ if(pose==='forge'||pose==='work'&&['smith','smith_apprentice'].includes(roleId)){
+  return tool==='hammer'?{id:'hammering',item:'hammer',slot:'tool'}:
+   {id:'working',item:null,slot:null};
+ }
+ if(pose==='horsecare')return {id:'riding',item:tool==='reins'?'reins':null,slot:tool==='reins'?'tool':null};
+ if(pose==='herding'||pose==='gather'){
+  const item=pose==='gather'&&tool==='sickle'?'sickle':
+   tool==='staff'?'staff':null;
+  return {id:item==='sickle'?'reaping':'herding',item,slot:item?'tool':null};
+ }
+ if(pose==='perform'||pose==='work'&&roleId==='bard')
+  return {id:'bard',item:tool==='kopuz'?'kopuz':null,slot:tool==='kopuz'?'tool':null};
+ if(pose==='write'||pose==='work'&&['scribe','envoy','bey'].includes(roleId))
+  return {id:'writing',item:tool==='writingKit'?'writingKit':null,slot:tool==='writingKit'?'tool':null};
+ if(pose==='trade'||pose==='work'&&roleId==='merchant')
+  return {id:'trading',item:tool==='scales'?'scales':null,slot:tool==='scales'?'tool':null};
+ if(pose==='travel')return {id:'travel',item:tool==='reins'?'reins':null,slot:tool==='reins'?'tool':null};
+ if(pose==='rest'||pose==='listen')return {id:'resting',item:null,slot:null};
+ if(pose==='talk')return {id:'speaking',item:null,slot:null};
+ if(pose==='celebrate')return {id:'celebrating',item:null,slot:null};
+ return {id:'normal',item:null,slot:null};
+}
+
 function characterVisualLoadout(){
  const slots={...ensureEquipment().slots};
  let pose='idle';
@@ -6503,19 +6583,18 @@ function characterVisualLoadout(){
  else if(s.captive)pose='captive';
  else if(s.health<30||s.ailments.some(a=>['fever','deep_wound','injury'].includes(a.id)))pose='injured';
  else if(s.military.active)pose='battle';
- else if(s.lastAction?.kind==='workshop'&&['forge','rework'].includes(s.lastAction.id))pose='forge';
- else if(s.lastAction?.kind==='work'||s.lastAction?.kind==='workshop'||s.lastAction?.kind==='venture')pose='work';
- else if(s.lastAction?.kind==='period'&&['horsecare','foal_training'].includes(s.lastAction.id))pose='horsecare';
- else if(s.lastAction?.kind==='period'&&['herdcare','autumn_store'].includes(s.lastAction.id))pose='herding';
- else if(s.lastAction?.kind==='period'&&['av','summer_hunt'].includes(s.lastAction.id))pose='hunt';
- else if(s.lastAction?.kind==='caravanTrade'||s.lastAction?.kind==='migration')pose='travel';
+ else pose=portraitActionPose(s.lastAction)||'idle';
  const appearance=ensureAppearance(),gender=s.gender==='female'?'female':'male',
   ageBand=appearanceAgeBand(),costume=portraitCostumeFor(s.role,gender,ageBand),
   scene=portraitSceneFor(pose,costume.scene),visibleEquipment=s.alive&&!s.captive,
   headwear=visibleEquipment&&slots.head==='helmet'?'war':
    visibleEquipment&&slots.head==='feltHat'?'bork':appearance.headwear;
- const visual={gender,ageBand,role:s.role||null,pose,slots,headwear,costume,scene,visibleEquipment};
- visual.spriteKeys=portraitSpriteManifest(visual);return visual;
+ const stance=portraitStanceFor(pose,visibleEquipment?slots:{},s.role);
+ const visual={gender,ageBand,role:s.role||null,pose,slots,headwear,costume,scene,visibleEquipment,
+  stance:stance.id,activeItem:visibleEquipment?stance.item:null,activeSlot:visibleEquipment?stance.slot:null};
+ visual.spriteKeys=portraitSpriteManifest(visual);
+ visual.actionSpriteKey='stance/'+stance.id+'/'+gender+'/'+ageBand;
+ return visual;
 }
 function equipmentSummaryHtml(){
  const e=ensureEquipment(),v=characterVisualLoadout();
@@ -6544,7 +6623,8 @@ function equipmentSummaryHtml(){
  return '<h3 class="sectionTitle">🛡️ Kuşanma ve Eşya Çantası</h3>'+
   '<div class="card"><h3>Karakterin Üzerindekiler</h3><p>Meslek: '+safeText(role)+
   ' • Görünüş pozu: '+safeText(v.pose)+' • Kıyafet: '+safeText(v.costume.label)+
-  ' • Arka plan: '+safeText(PORTRAIT_SCENE_LABELS[v.scene])+' • Kuşanma/çıkarma eylem hakkı tüketmez.<br>'+
+  ' • Arka plan: '+safeText(PORTRAIT_SCENE_LABELS[v.scene])+
+  ' • Duruş: '+safeText(PORTRAIT_STANCE_LABELS[v.stance])+' • Kuşanma/çıkarma eylem hakkı tüketmez.<br>'+
   'Sadece sahip olduğun gerçek eşyalar kuşanılır. Savaş ve çalışma pozlarının pixel art çizimleri sonraki aşamadadır.</p></div>'+
   '<div class="grid2">'+chosen+'</div>'+
   '<h3 class="sectionTitle">Çantandaki Eşyalar</h3><div class="grid2">'+
@@ -10662,7 +10742,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v84'))localStorage.setItem('yazgi_before_v84',raw);if(!localStorage.getItem('yazgi_before_v83'))localStorage.setItem('yazgi_before_v83',raw);if(!localStorage.getItem('yazgi_before_v82'))localStorage.setItem('yazgi_before_v82',raw);if(!localStorage.getItem('yazgi_before_v81'))localStorage.setItem('yazgi_before_v81',raw);if(!localStorage.getItem('yazgi_before_v80'))localStorage.setItem('yazgi_before_v80',raw);if(!localStorage.getItem('yazgi_before_v79'))localStorage.setItem('yazgi_before_v79',raw);if(!localStorage.getItem('yazgi_before_v78'))localStorage.setItem('yazgi_before_v78',raw);if(!localStorage.getItem('yazgi_before_v77'))localStorage.setItem('yazgi_before_v77',raw);if(!localStorage.getItem('yazgi_before_v76'))localStorage.setItem('yazgi_before_v76',raw);if(!localStorage.getItem('yazgi_before_v75'))localStorage.setItem('yazgi_before_v75',raw);if(!localStorage.getItem('yazgi_before_v74'))localStorage.setItem('yazgi_before_v74',raw);if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v85'))localStorage.setItem('yazgi_before_v85',raw);if(!localStorage.getItem('yazgi_before_v84'))localStorage.setItem('yazgi_before_v84',raw);if(!localStorage.getItem('yazgi_before_v83'))localStorage.setItem('yazgi_before_v83',raw);if(!localStorage.getItem('yazgi_before_v82'))localStorage.setItem('yazgi_before_v82',raw);if(!localStorage.getItem('yazgi_before_v81'))localStorage.setItem('yazgi_before_v81',raw);if(!localStorage.getItem('yazgi_before_v80'))localStorage.setItem('yazgi_before_v80',raw);if(!localStorage.getItem('yazgi_before_v79'))localStorage.setItem('yazgi_before_v79',raw);if(!localStorage.getItem('yazgi_before_v78'))localStorage.setItem('yazgi_before_v78',raw);if(!localStorage.getItem('yazgi_before_v77'))localStorage.setItem('yazgi_before_v77',raw);if(!localStorage.getItem('yazgi_before_v76'))localStorage.setItem('yazgi_before_v76',raw);if(!localStorage.getItem('yazgi_before_v75'))localStorage.setItem('yazgi_before_v75',raw);if(!localStorage.getItem('yazgi_before_v74'))localStorage.setItem('yazgi_before_v74',raw);if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
