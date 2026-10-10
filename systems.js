@@ -6377,7 +6377,7 @@ function ensureEquipment(){
  }
  e.history=Array.isArray(e.history)?e.history.filter(h=>h&&typeof h==='object'&&
   Number.isFinite(h.year)&&equipmentDef(h.id)&&
-  ['buy','sell','equip','unequip','repair'].includes(h.action)).slice(0,24).map(h=>({
+  ['buy','sell','equip','unequip','repair','craft'].includes(h.action)).slice(0,24).map(h=>({
    year:Math.floor(h.year),id:h.id,action:h.action
   })):[];
  return e;
@@ -7962,6 +7962,27 @@ function workshopForgeExtraIssue(method='standard'){
   return WORKSHOP_MATERIALS[id].name+' stoğu yetersiz.';
  return '';
 }
+/* v89 — Personal weapons use the real furnace and stock, but never claim
+   a client's time-limited order as personal property. */
+const WORKSHOP_PERSONAL_WEAPONS={
+ sword:{recipe:'kilic',extra:{}},
+ spear:{recipe:'mizrak',extra:{leather:1}}
+};
+function workshopForgeOwnIssue(id,method='standard'){
+ if(!Object.prototype.hasOwnProperty.call(WORKSHOP_PERSONAL_WEAPONS,id))return 'Kendin için üretilebilecek bir silah seç.';
+ const spec=WORKSHOP_PERSONAL_WEAPONS[id];
+ if(equipmentHasItem(id))return 'Bu silahtan zaten bir tane sahibisin.';
+ if(id==='spear'&&ensureEquipment().owned.length>=32)return 'Eşya çantan dolu.';
+ if(assetState('smithy').condition<25)return 'Önce demir ocağının bakımını yap.';
+ const methodIssue=workshopForgeExtraIssue(method);if(methodIssue)return methodIssue;
+ const stocks=ensureWorkshop().materials,needs=WORKSHOP_RECIPES[spec.recipe].needs;
+ for(const [mat,n] of Object.entries(needs)){
+  if(stocks[mat]<(n+(spec.extra[mat]||0)))return WORKSHOP_MATERIALS[mat].name+' stoğu yetersiz.';
+ }
+ for(const [mat,n] of Object.entries(spec.extra))if(!Object.prototype.hasOwnProperty.call(needs,mat)&&stocks[mat]<n)
+  return WORKSHOP_MATERIALS[mat].name+' stoğu yetersiz.';
+ return '';
+}
 function workshopCanSellSmithy(){
  const w=ensureWorkshop();return !w.orders.some(x=>['active','ready'].includes(x.status))&&!w.apprenticeId;
 }
@@ -7978,6 +7999,8 @@ function workshopIssue(mode,id,extra=null){
   if(!WORKSHOP_RECIPES[id])return 'Böyle bir üretim siparişi yok.';
   if(w.orders.filter(x=>['active','ready'].includes(x.status)).length>=2)return 'Önce açık siparişleri tamamlamalısın (en fazla iki).';
   if(w.orders.some(x=>x.recipe===id&&['active','ready'].includes(x.status)))return 'Aynı üründen açık bir siparişin var.';
+ }else if(mode==='forgeOwn'){
+  const issue=workshopForgeOwnIssue(id,extra??'standard');if(issue)return issue;
  }else if(['forge','deliver','rework'].includes(mode)){
   const order=workshopOrderById(id),item=workshopItemFor(id);
   if(!order||!['active','ready'].includes(order.status))return 'Bu sipariş artık açık değil.';
@@ -8047,6 +8070,29 @@ function workshopAction(mode,id,extra=null){
    customer.wealth+=0;
    w.orders.push(order);s.wealth+=deposit;w.earned+=deposit;
    economyLedger('workshop',deposit,spec.name+' ön ödeme');workshopRecord('take',customer.name+' için '+spec.name+' siparişi alındı.',order.id);
+  }else if(mode==='forgeOwn'){
+   const spec=WORKSHOP_PERSONAL_WEAPONS[id],method=extra??'standard',
+    details=WORKSHOP_FORGE_METHODS[method],def=WORKSHOP_RECIPES[spec.recipe];
+   workshopConsumeMaterials(spec.recipe);
+   for(const [mat,n] of Object.entries(spec.extra))w.materials[mat]-=n;
+   for(const [mat,n] of Object.entries(details.extra))w.materials[mat]-=n;
+   const q=workshopForgeResult(null,null,method);
+   assetState('smithy').condition=clamp(assetState('smithy').condition-rng(2,5));
+   skillGain('craft',2);addExperience('craft');
+   if(q>=def.minQuality){
+    const e=ensureEquipment();
+    if(id==='sword'){s.assets.push('sword');assetState('sword').condition=Math.min(100,65+Math.round(q*.35));}
+    else{e.owned.push('spear');e.condition.spear=Math.min(100,65+Math.round(q*.35));}
+    e.crafted[id]={method,quality:q,grade:workshopQualityGrade(q),year:s.year+s.age};
+    equipmentRecord(id,'craft');
+    workshopRecord('personal','Kendi '+EQUIPMENT_CATALOG[id].name+' silahını '+details.name+
+     ' ile dövdün • '+q+'/100 '+workshopQualityGrade(q)+'.',null,{id,method,quality:q});
+    log('Kendi '+EQUIPMENT_CATALOG[id].name+' silahını dövdün. Artık çantandan kuşanabilirsin.','good');
+   }else{
+    workshopRecord('personal_defect','Kişisel '+EQUIPMENT_CATALOG[id].name+
+     ' denemesi başarısız ('+q+'/'+def.minQuality+'); malzemeler tüketildi.',null,{id,method,quality:q});
+    log('Silah istenen dayanıklılığa erişemedi; malzemelerin harcandı.','bad');
+   }
   }else if(mode==='forge'){
    const order=workshopOrderById(id),rec=WORKSHOP_RECIPES[order.recipe];
    const method=extra??'standard',definition=WORKSHOP_FORGE_METHODS[method];
@@ -8147,6 +8193,21 @@ function workshopSummaryHtml(){
   html+=actionButton(safeText(def.name),{kind:'workshop',id:'take',targetId:id},
    "workshopAction('take','"+id+"')",'6 ay vade • '+Object.entries(def.needs).map(([k,v])=>WORKSHOP_MATERIALS[k].name+' '+v).join(', '));
  html+='</div></div>';
+ html+='<h3 class="sectionTitle">⚔️ Kendin İçin Silah Döv</h3>'+
+  '<p class="note">Müşteri siparişinden bağımsızdır. Her silahtan en fazla bir tane taşıyabilirsin. Başarısız üretimde harcanan malzeme geri gelmez; başarılı ürün envantere geçer.</p><div class="grid2">';
+ for(const [id,recipe] of Object.entries(WORKSHOP_PERSONAL_WEAPONS)){
+  for(const [method,def] of Object.entries(WORKSHOP_FORGE_METHODS)){
+   const base=WORKSHOP_RECIPES[recipe.recipe].needs;
+   const materials={...base};
+   for(const [mat,n] of Object.entries(recipe.extra))materials[mat]=(materials[mat]||0)+n;
+   for(const [mat,n] of Object.entries(def.extra))materials[mat]=(materials[mat]||0)+n;
+   html+=actionButton(EQUIPMENT_CATALOG[id].icon+' '+EQUIPMENT_CATALOG[id].name+' • '+def.name,
+    {kind:'workshop',id:'forgeOwn',targetId:id,extra:method},
+    'workshopAction('+JSON.stringify('forgeOwn')+','+JSON.stringify(id)+','+JSON.stringify(method)+')',
+    'Zanaat '+def.minCraft+' • ustalık '+def.minMastery+' • '+Object.entries(materials).map(([mat,n])=>WORKSHOP_MATERIALS[mat].name+' '+n).join(', '));
+  }
+ }
+ html+='</div>';
  for(const order of w.orders.filter(x=>['active','ready'].includes(x.status))){
   const recipe=WORKSHOP_RECIPES[order.recipe],item=workshopItemFor(order.id);
   const mode=!item?'forge':item.quality<order.minQuality?'rework':'deliver',label=mode==='rework'?'Kusuru düzelt':'Siparişi teslim et';
