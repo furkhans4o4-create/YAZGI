@@ -6437,6 +6437,38 @@ function equipmentCraftedInfo(id){
  const rec=ensureEquipment().crafted[id];
  return rec&&equipmentHasItem(id)?rec:null;
 }
+function heirloomAssignIssue(id,childId){
+ if(!s?.alive)return 'Bu yaşam sona erdi.';
+ if(s.captive)return 'Tutsakken yadigâr vasiyeti değiştiremezsin.';
+ if(s.pendingEventId||s.pendingDecision)return 'Önce karar kartını çöz.';
+ if(s.age<18)return '18 yaşında aile yadigârı belirleyebilirsin.';
+ if(!['sword','spear'].includes(id)||!equipmentCraftedInfo(id))return 'Sana ait dövülmüş bir silah gerekiyor.';
+ if(childId!==null&&!s.children.some(n=>n.alive&&n.id===childId))return 'Yaşayan çocuğun seçilmelidir.';
+ return '';
+}
+function assignHeirloom(id,childId=null){
+ const issue=heirloomAssignIssue(id,childId);
+ if(issue){notice(issue);return false;}
+ const q=ensureSuccession();
+ if(childId===null)delete q.heirloomHeirs[id];else q.heirloomHeirs[id]=childId;
+ q.prepared=true;q.lastCouncilYear=s.year+s.age;
+ render();save();return true;
+}
+function heirloomForHeir(child,heirs,share){
+ const result={},designation=ensureSuccession().heirloomHeirs;
+ const willTarget=heirs.some(n=>n.id===s.will)?s.will:heirs[0]?.id;
+ const spearTarget=designation.spear&&heirs.some(n=>n.id===designation.spear)?
+  designation.spear:willTarget;
+ for(const id of ['sword','spear']){
+  if(id==='sword'&&!share.assets.includes('sword'))continue;
+  if(id==='spear'&&child.id!==spearTarget)continue;
+  const rec=equipmentCraftedInfo(id),condition=equipmentCondition(id);
+  if(!rec||condition==null)continue;
+  result[id]={...rec,condition,originMaker:rec.originMaker||s.name,
+   originYear:rec.originYear??rec.year,generations:Math.min(50,(rec.generations||1)+1)};
+ }
+ return result;
+}
 function equipmentCraftedCampaignBonus(){
  for(const id of ['sword','spear']){
   if(!equippedForTask(id,'weapon'))continue;
@@ -8099,7 +8131,7 @@ function workshopAction(mode,id,extra=null){
     const e=ensureEquipment();
     if(id==='sword'){s.assets.push('sword');assetState('sword').condition=Math.min(100,65+Math.round(q*.35));}
     else{e.owned.push('spear');e.condition.spear=Math.min(100,65+Math.round(q*.35));}
-    e.crafted[id]={method,quality:q,grade:workshopQualityGrade(q),year:s.year+s.age};
+    e.crafted[id]={method,quality:q,grade:workshopQualityGrade(q),year:s.year+s.age,originMaker:s.name,originYear:s.year+s.age,generations:1};
     equipmentRecord(id,'craft');
     workshopRecord('personal','Kendi '+EQUIPMENT_CATALOG[id].name+' silahını '+details.name+
      ' ile dövdün • '+q+'/100 '+workshopQualityGrade(q)+'.',null,{id,method,quality:q});
@@ -10784,11 +10816,11 @@ function familyTick(){
 }
 function ageUp(){if(!s?.alive)return;if(s.pendingEventId||s.pendingDecision){notice('Önce son karar kartını çöz.');return;}if(s.monthsRemaining>0){notice('Yeni yıla geçmeden önce kalan haklar atlanmalı.');return;}s.age++;s.monthsRemaining=12;s.lastAction=null;if(s.age>40)apply({health:-rng(0,2)});familyTick();horseYearTick();toyYearTick();housingYearTick();lifePurposeYearTick();healthAgeTick();elderYearTick();ensureLifeVariety();checkAchievements();mortality();if(s.alive){log(animalYearName(s.year+s.age)+' Yılı başladı; bu yıl 12 eylem hakkın var.','major');if(s.age>=18&&!s.captive&&!s.exile&&!s.military.called)militaryCall();else if(s.age>=18&&!s.captive&&!s.exile&&!s.military.active&&s.military.served&&Math.random()<.08){s.military.called=false;militaryCall();}}render();save();}
 function die(){if(!s?.alive)return;if(ensureCaravanTrade().guild.convoys.active)caravanConvoyFinish('cancelled','Aracı öldüğü için ortak sevkiyat iptal edildi.');if(ensureCaravanTrade().contracts.active)caravanContractFinish('void','Sözleşme sahibinin vefatıyla yükümlülük kapatıldı.');const q=ensureSuccession(),cause=deathCauseLabel(),heirs=livingHeirs();s.alive=false;s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;clearTransient();
- const elder=s.age>=50?ensureElderLife():null;s.deathRecord={name:s.name,age:s.age,year:s.year+s.age,role:s.role,retiredRole:s.retiredRole||null,prestige:s.prestige,wealth:s.wealth,cause,will:s.will,prepared:q.prepared,chosenHeirId:q.chosenHeirId,familyHarmony:q.familyHarmony,lastWish:q.lastWish,assets:[...s.assets],workshop:workshopLegacySnapshot(),caravanTrade:caravanLegacySnapshot(),credit:creditLegacySnapshot(),toyFestival:toyLegacySnapshot(),lifePurpose:purposeLegacySnapshot(),reputation:communityReputationSnapshot(),heirs:heirs.map(n=>({id:n.id,name:n.name,age:n.age})),familyCareLegacy:JSON.parse(JSON.stringify(ensureFamilyBranches().careLegacies.slice(0,8))),siblingHeritage:familySiblingHeritageSnapshot(),elder:elder?{standing:elder.standing,purpose:elder.purpose,careSupport:elder.careSupport,councils:elder.councils,lessons:elder.lessons,reconciliations:elder.reconciliations,delegations:elder.delegations,memoriesShared:elder.memoriesShared}:null};
+ const elder=s.age>=50?ensureElderLife():null;s.deathRecord={name:s.name,age:s.age,year:s.year+s.age,role:s.role,retiredRole:s.retiredRole||null,prestige:s.prestige,wealth:s.wealth,cause,will:s.will,prepared:q.prepared,chosenHeirId:q.chosenHeirId,familyHarmony:q.familyHarmony,lastWish:q.lastWish,assets:[...s.assets],heirlooms:['sword','spear'].filter(id=>equipmentCraftedInfo(id)).map(id=>({id,...equipmentCraftedInfo(id),condition:equipmentCondition(id),heirId:q.heirloomHeirs[id]||null})),workshop:workshopLegacySnapshot(),caravanTrade:caravanLegacySnapshot(),credit:creditLegacySnapshot(),toyFestival:toyLegacySnapshot(),lifePurpose:purposeLegacySnapshot(),reputation:communityReputationSnapshot(),heirs:heirs.map(n=>({id:n.id,name:n.name,age:n.age})),familyCareLegacy:JSON.parse(JSON.stringify(ensureFamilyBranches().careLegacies.slice(0,8))),siblingHeritage:familySiblingHeritageSnapshot(),elder:elder?{standing:elder.standing,purpose:elder.purpose,careSupport:elder.careSupport,councils:elder.councils,lessons:elder.lessons,reconciliations:elder.reconciliations,delegations:elder.delegations,memoriesShared:elder.memoriesShared}:null};
  log(`${s.age} yaşında, ${s.year+s.age} yılında yaşamın sona erdi. Neden: ${cause}.`,'bad');s.legacy.past.push({...s.deathRecord});s.legacy.purposes=Array.isArray(s.legacy.purposes)?s.legacy.purposes:[];s.legacy.purposes.unshift({name:s.name,year:s.year+s.age,purpose:s.deathRecord.lifePurpose});s.legacy.purposes=s.legacy.purposes.slice(0,30);render();save();showHeirModal();}
 function setWill(id){if(id!=='equal'&&!s.children.some(x=>x.id===id&&x.alive))return;performAction({kind:'will'},()=>{const q=ensureSuccession();s.will=id;q.prepared=true;q.chosenHeirId=id==='equal'?null:id;q.lastCouncilYear=s.year+s.age;q.familyHarmony=clamp(q.familyHarmony+(id==='equal'?2:-2));familyCareLegacyWillReaction(id);familyCouncilWillReaction(id);familySiblingWillReaction(id);q.history.unshift({year:s.year+s.age,age:s.age,mode:id==='equal'?'equal':'chosen',targetId:q.chosenHeirId,note:'Mal paylaşımı doğrudan konuşuldu.',harmony:q.familyHarmony});q.history=q.history.slice(0,24);},'Mal paylaşımı isteğini yakınlarınla konuştun.');}
 function continueAsHeir(i){
- if(!s||s.alive)return;const heirs=s.children.filter(x=>x.alive),c=heirs[i];if(!c)return;const old=s,heirOwnJourney=npcAspirationLegacyRecord(c),oldCommunity=JSON.parse(JSON.stringify(ensureCommunityReputation())),oldSuccession=JSON.parse(JSON.stringify(ensureSuccession())),creditEstate=creditEstateSettlement(old),equal=old.will==='equal'||!heirs.some(x=>x.id===old.will),share=inheritanceShareFor(c,heirs),deathRecord=old.deathRecord||null;clearTransient();
+ if(!s||s.alive)return;const heirs=s.children.filter(x=>x.alive),c=heirs[i];if(!c)return;const old=s,heirOwnJourney=npcAspirationLegacyRecord(c),oldCommunity=JSON.parse(JSON.stringify(ensureCommunityReputation())),oldSuccession=JSON.parse(JSON.stringify(ensureSuccession())),creditEstate=creditEstateSettlement(old),equal=old.will==='equal'||!heirs.some(x=>x.id===old.will),share=inheritanceShareFor(c,heirs),heirlooms=heirloomForHeir(c,heirs,share),deathRecord=old.deathRecord||null;clearTransient();
  s=newCharacter({name:c.name,gender:c.gender,realm:old.realm,year:old.year+old.age-c.age,place:c.place||old.place,tribe:c.tribe||old.tribe,age:c.age,monthsRemaining:old.monthsRemaining,wealth:share.wealth,health:c.health,happiness:65,skill:Math.min(60,c.age*2),skills:c.skills||{},prestige:clamp(old.prestige*.35),achievements:[...old.achievements],familyDynamics:JSON.parse(JSON.stringify(old.familyDynamics||null)),horseStable:horseStableInheritance(old,share),workshop:workshopInheritance(old,share),caravanTrade:caravanInheritance(old,share),legacy:{generation:old.legacy.generation+1,familyName:old.legacy.familyName,past:old.legacy.past,purposes:old.legacy.purposes||[],heirJourneys:[...(old.legacy.heirJourneys||[]),...(heirOwnJourney?[heirOwnJourney]:[])].slice(-30),toyTitles:[...(old.legacy.toyTitles||[]),...(old.deathRecord?.toyFestival?.titles||[])].slice(-70)}});
  s.id=c.id;
  s.parents=[normalizeNPC({id:old.id,name:old.name,age:old.age,gender:old.gender,alive:false,rel:c.rel,type:old.gender==='male'?'Ata':'Ana',role:old.role})];if(old.partner)s.parents.push({...old.partner,type:old.partner.gender==='female'?'Ana':'Ata'});
@@ -10803,8 +10835,21 @@ function continueAsHeir(i){
  const seenEnemy=new Set();s.rivals=(old.rivals||[]).filter(n=>n.alive&&!seenEnemy.has(n.id)&&seenEnemy.add(n.id)).map(n=>{const x=normalizeNPC({...n,type:'Aile hasmı',rel:Math.min(40,n.rel??30)},'Aile hasmı');x.statusFlags.familyEnemy=true;x.statusFlags.legacySource=old.name;normalizeBonds(x);x.bonds.grudge=clamp(Math.max(25,Math.round(x.bonds.grudge*.8)));rememberNPC(x,'legacy',old.name+' ile yaşanan eski husumeti hatırlıyor.',6);return x;});
  s.socialLinks=(old.socialLinks||[]).map(x=>({...x,tags:[...(x.tags||[]),'legacy']}));
   s.assets=share.assets;
+ // Transfer an actual, single crafted weapon: preserve its original creator,
+ // original quality, remaining condition and generation across succession.
+ if(heirlooms.sword){
+  const e=ensureEquipment(),{condition,...metadata}=heirlooms.sword;
+  e.crafted.sword=metadata;
+  assetState('sword').condition=condition;
+ }
+ if(heirlooms.spear){
+  const e=ensureEquipment(),{condition,...metadata}=heirlooms.spear;
+  if(!e.owned.includes('spear')&&e.owned.length<32){
+   e.owned.push('spear');e.condition.spear=condition;e.crafted.spear=metadata;
+  }
+ }
  if(s.caravanTrade?.inheritedRivals){s.careerContacts.push(...s.caravanTrade.inheritedRivals);delete s.caravanTrade.inheritedRivals;}
- s=migrateState(s);familyInheritCareAncestry(deathRecord,old.name,c.id);familyInheritSiblingHeritage(deathRecord?.siblingHeritage,old.name,c.id);if(s.assets.includes('horse')&&!horses().length)horses().push(createHorse());s.communityReputation=inheritCommunityReputation(oldCommunity,old.name);ensureCommunityReputation();s.lastInheritance={from:old.name,year:old.year+old.age,equal,wealth:share.wealth,creditEstate,workshopInherited:share.assets.includes('smithy'),caravanInherited:share.assets.includes('caravan_share'),assets:[...share.assets],prepared:oldSuccession.prepared,familyHarmony:oldSuccession.familyHarmony,lastWish:oldSuccession.lastWish,familyCareLegacy:deathRecord?.familyCareLegacy||[],deathRecord};
+ s=migrateState(s);familyInheritCareAncestry(deathRecord,old.name,c.id);familyInheritSiblingHeritage(deathRecord?.siblingHeritage,old.name,c.id);if(s.assets.includes('horse')&&!horses().length)horses().push(createHorse());s.communityReputation=inheritCommunityReputation(oldCommunity,old.name);ensureCommunityReputation();s.lastInheritance={from:old.name,year:old.year+old.age,equal,wealth:share.wealth,creditEstate,workshopInherited:share.assets.includes('smithy'),caravanInherited:share.assets.includes('caravan_share'),assets:[...share.assets],heirlooms:Object.keys(heirlooms).filter(id=>equipmentHasItem(id)).map(id=>({id,...heirlooms[id]})),prepared:oldSuccession.prepared,familyHarmony:oldSuccession.familyHarmony,lastWish:oldSuccession.lastWish,familyCareLegacy:deathRecord?.familyCareLegacy||[],deathRecord};
  const favored=!equal&&old.will===c.id;for(const sib of s.siblings.filter(n=>n.alive)){if(favored)adjustNPC(sib,{rel:-8,trust:-7,grudge:12},old.name+' ardından mirasın tek elde kalmasını kolay unutmadı.');else if(oldSuccession.prepared&&oldSuccession.familyHarmony>=60)adjustNPC(sib,{rel:4,trust:5,grudge:-5},old.name+' hayattayken paylaşımı açıkça konuşmuştu.');}
  if(favored&&s.siblings.some(n=>n.alive))recordPublicWord('inheritance',old.name+' ardından mirasın büyük kısmının sana kaldığı aile içinde konuşuluyor.',{honor:-2,reliability:-1},{severity:18,polarity:-1,truth:true,knownIds:s.siblings.filter(n=>n.alive).map(n=>n.id),sourceId:s.siblings.find(n=>n.alive)?.id||null});
  const inheritanceSibling=s.siblings.find(n=>n.alive);if(inheritanceSibling)scheduleDelayedEvent({id:'inheritance_aftershock',years:[1,2],payload:{detail:(favored?'Mirasın büyük kısmı sana kaldı. ':'Miras paylaştırıldı. ')+(oldSuccession.lastWish?'Son dileği: '+oldSuccession.lastWish:'Aile şimdi yeni düzene alışıyor.'),favored,parentName:old.name}},{targetId:inheritanceSibling.id,sourceEventId:'heir_succession'});if(favored){const inheritanceParties=[...s.siblings.filter(n=>n.alive),...s.parents.filter(n=>n.alive)].filter((n,i,a)=>a.findIndex(x=>x.id===n.id)===i);if(inheritanceParties.length>=2&&!familyConflictForPair(inheritanceParties[0],inheritanceParties[1]))createFamilyConflict(inheritanceParties[0],inheritanceParties[1],'inheritance',{heat:58,reason:old.name+' ardından kalan malın ve sözün adil olup olmadığı konusunda anlaşamıyorlar.'});}
