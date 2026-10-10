@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=72,ADULT_AGE=18;
+const SAVE_VERSION=73,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -2497,6 +2497,10 @@ function ensureFamilyBranches(){
    lastOutcome:String(rawCharter.lastOutcome||'').slice(0,220)
   }:null,
   lastOfferYear:Number.isFinite(council?.lastOfferYear)?Math.floor(council.lastOfferYear):null,
+  lastReviewYear:Number.isFinite(council?.lastReviewYear)?Math.floor(council.lastReviewYear):null,
+  reviewOffers:Math.max(0,Math.floor(Number.isFinite(council?.reviewOffers)?council.reviewOffers:0)),
+  reviewDeclines:Math.max(0,Math.floor(Number.isFinite(council?.reviewDeclines)?council.reviewDeclines:0)),
+  reviews:Math.max(0,Math.floor(Number.isFinite(council?.reviews)?council.reviews:0)),
   offers:Math.max(0,Math.floor(Number.isFinite(council?.offers)?council.offers:0)),
   established:Math.max(0,Math.floor(Number.isFinite(council?.established)?council.established:0)),
   declines:Math.max(0,Math.floor(Number.isFinite(council?.declines)?council.declines:0)),
@@ -4123,7 +4127,8 @@ function familyCouncilYearTick(){
  const donor=members[c.nextIndex%members.length];
  c.nextIndex=(c.nextIndex+1)%members.length;
  let outcome='';
- if(donor?.alive&&donor.age>=18&&!npcLifeBlocksNormalInteraction(donor)){
+ if(donor?.alive&&donor.age>=18&&donor.place===s.place&&donor.realm===s.realm&&
+    !npcLifeBlocksNormalInteraction(donor)){
   if(c.agenda==='education'){
    // Read the normalized current learners; this does not create fake students.
    e._fourthStudents=f.fourthGenerationLearning.students;
@@ -4146,10 +4151,23 @@ function familyCouncilYearTick(){
  if(year>=c.untilYear)familyCouncilClose(e,'completed');
 }
 function familyCouncilIssue(mode,agenda=null){
- if(!['start','end'].includes(mode))return 'Aile meclisi eylemi bilinmiyor.';
+ if(!['start','end','review'].includes(mode))return 'Aile meclisi eylemi bilinmiyor.';
  if(s.age<18)return 'Aile meclisi için yetişkin olmalısın.';
  const e=ensureFamilyBranches().familyCouncil,year=s.year+s.age;
  if(mode==='end')return e.charter?.active?'':'Sona erdirilecek etkin bir meclis yok.';
+ if(mode==='review'){
+  const c=e.charter;
+  if(!c?.active)return 'Yeniden görüşülecek etkin bir aile meclisi yok.';
+  if(year<=c.startYear)return 'Yeni kurulan meclisin gündemi ilk yıl değiştirilemez.';
+  if(e.lastReviewYear===year)return 'Aile meclisi bu yıl gündemini zaten görüştü.';
+  if(!Object.hasOwn(FAMILY_COUNCIL_AGENDAS,agenda))return 'Yeni gündem bulunamadı.';
+  if(agenda===c.agenda)return 'Aynı gündemi yeniden seçmek gerekli değil.';
+  const members=familyCouncilMembers(c);
+  if(members.length!==c.memberIds.length||members.some(n=>!n.alive||n.age<18||
+    n.place!==s.place||n.realm!==s.realm||npcLifeBlocksNormalInteraction(n)))
+   return 'Gündemi değiştirmek için tüm imzacıların bir arada ve görüşmeye uygun olması gerekir.';
+  return '';
+ }
  if(!Object.hasOwn(FAMILY_COUNCIL_AGENDAS,agenda))return 'Görüşülecek meclis gündemi bulunamadı.';
  if(e.charter?.active)return 'Üç yıllık aile meclisi hâlâ devam ediyor.';
  if(e.lastOfferYear===year)return 'Bu yıl bir aile meclisi teklif ettin.';
@@ -4162,6 +4180,26 @@ function familyCouncilAction(mode,agenda=null){
  return performAction({kind:'familyCouncil',id:mode,agenda},()=>{
   const e=ensureFamilyBranches().familyCouncil,year=s.year+s.age;
   if(mode==='end'){familyCouncilClose(e,'cancelled');return;}
+  if(mode==='review'){
+   e.lastReviewYear=year;e.reviewOffers++;
+   const members=familyCouncilMembers(e.charter);
+   const accepted=members.every(n=>{
+    const chance=Math.max(.12,Math.min(.94,.25+(normalizeBonds(n).trust||0)/300+
+     (n.rel||0)/700+(n.goal==='family'?.05:0)));
+    return Math.random()<chance;
+   });
+   if(!accepted){
+    e.reviewDeclines++;
+    familyCouncilHistory(e,'reviewDeclined',
+     'Aile meclisi yeni gündemi oybirliğiyle kabul etmedi; eski sorumluluk düzeni sürüyor.');
+    return;
+   }
+   const old=e.charter.agenda;e.charter.agenda=agenda;e.reviews++;
+   familyCouncilHistory(e,'review',
+    'Aile meclisi oybirliğiyle '+FAMILY_COUNCIL_AGENDAS[old]+' yerine '+
+    FAMILY_COUNCIL_AGENDAS[agenda]+' gündemine geçti; yıllık görev sayısı değişmedi.');
+   return;
+  }
   e.lastOfferYear=year;e.offers++;
   const accepted=familyCouncilCandidates().filter(n=>{
    const chance=Math.max(.15,Math.min(.94,.27+(normalizeBonds(n).trust||0)/290+
@@ -4187,6 +4225,7 @@ function familyCouncilHtml(){
  if(familyCouncilCandidates().length<2&&!c&&!e.history.length)return '';
  let html='<div class="card"><h3>🏛️ Aile Meclisi ve Uzun Dayanışma</h3><p>'+
   'Meclis '+e.established+' • tamamlanan '+e.completed+' • ret '+e.declines+
+  ' • gündem değişikliği '+e.reviews+' • görüşme reddi '+e.reviewDeclines+
   ' • yerine gelen sorumluluk '+e.yearlyFulfilled+' • yerine gelmeyen '+e.yearlyMissed+
   '<br>Aile meclisi, yaşlılık bakım nöbetinden ayrıdır; her üç yılda yeni bir gönüllü düzen kurabilir.</p>';
  if(c?.active){
@@ -4196,6 +4235,14 @@ function familyCouncilHtml(){
    '<br>Son durum: '+safeText(c.lastOutcome)+'</p>'+
    actionButton('Meclis düzenini bitir',{kind:'familyCouncil',id:'end'},
     'familyCouncilAction("end")','Bir ay • üç yıllık ortak görev düzeni durur');
+  const next=members[c.nextIndex%members.length];
+  if(next)html+='<p>Sıradaki yıllık sorumluluk: '+safeText(next.name)+'. Her takvim yılında yalnız bir görev işlenir.</p>';
+  if(s.year+s.age>c.startYear){
+   html+='<p>Yıllık meclis görüşmesi: imzacıların oybirliğiyle gündem değiştirilebilir. Ret de bir ay harcar; aynı yıl tekrar görüşülmez.</p>'+
+    Object.entries(FAMILY_COUNCIL_AGENDAS).filter(([id])=>id!==c.agenda).map(([id,label])=>
+     actionButton('Gündemi görüş: '+safeText(label),{kind:'familyCouncil',id:'review',agenda:id},
+      'familyCouncilAction("review",'+JSON.stringify(id)+')','Bir ay • tüm imzacıların rızası gerekir')).join('');
+  }
  }else{
   html+='<p>En az iki yetişkin çocuğun kabul ederse üç yıl boyunca sırayla sorumluluk üstlenir.</p>'+
    Object.entries(FAMILY_COUNCIL_AGENDAS).map(([id,label])=>
@@ -9412,7 +9459,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
