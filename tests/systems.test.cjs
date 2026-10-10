@@ -3068,3 +3068,74 @@ test("v90 missing item forged metadata is scrubbed on migration",()=>{const {run
 test("v90 older v89 save migrates and creates a dedicated backup",()=>{const {run,storage}=game();run(v90Parent+"s.version=89;save();load();");assert.equal(run("s.version"),90);assert.ok(storage.has("yazgi_before_v90"));});
 test("v90 equipment page shows custom heir and original master without faking gear",()=>{const {run}=game();run(v90Parent+"workshopAction('forgeOwn','sword','master');s.pendingEventId=null;s.pendingDecision=null;assignHeirloom('sword','heirB');window.__html=equipmentSummaryHtml();");assert.ok(run("__html.includes('Aile Yadigârları')"));assert.ok(run("__html.includes('Aybike')"));assert.ok(run("__html.includes('assignHeirloom')"));});
 test("v90 non-crafted ordinary sword does not get paid quality bonus",()=>{const {run}=game();run(v90Parent+"s.assets.push('sword');assetState('sword').condition=55;window.__sale=assetSaleValue('sword');");assert.equal(run("__sale"),run("Math.max(1,Math.round(assetBuyPrice('sword')*(.42+55/220)))"));});
+
+/* v91 — True service history and once-a-year family remembrance. */
+test("v91 fresh state uses version 91",()=>{
+ const {run}=game();assert.equal(run("s.version"),91);
+});
+test("v91 personal forging creates a single original owner and empty service record",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');");
+ assert.equal(run("equipmentCraftedInfo('spear').owners.length"),1);
+ assert.equal(run("equipmentCraftedInfo('spear').campaignMonths"),0);
+ assert.equal(run("equipmentCraftedInfo('spear').honors"),0);
+});
+test("v91 only genuinely wielded usable forge weapons accumulate campaign service",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');s.pendingEventId=null;s.pendingDecision=null;heirloomServiceMonth(1,{kind:'wait'},true);window.__before=equipmentCraftedInfo('spear').campaignMonths;equipItem('spear');heirloomServiceMonth(1,{kind:'wait'},true);heirloomServiceMonth(1,{kind:'wait'},true);heirloomServiceMonth(2,{kind:'wait'},false);");
+ assert.equal(run("__before"),0);
+ assert.equal(run("equipmentCraftedInfo('spear').campaignMonths"),1);
+});
+test("v91 genuine military drills count separately and resting never grows tally",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');s.pendingEventId=null;s.pendingDecision=null;equipItem('spear');heirloomServiceMonth(3,{kind:'military',id:'drill'},false);heirloomServiceMonth(4,{kind:'wait'},false);");
+ assert.equal(run("equipmentCraftedInfo('spear').trainingMonths"),1);
+ assert.equal(run("equipmentCraftedInfo('spear').campaignMonths"),0);
+});
+test("v91 broken weapons do not receive invented campaign credit",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');s.pendingEventId=null;s.pendingDecision=null;equipItem('spear');s.equipment.condition.spear=10;heirloomServiceMonth(1,{kind:'wait'},true);");
+ assert.equal(run("equipmentCraftedInfo('spear').campaignMonths"),0);
+});
+test("v91 a named child retains actual weapon service, honors and family owners",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');s.pendingEventId=null;s.pendingDecision=null;equipItem('spear');heirloomServiceMonth(1,{kind:'wait'},true);assignHeirloom('spear','heirB');window.__maker=s.name;die();continueAsHeir(1);");
+ assert.equal(run("equipmentCraftedInfo('spear').campaignMonths"),1);
+ assert.equal(run("equipmentCraftedInfo('spear').generations"),2);
+ assert.equal(run("equipmentCraftedInfo('spear').owners[0]"),run("__maker"));
+ assert.equal(run("equipmentCraftedInfo('spear').owners.at(-1)"),"Aybike");
+});
+test("v91 ancestral remembrance consumes a genuine month and 2 wealth only once a year",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');s.pendingEventId=null;s.pendingDecision=null;assignHeirloom('spear','heirB');die();continueAsHeir(1);window.__startMonth=s.monthsRemaining;window.__startWealth=s.wealth;window.__startHarmony=ensureSuccession().familyHarmony;window.__first=honorHeirloom('spear');s.pendingEventId=null;s.pendingDecision=null;window.__again=honorHeirloom('spear');");
+ assert.equal(run("__first"),true);
+ assert.equal(run("__again"),false);
+ assert.equal(run("s.monthsRemaining"),run("__startMonth")-1);
+ assert.equal(run("s.wealth"),run("__startWealth")-2);
+ assert.equal(run("equipmentCraftedInfo('spear').honors"),1);
+ assert.equal(run("ensureSuccession().familyHarmony"),Math.min(100,run("__startHarmony")+3));
+});
+test("v91 own new weapon cannot fake ancestral remembrance",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');s.pendingEventId=null;s.pendingDecision=null;window.__wealth=s.wealth;window.__month=s.monthsRemaining;window.__ok=honorHeirloom('spear');");
+ assert.equal(run("__ok"),false);
+ assert.equal(run("s.wealth"),run("__wealth"));
+ assert.equal(run("s.monthsRemaining"),run("__month"));
+});
+test("v91 captivity, shortage, and damaged inheritance block remembrance",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');s.pendingEventId=null;s.pendingDecision=null;die();continueAsHeir(0);s.captive=true;window.__captured=honorHeirloom('spear');s.captive=false;s.wealth=0;window.__poor=honorHeirloom('spear');s.wealth=20;s.equipment.condition.spear=10;window.__damaged=honorHeirloom('spear');");
+ assert.equal(run("__captured"),false);assert.equal(run("__poor"),false);assert.equal(run("__damaged"),false);
+ assert.equal(run("equipmentCraftedInfo('spear').honors"),0);
+});
+test("v91 old v90 save migrates missing lineage and keeps a dedicated backup",()=>{
+ const {run,storage}=game();run(v90Parent+"s.equipment.owned.push('spear');s.equipment.crafted={spear:{method:'master',quality:80,year:400,originMaker:'Eski Usta',generations:2}};s.version=90;save();load();");
+ assert.equal(run("s.version"),91);assert.ok(storage.has("yazgi_before_v91"));
+ assert.equal(run("equipmentCraftedInfo('spear').owners[0]"),"Eski Usta");
+ assert.equal(run("equipmentCraftedInfo('spear').campaignMonths"),0);
+});
+test("v91 invalid owner arrays and forged service counts normalize safely",()=>{
+ const {run}=game();run(v90Parent+"s.equipment.owned.push('spear');s.equipment.crafted={spear:{quality:99,method:'master',owners:[{},'',123,'Ata'],campaignMonths:999999,trainingMonths:-5,honors:10000}};save();load();");
+ assert.equal(run("equipmentCraftedInfo('spear').owners.join(',')"),"Ata");
+ assert.equal(run("equipmentCraftedInfo('spear').campaignMonths"),999);
+ assert.equal(run("equipmentCraftedInfo('spear').trainingMonths"),0);
+ assert.equal(run("equipmentCraftedInfo('spear').honors"),100);
+});
+test("v91 heirloom panel shows owner succession, real service and ritual choice",()=>{
+ const {run}=game();run(v90Parent+"workshopAction('forgeOwn','spear','master');s.pendingEventId=null;s.pendingDecision=null;die();continueAsHeir(0);window.__panel=equipmentSummaryHtml();");
+ assert.ok(run("__panel.includes('Sahipleri:')"));
+ assert.ok(run("__panel.includes('Gerçek kullanım:')"));
+ assert.ok(run("__panel.includes('honorHeirloom')"));
+});
