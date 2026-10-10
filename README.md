@@ -714,3 +714,12 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Kayıtlı düzende bulunan eşya daha sonra satılmış veya kaybolmuşsa dizilimi kuşanma **tümüyle reddedilir**, diğer takılı eşyalar da değiştirilmez. Henüz sahip olunmayan eşya oluşturulmaz, yaş kısıtı aşılmaz ve yay-kalkan gibi iki el çakışmaları reddedilir.
 - Tutsaklıkta, ölümde ve çözülmemiş karar kartı varken dizilim değiştirilemez. Yeni dizilimlerin kaydı eski eşyaları korur, eski v85 kayıtları `yazgi_before_v86` yedeğinden göç ettirilir.
 - Görünüş ve elde tutulan eşya katmanı yeni kuşanma dizilimine göre hemen güncellenir. Eski v82–v85 ekipman, portre ve olay kuralları korunur; v86 için ayrıca 18 otomatik regresyon testi eklendi.
+
+
+### v87 — Kuşanılmış Eşyanın Yıpranması ve Onarımı
+
+- Oyuncunun **gerçekten taktığı** bıçak, mızrak, kalkan, iş aleti ve diğer satın alınan eşyalar 0–100 dayanıklılık tutar. Eski v86 kayıtlarında eldeki eşyalar varsayılan 100 ile başlar; yıpranma kayda yazılır. Silah/yay/zırh gibi varlıklarda mevcut `assetState.condition` kullanılır, aynı eşya için ikinci bir kondisyon çetelesi tutulmaz.
+- Bir ay sıradan beklemek eşyayı yıpratmaz. Sadece gerçekten takılı ekipman, yaptığı işe göre yıpranır: avcılık ve okçulukta yay; demir ocağında çekiç; sürüde değnek; kışlık toplamada orak; meslek çalışmasında uygun alet; seferde gerçek kuşanma silahı, kalkanı, zırhı ve miğferi.
+- Dayanıklılık 20'nin altına düşen ekipmanın **mevcut iş/koruma avantajı ve aktif elde tutulan poz görünümü devre dışı kalır**. Eşya çantadan silinmez, dizilimlere geri dönebilir ve bakımla yeniden kullanılabilir.
+- Satın alınan eşyalar için **Bakım yap** komutu bir ay ve dayanıklılığa/ürün bedeline göre servet tüketir; her seferinde +45 dayanıklılık sağlar, 100'ü aşamaz. Parası olmayan, karar kartı bekleyen, tutsak veya seferdeki oyuncu bakım yapamaz. Mevcut varlıklar çift ücretlenmez; onların bakımı mevcut varlık bölümündedir.
+- Satılan eşyanın kondisyonu temizlenir, yeniden alınan ürün tam durumda gelir. v86→v87 geçişte `yazgi_before_v87` yedeği oluşturulur. 30 yeni v87 testi, önceki regresyon kapıları ve tam test paketi eklenmiştir.

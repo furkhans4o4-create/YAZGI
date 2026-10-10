@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=86,ADULT_AGE=18;
+const SAVE_VERSION=87,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -6354,6 +6354,9 @@ function ensureEquipment(){
   if(!d||d.slot!==slot||!equipmentHasItem(id)||s.age<d.age)e.slots[slot]=null;
  }
  if(e.slots.weapon==='bow'&&e.slots.offhand)e.slots.offhand=null;
+ const oldCondition=e.condition&&typeof e.condition==='object'&&!Array.isArray(e.condition)?e.condition:{};
+ e.condition=Object.fromEntries(e.owned.map(id=>[id,
+  Number.isFinite(oldCondition[id])?Math.max(0,Math.min(100,Math.round(oldCondition[id]))):100]));
  if(!e.presets||typeof e.presets!=='object'||Array.isArray(e.presets))e.presets={};
  for(const id of Object.keys(e.presets)){
   if(!Object.prototype.hasOwnProperty.call(EQUIPMENT_PRESET_NAMES,id)||
@@ -6362,7 +6365,7 @@ function ensureEquipment(){
  }
  e.history=Array.isArray(e.history)?e.history.filter(h=>h&&typeof h==='object'&&
   Number.isFinite(h.year)&&equipmentDef(h.id)&&
-  ['buy','sell','equip','unequip'].includes(h.action)).slice(0,24).map(h=>({
+  ['buy','sell','equip','unequip','repair'].includes(h.action)).slice(0,24).map(h=>({
    year:Math.floor(h.year),id:h.id,action:h.action
   })):[];
  return e;
@@ -6384,15 +6387,92 @@ function equipmentRecord(id,action){
 function tradeEquipment(id,mode){
  return performAction({kind:'equipmentTrade',id,mode},()=>{
   const d=EQUIPMENT_CATALOG[id],e=ensureEquipment();
-  if(mode==='buy'){s.wealth-=d.cost;e.owned.push(id);economyLedger('equipment',-d.cost,d.name+' satın alındı.');}
+  if(mode==='buy'){s.wealth-=d.cost;e.owned.push(id);e.condition[id]=100;economyLedger('equipment',-d.cost,d.name+' satın alındı.');}
   else{
    const value=Math.max(1,Math.floor(d.cost/2));
-   e.owned=e.owned.filter(x=>x!==id);s.wealth+=value;
+   e.owned=e.owned.filter(x=>x!==id);delete e.condition[id];s.wealth+=value;
    for(const slot of EQUIPMENT_SLOTS)if(e.slots[slot]===id)e.slots[slot]=null;
    economyLedger('equipment',value,d.name+' satıldı.');
   }
   equipmentRecord(id,mode);
  },'Eşya pazarında alım satımla bir ay geçti.');
+}
+/* v87 — Wear reflects real use. Owned gear stays owned even when unusable.
+   Existing asset condition is the source of truth for sword/bow/armor. */
+function equipmentCondition(id){
+ const d=equipmentDef(id);
+ if(!d||!equipmentHasItem(id))return null;
+ if(d.asset)return assetState(d.asset).condition;
+ return ensureEquipment().condition[id];
+}
+function equipmentRepairPrice(id){
+ const d=equipmentDef(id),condition=equipmentCondition(id);
+ if(!d||d.asset||condition==null)return null;
+ return Math.max(1,Math.ceil((100-condition)/30)+Math.ceil(d.cost/12));
+}
+function equipmentRepairIssue(id){
+ const d=equipmentDef(id);
+ if(!d||d.asset)return 'Varlıkların bakımı kendi varlık bölümünde yapılır.';
+ if(s.age<d.age)return d.age+' yaşında bakım yapabilirsin.';
+ if(!equipmentHasItem(id))return 'Bu eşya çantanda yok.';
+ const condition=equipmentCondition(id);
+ if(condition>=100)return 'Eşya zaten sağlam.';
+ const price=equipmentRepairPrice(id);
+ if(s.wealth<price)return price+' servet gerekiyor.';
+ return '';
+}
+function repairEquipment(id){
+ return performAction({kind:'equipmentRepair',id},()=>{
+  const e=ensureEquipment(),before=e.condition[id],price=equipmentRepairPrice(id);
+  s.wealth-=price;e.condition[id]=Math.min(100,before+45);
+  equipmentRecord(id,'repair');
+  economyLedger('equipment',-price,equipmentDef(id).name+' bakım ve onarım');
+  log(safeText(equipmentDef(id).name)+' bakımı yapıldı: '+before+' → '+e.condition[id]+' dayanıklılık.','good');
+ },'Bir ayını eşyanın bakım ve onarımına ayırdın.');
+}
+function equipmentWearMonth(action={},onCampaign=false){
+ if(!s.alive||s.captive)return;
+ const wear=new Map(),slots=ensureEquipment().slots;
+ const use=(id,slot,amount)=>{
+  if(id&&equippedForTask(id,slot))wear.set(id,Math.max(wear.get(id)||0,amount));
+ };
+ const kind=action?.kind,id=action?.id;
+ if(onCampaign){
+  use(slots.weapon,'weapon',2);use(slots.offhand,'offhand',1);
+  use(slots.body,'body',1);use(slots.head,'head',1);
+ }else if(kind==='work'){
+  const roleId=D.careers.find(r=>r.name===s.role)?.id,rule=EQUIPMENT_JOB_RULES[roleId];
+  if(rule)use(rule.id,rule.slot,2);
+ }else if(kind==='activity'){
+  if(['av','ok'].includes(id))use('bow','weapon',2);
+  if(id==='at')use('reins','tool',1);
+ }else if(kind==='period'){
+  const tasks={summer_hunt:['bow','weapon',3],herdcare:['staff','tool',2],
+   autumn_store:['sickle','tool',2],horsecare:['reins','tool',2],
+   foal_training:['reins','tool',2],summer_caravan:['reins','tool',2],
+   spring_move:['reins','tool',1]};
+  if(tasks[id])use(...tasks[id]);
+ }else if(kind==='workshop'){
+  if(['forge','rework'].includes(id))use('hammer','tool',3);
+ }else if(kind==='military'){
+  if(id==='bow')use('bow','weapon',2);
+  if(['drill','watch'].includes(id)){
+   use(slots.weapon,'weapon',2);use(slots.offhand,'offhand',1);
+  }
+ }else if(kind==='education'){
+  if(id==='archery')use('bow','weapon',2);
+  if(id==='smith')use('hammer','tool',2);
+ }else if(['caravanTrade','migration'].includes(kind)){
+  use('reins','tool',1);
+ }
+ for(const [item,loss] of wear){
+  const d=equipmentDef(item),before=equipmentCondition(item);
+  if(before==null||before<=0)continue;
+  const next=Math.max(0,before-loss);
+  if(d.asset)assetState(d.asset).condition=next;
+  else ensureEquipment().condition[item]=next;
+  if(before>=20&&next<20)log(safeText(d.name)+' çok yıprandı; bakım yapılana kadar etkin fayda sağlamaz.','bad');
+ }
 }
 function equipmentChoiceIssue(id){
  const d=equipmentDef(id);if(!d)return 'Bu eşya yok.';
@@ -6477,7 +6557,7 @@ function equippedForTask(id,slot){
  const slots=ensureEquipment().slots;
  if(slots[slot]!==id)return false;
  // Worn-out physical assets need maintenance before providing a job advantage.
- if(d.asset&&assetState(d.asset).condition<20)return false;
+ if(equipmentCondition(id)<20)return false;
  return true;
 }
 function equipmentJobEffect(roleId){
@@ -6666,11 +6746,13 @@ function equipmentSummaryHtml(){
   const selected=e.slots[d.slot]===id,issue=equipmentChoiceIssue(id);
   return '<div class="card"><h3>'+d.icon+' '+safeText(d.name)+'</h3><p>'+
    safeText(EQUIPMENT_SLOT_LABELS[d.slot])+' • '+(d.roles.includes(role)?'Mesleğine uygun':'Kişisel eşya')+
-   (d.asset?' • Mevcut varlığın':'')+'</p>'+
+   (d.asset?' • Mevcut varlığın':'')+' • Dayanıklılık '+equipmentCondition(id)+'/100'+
+   (equipmentCondition(id)<20?' • Bakım gerekli':'')+'</p>'+
    '<button class="mini '+(selected?'active':'')+'" '+(issue?'disabled title="'+safeText(issue)+'"':'')+
    ' onclick="equipItem(&quot;'+id+'&quot;)">'+(selected?'Kuşanıldı ✓':'Kuşan')+'</button>'+
    (!d.asset?'<button class="mini" '+(accessIssue({kind:'equipmentTrade',id,mode:'sell'})?'disabled':'')+
-   ' onclick="tradeEquipment(&quot;'+id+'&quot;,&quot;sell&quot;)">Sat ('+Math.max(1,Math.floor(d.cost/2))+' servet)</button>':'')+'</div>';
+   ' onclick="tradeEquipment(&quot;'+id+'&quot;,&quot;sell&quot;)">Sat ('+Math.max(1,Math.floor(d.cost/2))+' servet)</button>':'')+
+   (!d.asset&&equipmentCondition(id)<100?actionButton('Bakım yap ('+equipmentRepairPrice(id)+' servet)',{kind:'equipmentRepair',id},'repairEquipment('+JSON.stringify(id)+')','Bir ay sürer • dayanıklılık +45'):'')+'</div>';
  }).join('');
  const presetCards=Object.entries(EQUIPMENT_PRESET_NAMES).map(([id,label])=>{
   const chosen=e.presets[id];
@@ -6689,7 +6771,7 @@ function equipmentSummaryHtml(){
   ' • Görünüş pozu: '+safeText(v.pose)+' • Kıyafet: '+safeText(v.costume.label)+
   ' • Arka plan: '+safeText(PORTRAIT_SCENE_LABELS[v.scene])+
   ' • Duruş: '+safeText(PORTRAIT_STANCE_LABELS[v.stance])+' • Kuşanma/çıkarma eylem hakkı tüketmez.<br>'+
-  'Sadece sahip olduğun gerçek eşyalar kuşanılır. Savaş ve çalışma pozlarının pixel art çizimleri sonraki aşamadadır.</p></div>'+
+  'Sadece sahip olduğun gerçek eşyalar kuşanılır. Dayanıklılık 20 altına düşerse etkin fayda durur; bakım bir ay ve servet tüketir. Varlıkların bakımı kendi bölümündedir. Savaş ve çalışma pozlarının pixel art çizimleri sonraki aşamadadır.</p></div>'+
   '<div class="grid2">'+chosen+'</div>'+
   '<h3 class="sectionTitle">Hazır Kuşanma Dizilimleri</h3><p class="note">Sefer, meslek ve yol için üç düzen kaydedebilirsin. Kayıt veya kuşanma ay hakkı tüketmez; sahip olmadığın eşyalar uygulanmaz.</p><div class="grid2">'+presetCards+'</div>'+
   '<h3 class="sectionTitle">Çantandaki Eşyalar</h3><div class="grid2">'+
@@ -10240,6 +10322,7 @@ function accessIssue(a){
  else if(a.kind==='education'){const d=EDUCATION_TRACKS[a.id];if(!d)return 'Yetişme yolu bulunamadı.';min=d.age;if(s.captive)return 'Tutsakken düzenli eğitim sürdüremezsin.';if(s.military.active)return 'Aktif seferde düzenli eğitim sürdüremezsin.';}
  else if(a.kind==='educationContact'){const n=ensureEducation().contacts[a.index];if(!n?.alive)return 'Bu kişiyle görüşemezsin.';min=5;}
  else if(a.kind==='equipmentTrade'){const issue=equipmentTradeIssue(a.mode,a.id);if(issue)return issue;min=EQUIPMENT_CATALOG[a.id].age;}
+  else if(a.kind==='equipmentRepair'){const issue=equipmentRepairIssue(a.id);if(issue)return issue;min=EQUIPMENT_CATALOG[a.id].age;}
  else if(a.kind==='appearance'){min=5;if(a.id!=='groom')return 'Görünüş eylemi bulunamadı.';}
  else if(a.kind==='romance'){min=16;if(!s.partner?.alive)return 'Yaşayan eş adayı veya eş gerekiyor.';const lifeIssue=npcNormalInteractionIssue(s.partner);if(lifeIssue)return lifeIssue;if(!['time','future','family','work','repair','reassure'].includes(a.id))return 'İlişki eylemi bulunamadı.';}
  else if(a.kind==='breakup'){min=16;if(!s.partner?.alive)return 'Sona erdirilecek ilişki yok.';}
@@ -10362,6 +10445,7 @@ function addExperience(path){if(path)s.experience[path]=(s.experience[path]||0)+
 function checkAchievements(){if(s.age>=18)unlock('adult');if(s.age>=65)unlock('old');if(s.wealth>=100)unlock('rich');if(Object.values(s.skills).some(x=>x>=60))unlock('trained');}
 function canHaveChild(){if(!s.married||!s.partner?.alive||npcLifeBlocksNormalInteraction(s.partner)||s.age<18||s.partner.age<18||s.captive||s.military.active||s.pregnancy)return false;return (s.gender==='female'?s.age:s.partner.age)<45&&s.health>=35&&s.partner.health>=35;}
 function monthlyTick(month,action,allowEvent=true){
+ equipmentWearMonth(action,!!s.military.active);
  tickEventCooldowns();
  for(const n of allNPCs())if(n.alive&&n.birthYear!=null){const before=n.age;n.age=Math.max(0,s.year+s.age-n.birthYear-(month<n.birthMonth?1:0));if(before!==n.age&&[8,12,18].includes(n.age))n.role=npcRole(n.age);}
  if(s.military.active){addExperience('military');s.military.dutyMonths--;if(s.military.dutyMonths<=0)campaignResult();}
@@ -10807,7 +10891,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v86'))localStorage.setItem('yazgi_before_v86',raw);if(!localStorage.getItem('yazgi_before_v85'))localStorage.setItem('yazgi_before_v85',raw);if(!localStorage.getItem('yazgi_before_v84'))localStorage.setItem('yazgi_before_v84',raw);if(!localStorage.getItem('yazgi_before_v83'))localStorage.setItem('yazgi_before_v83',raw);if(!localStorage.getItem('yazgi_before_v82'))localStorage.setItem('yazgi_before_v82',raw);if(!localStorage.getItem('yazgi_before_v81'))localStorage.setItem('yazgi_before_v81',raw);if(!localStorage.getItem('yazgi_before_v80'))localStorage.setItem('yazgi_before_v80',raw);if(!localStorage.getItem('yazgi_before_v79'))localStorage.setItem('yazgi_before_v79',raw);if(!localStorage.getItem('yazgi_before_v78'))localStorage.setItem('yazgi_before_v78',raw);if(!localStorage.getItem('yazgi_before_v77'))localStorage.setItem('yazgi_before_v77',raw);if(!localStorage.getItem('yazgi_before_v76'))localStorage.setItem('yazgi_before_v76',raw);if(!localStorage.getItem('yazgi_before_v75'))localStorage.setItem('yazgi_before_v75',raw);if(!localStorage.getItem('yazgi_before_v74'))localStorage.setItem('yazgi_before_v74',raw);if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v87'))localStorage.setItem('yazgi_before_v87',raw);if(!localStorage.getItem('yazgi_before_v86'))localStorage.setItem('yazgi_before_v86',raw);if(!localStorage.getItem('yazgi_before_v85'))localStorage.setItem('yazgi_before_v85',raw);if(!localStorage.getItem('yazgi_before_v84'))localStorage.setItem('yazgi_before_v84',raw);if(!localStorage.getItem('yazgi_before_v83'))localStorage.setItem('yazgi_before_v83',raw);if(!localStorage.getItem('yazgi_before_v82'))localStorage.setItem('yazgi_before_v82',raw);if(!localStorage.getItem('yazgi_before_v81'))localStorage.setItem('yazgi_before_v81',raw);if(!localStorage.getItem('yazgi_before_v80'))localStorage.setItem('yazgi_before_v80',raw);if(!localStorage.getItem('yazgi_before_v79'))localStorage.setItem('yazgi_before_v79',raw);if(!localStorage.getItem('yazgi_before_v78'))localStorage.setItem('yazgi_before_v78',raw);if(!localStorage.getItem('yazgi_before_v77'))localStorage.setItem('yazgi_before_v77',raw);if(!localStorage.getItem('yazgi_before_v76'))localStorage.setItem('yazgi_before_v76',raw);if(!localStorage.getItem('yazgi_before_v75'))localStorage.setItem('yazgi_before_v75',raw);if(!localStorage.getItem('yazgi_before_v74'))localStorage.setItem('yazgi_before_v74',raw);if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
