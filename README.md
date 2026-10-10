@@ -535,3 +535,13 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - 18 yaşında en az iki gerçek mentorluk yılı ve 18 beceri seviyesi bulunan torun **bağımsız seçim** yapabilir: binicilik → At Bakıcısı, zanaat → Demirci, okuryazarlık → Bitigçi. Kabul/ret otomatik zorunlu atama değildir; doğrudan gerçek NPC rolü, meslek geçmişi ve aile eğitim arşivi güncellenir. Korunmuş özel meslekler ezilmez.
 - Aile ekranında devam eden eğitim, usta değişimi, yarıda kalma ve mezuniyet sonrası meslek sonucu görünür. v66 kayıtları v67'ye geçerken `yazgi_before_v67` yedeği oluşturulur.
 - 37 yeni regresyon testi ve tüm önceki testler birleştirmeden önce çalıştırılır.
+
+### v68 — Yetişkin Torunların Bağımsız Mesleği ve Geçimi
+
+- 18 yaşına ulaşan torunların kendi **NPC serveti, mesleği ve yıllık geçim hesabı** tutulur. Bu hesap ne oyuncunun servetine ne de ebeveynin ayrı hane bütçesine sahte para yazar.
+- Çalışan torunların yıllık gerçek iş kazancı ile barınma/geçim gideri ayrı izlenir. Eş ve küçük çocuk sorumluluğu masrafı artırabilir. Yetersiz servet negatif bakiyeye değil, gerçek geçim açığına yazılır.
+- Mesleki tecrübe ve beceriyle **Demirci → Usta Demirci**, **At Bakıcısı → Baş Seyis**, **Bitigçi → Baş Bitigçi** terfileri mümkündür. Terfi NPC rolüne ve meslek geçmişine gerçekten işlenir; aynı yıl işten çıkarma gerçekleşmez.
+- Kıdemli çalışan işini kaybedebilir; sonraki yıllarda eski rolüne geri dönebilir. İşsizken ücret üretilmez, birikiminden geçinir; işe döndüğü ilk yılda kısmi ücret kazanır. Özel görev/korunan kariyerler rastgele işsizliğe çevrilmez.
+- Büyük ebeveyn yakınındaki yetişkin torununa kendi gerçek servetinden **3 birim mal desteği** aktarabilir veya işsiz torunu için gelecek yılın iş arama olasılığını yükselten **gönüllü iş bağlantısı** kurabilir. Her görüşme bir aylık haktır ve aynı yıl tekrarlanamaz.
+- Aile panelinde gerçek iş, terfi, kazanç, gider, geçim açığı, iş kaybı ve yardım geçmişi gösterilir. Yeni kayıtlar `grandchildCareers` altında tutulur; v67 ve öncesi kayıtların v68 göçünde `yazgi_before_v68` yedeği korunur.
+- 45 yeni regresyon testi ile yetişkin torun ekonomisi, yardım transferi, kariyer, erişim, tekrar işlem ve kayıt güvenliği doğrulanır.
