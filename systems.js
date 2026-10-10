@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=85,ADULT_AGE=18;
+const SAVE_VERSION=86,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -6331,6 +6331,13 @@ const EQUIPMENT_CATALOG={
  satchel:{name:'Deri Heybe',icon:'🎒',slot:'accessory',age:10,cost:6,roles:['Kervan Rehberi','Tüccar','Avcı']}
 };
 const EQUIPMENT_SLOTS=['weapon','offhand','body','head','tool','accessory'];
+const EQUIPMENT_PRESET_NAMES={battle:'Sefer Dizilimi',work:'Meslek Dizilimi',travel:'Yol Dizilimi'};
+function equipmentPresetSlots(raw){
+ const slots={};
+ for(const slot of EQUIPMENT_SLOTS){const id=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw[slot]:null;
+  slots[slot]=equipmentDef(id)?.slot===slot?id:null;}
+ return slots;
+}
 const EQUIPMENT_SLOT_LABELS={weapon:'Silah',offhand:'Diğer El',body:'Zırh',head:'Başlık',tool:'İş Aleti',accessory:'Aksesuar'};
 function equipmentDef(id){return typeof id==='string'&&Object.prototype.hasOwnProperty.call(EQUIPMENT_CATALOG,id)?EQUIPMENT_CATALOG[id]:null;}
 function equipmentHasItem(id){
@@ -6347,6 +6354,12 @@ function ensureEquipment(){
   if(!d||d.slot!==slot||!equipmentHasItem(id)||s.age<d.age)e.slots[slot]=null;
  }
  if(e.slots.weapon==='bow'&&e.slots.offhand)e.slots.offhand=null;
+ if(!e.presets||typeof e.presets!=='object'||Array.isArray(e.presets))e.presets={};
+ for(const id of Object.keys(e.presets)){
+  if(!Object.prototype.hasOwnProperty.call(EQUIPMENT_PRESET_NAMES,id)||
+   !e.presets[id]||typeof e.presets[id]!=='object'||Array.isArray(e.presets[id])){delete e.presets[id];continue;}
+  e.presets[id]=equipmentPresetSlots(e.presets[id]);
+ }
  e.history=Array.isArray(e.history)?e.history.filter(h=>h&&typeof h==='object'&&
   Number.isFinite(h.year)&&equipmentDef(h.id)&&
   ['buy','sell','equip','unequip'].includes(h.action)).slice(0,24).map(h=>({
@@ -6405,6 +6418,46 @@ function unequipSlot(slot){
  const e=ensureEquipment(),id=e.slots[slot];
  if(!id)return false;
  e.slots[slot]=null;equipmentRecord(id,'unequip');render();save();return true;
+}
+
+/* v86 — Three free, player-chosen equipment sets; never creates or buys gear.
+   Applying a set is atomic, including the two-handed bow constraint. */
+function equipmentPresetAccessIssue(id){
+ if(!Object.prototype.hasOwnProperty.call(EQUIPMENT_PRESET_NAMES,id))return 'Bilinmeyen eşya dizilimi.';
+ if(!s?.alive)return 'Bu yaşam sona erdi.';
+ if(s.captive)return 'Tutsakken eşya dizilimi değiştirilemez.';
+ if(s.pendingEventId||s.pendingDecision)return 'Önce karar kartını çöz.';
+ return '';
+}
+function saveEquipmentPreset(id){
+ const issue=equipmentPresetAccessIssue(id);
+ if(issue){notice(issue);return false;}
+ const e=ensureEquipment();
+ e.presets[id]=equipmentPresetSlots(e.slots);
+ render();save();return true;
+}
+function equipEquipmentPreset(id){
+ const issue=equipmentPresetAccessIssue(id);
+ if(issue){notice(issue);return false;}
+ const e=ensureEquipment();
+ if(!Object.prototype.hasOwnProperty.call(e.presets,id)){notice('Önce bu dizilimi kaydet.');return false;}
+ const slots=equipmentPresetSlots(e.presets[id]);
+ if(slots.weapon==='bow'&&slots.offhand){notice('Yay iki elle tutulur; kalkanla birlikte kuşanılamaz.');return false;}
+ for(const slot of EQUIPMENT_SLOTS){
+  const item=slots[slot],d=equipmentDef(item);
+  if(item&&(s.age<d.age||!equipmentHasItem(item))){
+   notice(d.name+' artık çantanda yok veya yaşın bu eşya için uygun değil. Dizilim değiştirilmedi.');
+   return false;
+  }
+ }
+ const before={...e.slots};
+ for(const slot of EQUIPMENT_SLOTS)e.slots[slot]=slots[slot];
+ for(const slot of EQUIPMENT_SLOTS){
+  if(before[slot]===slots[slot])continue;
+  if(before[slot])equipmentRecord(before[slot],'unequip');
+  if(slots[slot])equipmentRecord(slots[slot],'equip');
+ }
+ render();save();return true;
 }
 
 /* v83: Only actually owned and equipped tools provide small, bounded benefits.
@@ -6607,7 +6660,7 @@ function equipmentSummaryHtml(){
   const id=e.slots[slot],d=equipmentDef(id);
   return '<div class="card"><h3>'+safeText(EQUIPMENT_SLOT_LABELS[slot])+'</h3><p>'+
    (d?d.icon+' '+safeText(d.name):'Boş')+'</p>'+
-   (d?'<button class="mini" onclick="unequipSlot('+JSON.stringify(slot)+')">Çıkar</button>':'')+'</div>';
+   (d?'<button class="mini" onclick="unequipSlot(&quot;'+slot+'&quot;)">Çıkar</button>':'')+'</div>';
  }).join('');
  const worn=own.map(([id,d])=>{
   const selected=e.slots[d.slot]===id,issue=equipmentChoiceIssue(id);
@@ -6615,9 +6668,17 @@ function equipmentSummaryHtml(){
    safeText(EQUIPMENT_SLOT_LABELS[d.slot])+' • '+(d.roles.includes(role)?'Mesleğine uygun':'Kişisel eşya')+
    (d.asset?' • Mevcut varlığın':'')+'</p>'+
    '<button class="mini '+(selected?'active':'')+'" '+(issue?'disabled title="'+safeText(issue)+'"':'')+
-   ' onclick="equipItem('+JSON.stringify(id)+')">'+(selected?'Kuşanıldı ✓':'Kuşan')+'</button>'+
+   ' onclick="equipItem(&quot;'+id+'&quot;)">'+(selected?'Kuşanıldı ✓':'Kuşan')+'</button>'+
    (!d.asset?'<button class="mini" '+(accessIssue({kind:'equipmentTrade',id,mode:'sell'})?'disabled':'')+
-   ' onclick="tradeEquipment('+JSON.stringify(id)+',"sell")">Sat ('+Math.max(1,Math.floor(d.cost/2))+' servet)</button>':'')+'</div>';
+   ' onclick="tradeEquipment(&quot;'+id+'&quot;,&quot;sell&quot;)">Sat ('+Math.max(1,Math.floor(d.cost/2))+' servet)</button>':'')+'</div>';
+ }).join('');
+ const presetCards=Object.entries(EQUIPMENT_PRESET_NAMES).map(([id,label])=>{
+  const chosen=e.presets[id];
+  const names=chosen?EQUIPMENT_SLOTS.filter(slot=>chosen[slot]).map(slot=>equipmentDef(chosen[slot]).name).join(' • '):'Henüz kaydedilmedi';
+  return '<div class="card"><h3>'+safeText(label)+'</h3><p>'+safeText(names||'Boş dizilim')+'</p>'+
+   '<div class="actions"><button class="mini" onclick="saveEquipmentPreset(&quot;'+id+'&quot;)">Üzerindekini kaydet</button>'+
+   (chosen?'<button class="mini" onclick="equipEquipmentPreset(&quot;'+id+'&quot;)">Dizilimi kuşan</button>':'')+
+   '</div></div>';
  }).join('');
  const store=Object.entries(EQUIPMENT_CATALOG).filter(([id,d])=>!d.asset&&!e.owned.includes(id)).map(([id,d])=>
   actionButton(d.icon+' '+d.name,{kind:'equipmentTrade',id,mode:'buy'},
@@ -6630,6 +6691,7 @@ function equipmentSummaryHtml(){
   ' • Duruş: '+safeText(PORTRAIT_STANCE_LABELS[v.stance])+' • Kuşanma/çıkarma eylem hakkı tüketmez.<br>'+
   'Sadece sahip olduğun gerçek eşyalar kuşanılır. Savaş ve çalışma pozlarının pixel art çizimleri sonraki aşamadadır.</p></div>'+
   '<div class="grid2">'+chosen+'</div>'+
+  '<h3 class="sectionTitle">Hazır Kuşanma Dizilimleri</h3><p class="note">Sefer, meslek ve yol için üç düzen kaydedebilirsin. Kayıt veya kuşanma ay hakkı tüketmez; sahip olmadığın eşyalar uygulanmaz.</p><div class="grid2">'+presetCards+'</div>'+
   '<h3 class="sectionTitle">Çantandaki Eşyalar</h3><div class="grid2">'+
   (worn||'<div class="card"><p>Henüz kuşanılacak eşyan yok.</p></div>')+
   '</div><h3 class="sectionTitle">Eşya Pazarı</h3><div class="grid2">'+store+'</div>';
@@ -10745,7 +10807,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v85'))localStorage.setItem('yazgi_before_v85',raw);if(!localStorage.getItem('yazgi_before_v84'))localStorage.setItem('yazgi_before_v84',raw);if(!localStorage.getItem('yazgi_before_v83'))localStorage.setItem('yazgi_before_v83',raw);if(!localStorage.getItem('yazgi_before_v82'))localStorage.setItem('yazgi_before_v82',raw);if(!localStorage.getItem('yazgi_before_v81'))localStorage.setItem('yazgi_before_v81',raw);if(!localStorage.getItem('yazgi_before_v80'))localStorage.setItem('yazgi_before_v80',raw);if(!localStorage.getItem('yazgi_before_v79'))localStorage.setItem('yazgi_before_v79',raw);if(!localStorage.getItem('yazgi_before_v78'))localStorage.setItem('yazgi_before_v78',raw);if(!localStorage.getItem('yazgi_before_v77'))localStorage.setItem('yazgi_before_v77',raw);if(!localStorage.getItem('yazgi_before_v76'))localStorage.setItem('yazgi_before_v76',raw);if(!localStorage.getItem('yazgi_before_v75'))localStorage.setItem('yazgi_before_v75',raw);if(!localStorage.getItem('yazgi_before_v74'))localStorage.setItem('yazgi_before_v74',raw);if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v86'))localStorage.setItem('yazgi_before_v86',raw);if(!localStorage.getItem('yazgi_before_v85'))localStorage.setItem('yazgi_before_v85',raw);if(!localStorage.getItem('yazgi_before_v84'))localStorage.setItem('yazgi_before_v84',raw);if(!localStorage.getItem('yazgi_before_v83'))localStorage.setItem('yazgi_before_v83',raw);if(!localStorage.getItem('yazgi_before_v82'))localStorage.setItem('yazgi_before_v82',raw);if(!localStorage.getItem('yazgi_before_v81'))localStorage.setItem('yazgi_before_v81',raw);if(!localStorage.getItem('yazgi_before_v80'))localStorage.setItem('yazgi_before_v80',raw);if(!localStorage.getItem('yazgi_before_v79'))localStorage.setItem('yazgi_before_v79',raw);if(!localStorage.getItem('yazgi_before_v78'))localStorage.setItem('yazgi_before_v78',raw);if(!localStorage.getItem('yazgi_before_v77'))localStorage.setItem('yazgi_before_v77',raw);if(!localStorage.getItem('yazgi_before_v76'))localStorage.setItem('yazgi_before_v76',raw);if(!localStorage.getItem('yazgi_before_v75'))localStorage.setItem('yazgi_before_v75',raw);if(!localStorage.getItem('yazgi_before_v74'))localStorage.setItem('yazgi_before_v74',raw);if(!localStorage.getItem('yazgi_before_v73'))localStorage.setItem('yazgi_before_v73',raw);if(!localStorage.getItem('yazgi_before_v72'))localStorage.setItem('yazgi_before_v72',raw);if(!localStorage.getItem('yazgi_before_v71'))localStorage.setItem('yazgi_before_v71',raw);if(!localStorage.getItem('yazgi_before_v70'))localStorage.setItem('yazgi_before_v70',raw);if(!localStorage.getItem('yazgi_before_v69'))localStorage.setItem('yazgi_before_v69',raw);if(!localStorage.getItem('yazgi_before_v68'))localStorage.setItem('yazgi_before_v68',raw);if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);
