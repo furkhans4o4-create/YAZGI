@@ -6317,29 +6317,30 @@ const EQUIPMENT_CATALOG={
 };
 const EQUIPMENT_SLOTS=['weapon','offhand','body','head','tool','accessory'];
 const EQUIPMENT_SLOT_LABELS={weapon:'Silah',offhand:'Diğer El',body:'Zırh',head:'Başlık',tool:'İş Aleti',accessory:'Aksesuar'};
+function equipmentDef(id){return typeof id==='string'&&Object.prototype.hasOwnProperty.call(EQUIPMENT_CATALOG,id)?EQUIPMENT_CATALOG[id]:null;}
 function equipmentHasItem(id){
- const d=EQUIPMENT_CATALOG[id];
+ const d=equipmentDef(id);
  return !!d&&(d.asset?(s.assets||[]).includes(d.asset):Array.isArray(s.equipment?.owned)&&s.equipment.owned.includes(id));
 }
 function ensureEquipment(){
  if(!s.equipment||typeof s.equipment!=='object'||Array.isArray(s.equipment))s.equipment={};
  const e=s.equipment;
- e.owned=Array.isArray(e.owned)?[...new Set(e.owned.filter(id=>typeof id==='string'&&EQUIPMENT_CATALOG[id]&&!EQUIPMENT_CATALOG[id].asset))].slice(0,32):[];
+ e.owned=Array.isArray(e.owned)?[...new Set(e.owned.filter(id=>typeof id==='string'&&equipmentDef(id)&&!equipmentDef(id).asset))].slice(0,32):[];
  if(!e.slots||typeof e.slots!=='object'||Array.isArray(e.slots))e.slots={};
  for(const slot of EQUIPMENT_SLOTS){
-  const id=e.slots[slot],d=EQUIPMENT_CATALOG[id];
+  const id=e.slots[slot],d=equipmentDef(id);
   if(!d||d.slot!==slot||!equipmentHasItem(id)||s.age<d.age)e.slots[slot]=null;
  }
  if(e.slots.weapon==='bow'&&e.slots.offhand)e.slots.offhand=null;
  e.history=Array.isArray(e.history)?e.history.filter(h=>h&&typeof h==='object'&&
-  Number.isFinite(h.year)&&EQUIPMENT_CATALOG[h.id]&&
+  Number.isFinite(h.year)&&equipmentDef(h.id)&&
   ['buy','sell','equip','unequip'].includes(h.action)).slice(0,24).map(h=>({
    year:Math.floor(h.year),id:h.id,action:h.action
   })):[];
  return e;
 }
 function equipmentTradeIssue(mode,id){
- const d=EQUIPMENT_CATALOG[id];if(!d||d.asset||!['buy','sell'].includes(mode))return 'Bu ürün pazardan takas edilemez.';
+ const d=equipmentDef(id);if(!d||d.asset||!['buy','sell'].includes(mode))return 'Bu ürün pazardan takas edilemez.';
  const e=ensureEquipment();
  if(s.age<d.age)return d.age+' yaşında açılır.';
  if(mode==='buy'){
@@ -6366,7 +6367,7 @@ function tradeEquipment(id,mode){
  },'Eşya pazarında alım satımla bir ay geçti.');
 }
 function equipmentChoiceIssue(id){
- const d=EQUIPMENT_CATALOG[id];if(!d)return 'Bu eşya yok.';
+ const d=equipmentDef(id);if(!d)return 'Bu eşya yok.';
  if(!s.alive)return 'Bu yaşam sona erdi.';
  if(s.captive)return 'Tutsakken eşya kuşanamazsın.';
  if(s.pendingEventId||s.pendingDecision)return 'Önce karar kartını çöz.';
@@ -6409,7 +6410,7 @@ function equipmentSummaryHtml(){
  const own=Object.entries(EQUIPMENT_CATALOG).filter(([id])=>equipmentHasItem(id));
  const role=s.role||'Görevi yok';
  const chosen=EQUIPMENT_SLOTS.map(slot=>{
-  const id=e.slots[slot],d=EQUIPMENT_CATALOG[id];
+  const id=e.slots[slot],d=equipmentDef(id);
   return '<div class="card"><h3>'+safeText(EQUIPMENT_SLOT_LABELS[slot])+'</h3><p>'+
    (d?d.icon+' '+safeText(d.name):'Boş')+'</p>'+
    (d?'<button class="mini" onclick="unequipSlot('+JSON.stringify(slot)+')">Çıkar</button>':'')+'</div>';
