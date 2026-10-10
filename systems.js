@@ -7925,7 +7925,7 @@ function workshopConsumeMaterials(recipeId,extra=false){
  for(const [key,n] of Object.entries(need))w.materials[key]-=n;
 }
 function workshopForgeExtraIssue(method='standard'){
- const def=WORKSHOP_FORGE_METHODS[method];
+ const def=Object.prototype.hasOwnProperty.call(WORKSHOP_FORGE_METHODS,method)?WORKSHOP_FORGE_METHODS[method]:null;
  if(!def)return 'Bilinmeyen dövme yöntemi.';
  if((s.skills.craft||0)<def.minCraft)return def.minCraft+' zanaat becerisi gerekiyor.';
  if((careerProfile('smith').mastery||0)<def.minMastery)return def.minMastery+' demircilik ustalığı gerekiyor.';
@@ -8121,13 +8121,20 @@ function workshopSummaryHtml(){
  html+='</div></div>';
  for(const order of w.orders.filter(x=>['active','ready'].includes(x.status))){
   const recipe=WORKSHOP_RECIPES[order.recipe],item=workshopItemFor(order.id);
-  const mode=!item?'forge':item.quality<order.minQuality?'rework':'deliver',label=mode==='forge'?'Ürünü döv':mode==='rework'?'Kusuru düzelt':'Siparişi teslim et';
+  const mode=!item?'forge':item.quality<order.minQuality?'rework':'deliver',label=mode==='rework'?'Kusuru düzelt':'Siparişi teslim et';
   html+='<div class="card"><h3>'+safeText(recipe.name)+' • '+safeText(order.clientName)+'</h3><p>'+
    'Teslim için kalan '+Math.max(0,order.deadline-lifeSerial())+' ay • fiyat '+order.price+
    ' servet • ön ödeme '+order.deposit+
-   (item?' • ürün kalitesi '+item.quality+'/'+order.minQuality:' • henüz ürün yok')+
-   '</p><div class="grid2">'+actionButton(label,{kind:'workshop',id:mode,targetId:order.id},
-     "workshopAction('"+mode+"','"+order.id+"')",'Gerçek malzeme ve beceri gerekir')+'</div></div>';
+   (item?' • ürün kalitesi '+item.quality+'/'+order.minQuality+' • '+safeText(item.grade)+
+     ' • '+safeText(WORKSHOP_FORGE_METHODS[item.method]?.name||'Standart Dövme'):' • henüz ürün yok')+
+   '</p><div class="grid2">'+(!item?
+    Object.entries(WORKSHOP_FORGE_METHODS).map(([method,def])=>
+     actionButton(def.name,{kind:'workshop',id:'forge',targetId:order.id,extra:method},
+      "workshopAction('forge',"+JSON.stringify(order.id)+","+JSON.stringify(method)+")",
+      'Kalite +'+def.qualityBonus+' • zanaat '+def.minCraft+' • ustalık '+def.minMastery+
+      (Object.keys(def.extra).length?' • '+Object.entries(def.extra).map(([k,n])=>WORKSHOP_MATERIALS[k].name+' '+n).join(', '):''))
+    ).join(''):actionButton(label,{kind:'workshop',id:mode,targetId:order.id},
+     "workshopAction('"+mode+"',"+JSON.stringify(order.id)+")",'Gerçek malzeme ve beceri gerekir'))+'</div></div>';
  }
  const trainee=workshopCurrentApprentice();
  html+='<div class="card"><h3>Ocak Çırağı</h3>';
