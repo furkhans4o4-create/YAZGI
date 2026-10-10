@@ -3598,16 +3598,17 @@ function familyGrandchildCareersYearTick(){
    }
   }
   const working=available&&!!g.role&&g.role!=='İşsiz'&&g.role!=='Çocuk';
+  let promoted=false;
   if(working){
    const next={'Demirci':'Usta Demirci','At Bakıcısı':'Baş Seyis','Bitigçi':'Baş Bitigçi'}[g.role];
    if(next&&!r.rank&&r.years>=3&&skill>=24&&Math.random()<Math.min(.75,.2+skill/400)){
-    r.rank=1;e.promotions++;g.role=next;
+    r.rank=1;e.promotions++;g.role=next;promoted=true;
     g.roleHistory=g.roleHistory||[];g.roleHistory.push({year,role:next,source:'grandchild_promotion'});
     familyGrandchildCareerHistory(e,g,g.name+' çıraklık sonrası tecrübeyle '+next+' oldu.');
    }
    r.years++;
   }
-  if(working&&!recovered&&r.years>=4&&Math.random()<.035){
+  if(working&&!recovered&&!promoted&&!g.aspiration?.protectedRole&&!g.statusFlags?.workshopGraduate&&r.years>=4&&Math.random()<.035){
    r.priorRole=g.role;r.lostYear=year;r.losses++;e.layoffs++;
    g.role='İşsiz';g.roleHistory=g.roleHistory||[];g.roleHistory.push({year,role:'İşsiz',source:'grandchild_job_loss'});
    familyGrandchildCareerHistory(e,g,g.name+' işini kaybetti; geçimini birikimiyle karşılıyor.');
