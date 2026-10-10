@@ -732,3 +732,12 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Üretim sonucunda 0–100 kalite değeri ve **Ham iş / Sağlam / Nitelikli / Usta işi** sınıfı kalıcı kaydedilir. Düzeltme işleminden sonra ürünün sınıfı güncellenir. Gerçek ustalık, zanaat becerisi, atölye durumu, varsa çırak katkısı ve kuşanılmış çekiç mevcut kalite hesabına katılmaya devam eder.
 - Kalitesi müşterinin şartlarını geçen arıtılmış ve usta işi siparişler teslimde sırasıyla sipariş bedelinin %30 ve %55'i kadar ek ödeme alır (önceki 80+ kalite ödülü korunur). Başarısız ve teslim edilmemiş siparişler ödeme kazandırmaz. Üretilen yöntemin adı, kalite ve teslim bedeli sipariş defterinde kalıcıdır.
 - v87 kayıtlarının ürünleri kaybolmadan standart üretim yöntemiyle okunur; `yazgi_before_v88` ham kayıt yedeği oluşturulur. **22 yeni v88 testi** ile eski sürüm kapıları ve tam regresyon paketi çalıştırılır. Bu aşama müşteri siparişleri içindir; üretilen ürünlerin kişisel kuşanma sistemine aktarılması ayrıca geliştirilecektir.
+
+
+### v89 — Kişisel Demircilik, Kılıç ve Mızrak Envanteri
+
+- Demir ocağının **Kendin İçin Silah Döv** bölümünde müşteri siparişi açmadan kişisel **Demir Kılıç** veya **Mızrak** üretilebilir. Üretim demir, kömür, deri ve seçilen standart/arıtılmış/usta yöntemin özel malzemelerini stoktan gerçekten tüketir; bir ay sürer. Mızrağın sapı için ek deri gerekir. Atölye yıpranır ve zanaat becerisi gelişir.
+- Kalite, mevcut atölye durumu, zanaat, ustalık, çırak ve kuşanılmış çekiç etkilerini kullanan v88 üretim formülüyle hesaplanır. Tarifin minimum kalitesi tutmazsa üretim başarısız olur ve malzemeler harcanır; hayalî silah yaratılmaz. Kılıç için mevcut `s.assets.sword` varlık kimliği, mızrak için `s.equipment.owned` kullanılır; kuşanma, üç hazır dizilim, görünüş ve bakım mekanikleri aynen çalışır.
+- Her silah türünden şimdilik **bir adet** taşınabilir. Aynı tür mevcutken yeniden dövülüp sınırsız silah elde edilemez; kılıç veya mızrak satın alınıp sahip olunmuşsa kişisel üretim yolu kapalıdır. Müşteriye ait sipariş malı hiçbir zaman kişisel envantere çekilmez.
+- Oyuncunun kendi yaptığı silahın yöntemi ve kalitesi `s.equipment.crafted` içinde saklanır. **70+ kaliteli** silah aktif kuşanıldığında seferde daha yavaş yıpranır; 70/85+ kalite çok küçük, üst sınırlandırılmış yaralanma koruması sağlar. Sadece envanterde bulunması bu avantajları vermez. Satışla üretim kökeni silinir.
+- v88→v89 kayıt yükseltmesinde `yazgi_before_v89` yedeği oluşturulur. **26 yeni test**, önceki regresyon testleri ve tam oyun test paketiyle izlenir.
