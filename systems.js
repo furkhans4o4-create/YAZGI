@@ -4001,6 +4001,149 @@ function familyFourthGenerationHtml(){
  return html;
 }
 
+
+/* v71 — recorded, voluntary ties between true living generations. */
+function familyIntergenerationalPairs(){
+ const result=[],seen=new Set();
+ const add=(older,younger)=>{if(!older?.id||!younger?.id||older.id===younger.id)return;
+  const key=older.id+'|'+younger.id;if(seen.has(key))return;
+  seen.add(key);result.push({older,younger});};
+ for(const child of s.children||[])for(const grand of child.descendants||[]){
+  add(child,grand);
+  for(const great of grand.descendants||[])add(grand,great);
+ }
+ return result.slice(0,160);
+}
+function familyIntergenerationalPair(olderId,youngerId){
+ return familyIntergenerationalPairs().find(p=>p.older.id===olderId&&p.younger.id===youngerId)||null;
+}
+function familyIntergenerationalBond(older,younger,e=ensureFamilyBranches().intergenerationalBonds){
+ let rec=e.pairs.find(r=>r.olderId===older.id&&r.youngerId===younger.id);
+ if(!rec){
+  const link=socialLinkBetween(older,younger),oldB=normalizeBonds(older),youngB=normalizeBonds(younger);
+  rec={olderId:older.id,youngerId:younger.id,
+   warmth:Math.max(25,Math.min(82,Math.round((oldB.trust+youngB.trust)/2))),
+   tension:Math.max(0,Math.min(50,Math.round(((link?.grudge||0)+Math.max(0,youngB.grudge-30))/2))),
+   status:'neutral',lastYear:null,lastTalkYear:null,reconciliations:0,meetings:0,refusals:0,
+   yearsClose:0,yearsStrained:0};
+  e.pairs.unshift(rec);e.pairs=e.pairs.slice(0,160);
+ }
+ return rec;
+}
+function familyIntergenerationalStatus(rec){
+ return rec.tension>=48&&rec.warmth<58?'strained':rec.warmth>=65&&rec.tension<=24?'close':'neutral';
+}
+function familyIntergenerationalHistory(e,older,younger,type,note){
+ e.history.unshift({year:s.year+s.age,olderId:older.id,youngerId:younger.id,type,note});
+ e.history=e.history.slice(0,48);rememberNPC(younger,'family',note,4);
+}
+function familyIntergenerationalLearningBonus(parent){
+ const ancestor=grandchildParent(parent?.id);
+ if(!ancestor)return 0;
+ const rec=s.familyBranches?.intergenerationalBonds?.pairs?.find(r=>r.olderId===ancestor.id&&r.youngerId===parent.id);
+ return rec?.status==='close'&&rec.tension<=24?1:rec?.status==='strained'?-1:0;
+}
+function familyIntergenerationalBondsYearTick(){
+ const e=ensureFamilyBranches().intergenerationalBonds,year=s.year+s.age;
+ for(const {older,younger} of familyIntergenerationalPairs()){
+  if(!older.alive||!younger.alive)continue;
+  const rec=familyIntergenerationalBond(older,younger,e);
+  if(rec.lastYear===year)continue;
+  rec.lastYear=year;
+  const link=socialLinkBetween(older,younger),together=older.place===younger.place&&older.realm===younger.realm,
+   trust=link?.trust??50,grudge=link?.grudge??0,
+   hostility=grudge>=35||trust<=30||(normalizeBonds(younger).grudge||0)>=65,
+   warm=trust>=65&&grudge<=15&&together;
+  if(hostility){rec.tension=clamp(rec.tension+9);rec.warmth=clamp(rec.warmth-4);}
+  else if(!together){rec.tension=clamp(rec.tension+2);rec.warmth=clamp(rec.warmth-2);}
+  else if(warm){rec.tension=clamp(rec.tension-3);rec.warmth=clamp(rec.warmth+3);}
+  else{rec.tension=clamp(rec.tension-1);rec.warmth=clamp(rec.warmth+1);}
+  const previous=rec.status;rec.status=familyIntergenerationalStatus(rec);
+  if(rec.status==='close')rec.yearsClose++;
+  if(rec.status==='strained')rec.yearsStrained++;
+  if(rec.status!==previous){
+   if(rec.status==='strained'){
+    e.disputes++;familyIntergenerationalHistory(e,older,younger,'strained',older.name+' ile '+younger.name+' arasındaki kırgınlık büyüdü.');
+   }else if(rec.status==='close'){
+    e.closeBonds++;familyIntergenerationalHistory(e,older,younger,'close',older.name+' ile '+younger.name+' birbirlerine yakınlaştı.');
+   }else if(previous==='strained'){
+    familyIntergenerationalHistory(e,older,younger,'eased',older.name+' ile '+younger.name+' arasındaki gerilim hafifledi.');
+   }
+  }
+ }
+}
+function familyIntergenerationalIssue(olderId,youngerId,mode){
+ if(!['reconcile','gather'].includes(mode))return 'Bu aile görüşmesi bilinmiyor.';
+ if(s.age<18)return 'Aile görüşmesini yetişkin bir büyük yürütmeli.';
+ const pair=familyIntergenerationalPair(olderId,youngerId);
+ if(!pair)return 'Gerçek ebeveyn ve çocuk kuşakları arasında bir bağ seçilmeli.';
+ const {older,younger}=pair;
+ if(!older.alive||!younger.alive||older.age<18||younger.age<5)return 'Yaşayan yetişkin ebeveyn ve en az 5 yaşında çocuk gerekiyor.';
+ if([older,younger].some(n=>n.place!==s.place||n.realm!==s.realm||npcLifeBlocksNormalInteraction(n)))
+  return 'İki aile üyesi de seninle aynı yerde ve görüşmeye uygun olmalı.';
+ const rec=familyIntergenerationalBond(older,younger);
+ if(rec.lastTalkYear===s.year+s.age)return 'Bu aile bağı için bu yıl zaten görüşme yaptın.';
+ if(mode==='reconcile'&&rec.tension<30&&rec.status!=='strained')
+  return 'Aralarında arabuluculuk gerektirecek bir kırgınlık bulunmuyor.';
+ return '';
+}
+function familyIntergenerationalAction(olderId,youngerId,mode){
+ const issue=familyIntergenerationalIssue(olderId,youngerId,mode);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'intergenerationalBond',olderId,youngerId,id:mode},()=>{
+  const pair=familyIntergenerationalPair(olderId,youngerId),{older,younger}=pair,
+   e=ensureFamilyBranches().intergenerationalBonds,rec=familyIntergenerationalBond(older,younger,e),
+   year=s.year+s.age,oldStatus=rec.status;
+  rec.lastTalkYear=year;
+  const trust=(normalizeBonds(older).trust+normalizeBonds(younger).trust)/2,
+   chance=Math.max(.13,Math.min(.92,(mode==='reconcile'?.28:.4)+trust/420+(s.skills?.speech||0)/500-rec.tension/540));
+  if(Math.random()<chance){
+   if(mode==='reconcile'){
+    rec.reconciliations++;e.reconciliations++;rec.tension=clamp(rec.tension-35);rec.warmth=clamp(rec.warmth+16);
+    adjustSocialLink(older,younger,{score:13,trust:13,grudge:-24,tag:'kin'},'Aile meclisinde iki kuşak kırgınlıklarını konuşup uzlaştı.');
+    adjustNPC(older,{trust:4,grudge:-6},'Genç kuşakla kırgınlığını azaltmaya karar verdi.');
+    adjustNPC(younger,{trust:6,grudge:-10},'Ebeveyniyle geçmiş kırgınlığını konuştu.');
+    familyIntergenerationalHistory(e,older,younger,'reconciliation',older.name+' ile '+younger.name+' aile meclisinde barışmayı kabul etti.');
+   }else{
+    rec.meetings++;e.meetings++;rec.tension=clamp(rec.tension-10);rec.warmth=clamp(rec.warmth+11);
+    adjustSocialLink(older,younger,{score:7,trust:7,grudge:-7,tag:'kin'},'İki kuşak ortak bir aile buluşması yaptı.');
+    adjustNPC(younger,{trust:3,grudge:-3},'Ailesiyle aynı sofrada zaman geçirdi.');
+    familyIntergenerationalHistory(e,older,younger,'gathering',older.name+' ile '+younger.name+' kendi istekleriyle bir araya geldi.');
+   }
+  }else{
+   rec.refusals++;e.refusals++;rec.tension=clamp(rec.tension+2);
+   familyIntergenerationalHistory(e,older,younger,'refusal',older.name+' ve '+younger.name+' bu yıl aile görüşmesinde anlaşamadı.');
+  }
+  rec.status=familyIntergenerationalStatus(rec);
+  if(oldStatus!=='close'&&rec.status==='close')e.closeBonds++;
+ },'İki kuşağın ilişkisinin geleceği için bir ay ayırdın.');
+}
+function familyIntergenerationalHtml(){
+ const e=ensureFamilyBranches().intergenerationalBonds,
+  pairs=familyIntergenerationalPairs().filter(p=>p.older.alive&&p.younger.alive).slice(0,16);
+ if(!pairs.length)return '';
+ let html='<div class="card"><h3>🤝 Kuşaklar Arası Bağlar</h3><p>'+
+  'Buluşma '+e.meetings+' • barışma '+e.reconciliations+' • anlaşmazlık '+e.disputes+
+  ' • uzlaşma reddi '+e.refusals+' • güçlenen bağ '+e.closeBonds+
+  '<br>Gerçek aile ilişkileri sonraki kuşağın öğrenme huzurunu etkiler; kırgınlık kalıcı kader değildir.</p></div>';
+ for(const {older,younger} of pairs){
+  const r=e.pairs.find(x=>x.olderId===older.id&&x.youngerId===younger.id);
+  const status=r?.status==='strained'?'Kırgın':r?.status==='close'?'Yakın':'Dengeli';
+  html+='<div class="card"><h3>'+safeText(older.name)+' → '+safeText(younger.name)+'</h3><p>'+
+   'Aile bağı '+status+' • sıcaklık '+(r?.warmth??55)+'/100 • gerilim '+(r?.tension??0)+'/100'+
+   (r?' • barışma '+r.reconciliations:'')+'</p><div class="actions">'+
+   actionButton('Aile buluşması',{kind:'intergenerationalBond',olderId:older.id,youngerId:younger.id,id:'gather'},
+    'familyIntergenerationalAction('+JSON.stringify(older.id)+','+JSON.stringify(younger.id)+',"gather")',
+    'Bir ay • iki kuşağın gönüllü ortak görüşmesi')+
+   actionButton('Kırgınlık için arabuluculuk',{kind:'intergenerationalBond',olderId:older.id,youngerId:younger.id,id:'reconcile'},
+    'familyIntergenerationalAction('+JSON.stringify(older.id)+','+JSON.stringify(younger.id)+',"reconcile")',
+    'Bir ay • gerçek anlaşmazlık ve iki tarafın rızası gerekir')+'</div></div>';
+ }
+ if(e.history.length)html+='<div class="card"><h3>Kuşakların İlişki Geçmişi</h3><p>'+
+  e.history.slice(0,5).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p></div>';
+ return html;
+}
+
 function familyGrandchildCareersHtml(){
  const e=ensureFamilyBranches().grandchildCareers,
   adults=(s.children||[]).flatMap(c=>(c.descendants||[]).filter(g=>g?.alive&&g.age>=18)).slice(0,12);
