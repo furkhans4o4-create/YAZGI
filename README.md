@@ -697,3 +697,12 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - **Sahiplik gerçeği korunur:** Meslek kıyafeti ücretsiz savaş zırhına dönüşmez. Zırh yalnız elde edilip kuşanıldıysa, miğfer yalnız gerçekten kuşanıldıysa görünür. Silahlar, kalkan, çalışma araçları ve aksesuarlar gerçek kuşanma yuvasından okunur. Tutsakken veya ölümden sonra teçhizat görüntüsü gizlenir, asıl kayıt keyfi biçimde silinmez.
 - Gelecekteki kadın/erkek pixel art çizimleri için `characterVisualLoadout().spriteKeys` içinde gövde, kostüm, poz, arka plan, zırh, başlık, silah, kalkan, iş aleti ve aksesuar katmanlarının **dosya kimlikleri** üretilir. Bunlar henüz gerçek görsel URL'si veya mevcut dosya değildir.
 - Mevcut HTML/JavaScript sürer. `yazgi_before_v84` eski kayıt yedeği ve **43 yeni v84 testi** eklendi. Gerçek sprite üretimi, daha fazla meslek ve Electron Windows EXE paketlemesi gelecek aşamalardır.
+
+
+### v85 — Eyleme Göre Kollar, Duruşlar ve Elde Gerçek Eşya
+
+- Mevcut avatar artık oyuncunun **gerçek son eylemini** yorumlar: hızlı eylemlerde avlanma, ok talimi, binicilik ve toy; mevsimlik işlerde yay avı, sürü, kışlık toplama, kervan; askerî talim, atölye dövme, ozanlık, bitig yazımı, ticaret ve dinlenme. Yeni pozlar meslek kostümlerini veya para/servet kurallarını değiştirmez.
+- **Savaşta** gerçekten kuşanılan kılıç + kalkan birlikte bir savaşçı duruşu, mızrak mızrakçı duruşu, yay okçu duruşu verir. **Demircide** elde çekiç yalnız takılı ve kullanılabilir durumda görünür. **Avda** takılı yay aktif tutulur; çoban değneği, orak ve yular da yalnız gerçekten kuşanılmışsa ilgili işte görünür.
+- CSS geçici portrede sağ/sol kol açısı, elde tutulan eşyanın yeri ve aktif duruş farklılaşır. Bir eşyaya sadece sahip olmak onu eline koymaz. Bakımsız varlıkların aktif iş pozu oluşmaz; envanterdeki kayıt yine durur. Silah simgesi hem eski yerinde hem yeni elde iki kez çizilmez.
+- Ölü, tutsak ve ciddi yaralı görünüşlerinin önceliği devam eder. Erkek/kadın ve yaşlara uygun `actionSpriteKey` eklendi. `spriteKeys` içindeki v84 on katman geriye dönük uyumlu; bunlar **gerçek görsel dosyaları değil**, sonraki pixel art çalışmasının kimlikleridir.
+- Eşya ekranı ve görünüş ekranı duruş açıklamasını gösterir. Eski sürümlerden geçişte `yazgi_before_v85` ham kayıt yedeği oluşturulur; **46 yeni v85 testi** ve tüm eski sürüm kontrolleri çalıştırılır.
