@@ -6279,7 +6279,7 @@ function appearanceAvatarHtml(){
  const a=ensureAppearance(),visual=characterVisualLoadout(),headwear=visual.headwear,band=appearanceAgeBand(),grey=appearanceGreyLevel(),scars=appearanceScarCount(),showBeard=s.gender==='male'&&s.age>=16&&a.beard!=='none',ageLines=s.age>=45?Math.min(3,1+Math.floor((s.age-45)/15)):0;
  return '<div class="portrait age-'+band+' face-'+a.face+' skin-'+a.skin+' hair-'+a.hair+
   ' outfit-'+visual.costume.roleId+' gender-'+visual.gender+' pose-'+visual.pose+
-  ' stance-'+visual.stance+' scene-'+visual.scene+
+  ' stance-'+visual.stance+(visual.activeSlot==='tool'?' held-tool':'')+' scene-'+visual.scene+
   ' '+(s.health<30?'portrait-sick ':'')+(s.captive?'portrait-captive ':'')+
   '" style="--outfit-base:'+visual.costume.base+';--outfit-trim:'+visual.costume.trim+'">'+
   '<div class="portrait-garment shape-'+visual.costume.shape+'" title="'+safeText(visual.costume.label)+'"></div>'+
@@ -6292,7 +6292,7 @@ function appearanceAvatarHtml(){
   '</div>'+(headwear!=='none'?'<div class="portrait-headwear headwear-'+headwear+'"></div>':'')+
   (visual.visibleEquipment&&visual.slots.weapon&&visual.activeSlot!=='weapon'?'<span class="portrait-equipped weapon">'+equipmentDef(visual.slots.weapon).icon+'</span>':'')+
   (visual.visibleEquipment&&visual.slots.offhand?'<span class="portrait-equipped offhand">'+equipmentDef(visual.slots.offhand).icon+'</span>':'')+
-  (visual.visibleEquipment&&visual.slots.tool&&visual.activeSlot!=='tool'?'<span class="portrait-equipped tool">'+equipmentDef(visual.slots.tool).icon+'</span>':'')+
+  (visual.visibleEquipment&&visual.slots.tool?'<span class="portrait-equipped tool">'+equipmentDef(visual.slots.tool).icon+'</span>':'')+
   (visual.visibleEquipment&&visual.slots.accessory?'<span class="portrait-equipped accessory">'+equipmentDef(visual.slots.accessory).icon+'</span>':'')+
   (visual.activeItem?'<span class="portrait-active-item" title="'+safeText(PORTRAIT_STANCE_LABELS[visual.stance])+'">'+equipmentDef(visual.activeItem).icon+'</span>':'')+
   (!s.alive?'<div class="portrait-status">†</div>':s.captive?'<div class="portrait-status">⛓</div>':'')+
