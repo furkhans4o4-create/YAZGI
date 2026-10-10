@@ -619,3 +619,12 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - **Bağımsız hane:** Torunun kendi kararıyla ayrı eve çıkma veya ortak haneye dönme olasılığında aile ortamının etkisi en fazla **±%6** olur. Kira koşulları, gerçek varlık yeterliliği ve karar başına yıllık sınır korunur; bedelsiz mülk veya gelir üretilmez.
 - **Dördüncü kuşağın öğrenimi:** Aynı evren içindeki mevcut öğrenim ilerlemesi, gerçek ebeveynle ders gerçekleşiyorsa aile içi dayanışmaya göre yıllık **+1**, gerçek çatışmaya göre **−1** etkilenir. Var olan beceriler geri alınmaz ve yeni öğrenci yaratılmaz.
 - Yalnız gerçekleşmiş sonuçların `siblingRipples` aile kaydı oluşturulur; yıllık tekrarlar engellenir. Yetişkin Çocuklar ekranında katılan gerçek kişilerin isimleri ve sonuçlar görünür. v75 kayıtları `yazgi_before_v76` adıyla yedeklenir. Yeni 34 regresyon testi önceki testlerle birlikte çalıştırılır.
+
+
+### v77 — Kardeşler Arasında Gönüllü, İki Aşamalı Güven Onarımı
+
+- **İlk görüşme:** Gerçek, daha önce gözlemlenmiş ve açık gerilim taşıyan iki yetişkin kardeş aynı yerde buluşabildiğinde, oyuncu bir aylık hakkını kullanarak aralarını konuşabilir. İki kişinin de **ayrı ayrı kabul etmesi** şarttır. Ret de bir ay harcar; aynı yıl teklif yenilenemez ve ilişkileri zorla iyileştirmez.
+- **Bir sonraki yıl:** İlk konuşma kabul edilse bile kardeşler hemen barışmış sayılmaz. En erken sonraki takvim yılında, aynı kişiler sağ ve görüşmeye uygunsa ikinci kez ikisinin de gönüllü onayı alınır. İkinci görüşme kabul edilirse kardeşlerin **mevcut gerçek sosyal bağı** adım adım iyileşir; sosyal bağ, gözlemlenen ilişki durumu ve kişisel hatıralar güncellenir. Yeniden anlaşmazlık çıkabilmesi engellenmez.
+- **Gerçekçi sınırlar:** İkinci görüşmenin üç yıl içinde yapılması gerekir. Göç, ölüm, ret veya süren husumet nedeniyle tamamlama gerçekleşmeyebilir. Hiçbir aşama otomatik barışma, miras değişimi, para, eşya veya yeni NPC üretmez.
+- **Sonraki kuşaklara doğal etki:** İki görüşmeden sonra gerçekten yakın hâle gelen kardeşler, v76'daki yaşayan aile ortamı sistemini etkileyebilir. Torunların mesleği, hanesi veya dördüncü kuşağın öğrenimi üzerindeki sınırlı değişimler yalnız gerçek güncel bağlarla oluşur.
+- Yeni `siblingHealing` arşivi görüşme ve retleri yıllık olarak kaydeder; aile ekranından erişilir. v76'dan v77'ye geçişte `yazgi_before_v77` yedeği oluşturulur. 42 yeni regresyon testi ve eski testler çalıştırılır.
