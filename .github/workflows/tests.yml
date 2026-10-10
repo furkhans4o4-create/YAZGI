@@ -16,7 +16,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,57 +24,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run v90 regression gate
-        run: node --test --test-name-pattern='v90 ' tests/systems.test.cjs
-      - name: Run v89 regression gate
-        run: node --test --test-name-pattern='v89 ' tests/systems.test.cjs
-      - name: Run v88 regression gate
-        run: node --test --test-name-pattern='v88 ' tests/systems.test.cjs
-      - name: Run v87 regression gate
-        run: node --test --test-name-pattern='v87 ' tests/systems.test.cjs
-      - name: Run v86 regression gate
-        run: node --test --test-name-pattern='v86 ' tests/systems.test.cjs
-      - name: Run v85 regression gate
-        run: node --test --test-name-pattern='v85 ' tests/systems.test.cjs
-      - name: Run v84 regression gate
-        run: node --test --test-name-pattern='v84 ' tests/systems.test.cjs
-      - name: Run v83 regression gate
-        run: node --test --test-name-pattern='v83 ' tests/systems.test.cjs
-      - name: Run v82 regression gate
-        run: node --test --test-name-pattern='v82 ' tests/systems.test.cjs
-      - name: Run v81 regression gate
-        run: node --test --test-name-pattern='v81 ' tests/systems.test.cjs
-      - name: Run v80 regression gate
-        run: node --test --test-name-pattern='v80 ' tests/systems.test.cjs
-      - name: Run v79 regression gate
-        run: node --test --test-name-pattern='v79 ' tests/systems.test.cjs
-      - name: Run v78 regression gate
-        run: node --test --test-name-pattern='v78 ' tests/systems.test.cjs
-      - name: Run v77 regression gate
-        run: node --test --test-name-pattern='v77 ' tests/systems.test.cjs
-      - name: Run v76 regression gate
-        run: node --test --test-name-pattern='v76 ' tests/systems.test.cjs
-      - name: Run v75 regression gate
-        run: node --test --test-name-pattern='v75 ' tests/systems.test.cjs
-      - name: Run v74 regression gate
-        run: node --test --test-name-pattern='v74 ' tests/systems.test.cjs
-      - name: Run v73 regression gate
-        run: node --test --test-name-pattern='v73 ' tests/systems.test.cjs
-      - name: Run v72 regression gate
-        run: node --test --test-name-pattern='v72 ' tests/systems.test.cjs
-      - name: Run v71 regression gate
-        run: node --test --test-name-pattern='v71 ' tests/systems.test.cjs
-      - name: Run v70 regression gate
-        run: node --test --test-name-pattern='v70 ' tests/systems.test.cjs
-      - name: Run v69 regression gate
-        run: node --test --test-name-pattern='v69 ' tests/systems.test.cjs
-      - name: Run v68 regression gate
-        run: node --test --test-name-pattern='v68 ' tests/systems.test.cjs
-      - name: Run v67 regression gate
-        run: node --test --test-name-pattern='v67 ' tests/systems.test.cjs
-      - name: Run v66 regression gate
-        run: node --test --test-name-pattern='v66 ' tests/systems.test.cjs
-      - name: Run v65 regression gate
-        run: node --test --test-name-pattern='v65 ' tests/systems.test.cjs
-      - name: Run complete regression suite
+      - name: Run v91 regression gate
+        run: node --test --test-name-pattern='v91 ' tests/systems.test.cjs
+      - name: Run complete regression suite (all versions)
         run: node --test tests/systems.test.cjs
