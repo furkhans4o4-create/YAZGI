@@ -24,6 +24,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Run v90 regression gate
+        run: node --test --test-name-pattern='v90 ' tests/systems.test.cjs
       - name: Run v89 regression gate
         run: node --test --test-name-pattern='v89 ' tests/systems.test.cjs
       - name: Run v88 regression gate
