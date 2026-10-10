@@ -516,3 +516,13 @@ node --test tests/systems.test.cjs
 ```
 
 Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar açık yaş ve koşul tanımı taşımalıdır. Meslek koşulları `CAREER_RULES` ile tek yerde tutulur. Bilinmeyen olay koşulları erişim vermez.
+
+
+### v66 — Torunların Gönüllü Çıraklık Yolu
+
+- 12–17 yaşındaki torunlar, aynı yurtta yaşayan **ebeveyni dışındaki yetişkin aile üyelerinden** uygun ve güvenilir biriyle gönüllü çıraklık görüşmesi yapabilir. Büyük ebeveynin bu görüşmesi **bir aylık hakkı** kullanır.
+- Çırak ve aile ustasının çalışılacak alanda (**binicilik, zanaat ya da okuryazarlık**) en az 8 gerçek beceri puanı olmalıdır. Alan torunun mevcut öğrenim kaydından alınır; önceki özel eğitimlerle yönü değiştirilebilir.
+- Davet kabul veya reddedilebilir. Her torunun tek etkin ustası, her ustanın da en fazla bir etkin çırağı olabilir. Aynı yıl reddi tekrar tekrar deneyerek istismar etmek mümkün değildir.
+- Kabul edilen çıraklık **sonraki yıldan itibaren** her uygun yıl gerçek torun NPC becerisine +4, öğrenme ilerlemesine +4 ekler. Torun/usta bağı gelişir. Taşınan, ölen, uzak veya görüşmeye kapalı ustanın adına sahte ders yazılmaz.
+- 18 yaşına ulaşınca gerçekleşen dersler kaybolmaz; uygun çıraklık tamamlanmış olarak arşivlenir. Rıza dışı meslek ataması ve sahte para üretimi yapılmaz.
+- Eski kayıtlar güvenle v66'ya yükseltilir; yazgi_before_v66 yedeği alınır. 30 yeni otomatik senaryo ile giriş koşulları, NPC devamlılığı, kayıt ve istismar önlemleri doğrulanır.
