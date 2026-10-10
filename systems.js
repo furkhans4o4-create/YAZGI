@@ -3586,7 +3586,10 @@ function familyGrandchildCareersYearTick(){
   r.lastYear=year;g.statusFlags=g.statusFlags||{};g.statusFlags.grandchildCareerTracked=true;
   const field=g.statusFlags.familyApprenticeCareer?.field||
    f.grandchildLearning.apprenticeships.find(a=>a.grandId===g.id&&a.careerAccepted)?.field||
-   (g.goal==='wisdom'?'literacy':g.goal==='mastery'?'craft':'riding'),
+   (['Demirci','Usta Demirci'].includes(g.role)?'craft':
+    ['Bitigçi','Baş Bitigçi'].includes(g.role)?'literacy':
+    ['At Bakıcısı','Baş Seyis'].includes(g.role)?'riding':
+    g.goal==='wisdom'?'literacy':g.goal==='mastery'?'craft':'riding'),
    skill=Math.max(0,Number(g.skills?.[field])||0),available=!npcLifeBlocksNormalInteraction(g);
   let recovered=false;
   if(g.role==='İşsiz'&&available&&r.lostYear!=null&&r.lostYear<year){
