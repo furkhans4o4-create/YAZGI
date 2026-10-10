@@ -6660,7 +6660,7 @@ function equipmentSummaryHtml(){
   const id=e.slots[slot],d=equipmentDef(id);
   return '<div class="card"><h3>'+safeText(EQUIPMENT_SLOT_LABELS[slot])+'</h3><p>'+
    (d?d.icon+' '+safeText(d.name):'Boş')+'</p>'+
-   (d?'<button class="mini" onclick="unequipSlot('+JSON.stringify(slot)+')">Çıkar</button>':'')+'</div>';
+   (d?'<button class="mini" onclick="unequipSlot(&quot;'+slot+'&quot;)">Çıkar</button>':'')+'</div>';
  }).join('');
  const worn=own.map(([id,d])=>{
   const selected=e.slots[d.slot]===id,issue=equipmentChoiceIssue(id);
@@ -6668,16 +6668,16 @@ function equipmentSummaryHtml(){
    safeText(EQUIPMENT_SLOT_LABELS[d.slot])+' • '+(d.roles.includes(role)?'Mesleğine uygun':'Kişisel eşya')+
    (d.asset?' • Mevcut varlığın':'')+'</p>'+
    '<button class="mini '+(selected?'active':'')+'" '+(issue?'disabled title="'+safeText(issue)+'"':'')+
-   ' onclick="equipItem('+JSON.stringify(id)+')">'+(selected?'Kuşanıldı ✓':'Kuşan')+'</button>'+
+   ' onclick="equipItem(&quot;'+id+'&quot;)">'+(selected?'Kuşanıldı ✓':'Kuşan')+'</button>'+
    (!d.asset?'<button class="mini" '+(accessIssue({kind:'equipmentTrade',id,mode:'sell'})?'disabled':'')+
-   ' onclick="tradeEquipment('+JSON.stringify(id)+',"sell")">Sat ('+Math.max(1,Math.floor(d.cost/2))+' servet)</button>':'')+'</div>';
+   ' onclick="tradeEquipment(&quot;'+id+'&quot;,&quot;sell&quot;)">Sat ('+Math.max(1,Math.floor(d.cost/2))+' servet)</button>':'')+'</div>';
  }).join('');
  const presetCards=Object.entries(EQUIPMENT_PRESET_NAMES).map(([id,label])=>{
   const chosen=e.presets[id];
   const names=chosen?EQUIPMENT_SLOTS.filter(slot=>chosen[slot]).map(slot=>equipmentDef(chosen[slot]).name).join(' • '):'Henüz kaydedilmedi';
   return '<div class="card"><h3>'+safeText(label)+'</h3><p>'+safeText(names||'Boş dizilim')+'</p>'+
-   '<div class="actions"><button class="mini" onclick="saveEquipmentPreset('+JSON.stringify(id)+')">Üzerindekini kaydet</button>'+
-   (chosen?'<button class="mini" onclick="equipEquipmentPreset('+JSON.stringify(id)+')">Dizilimi kuşan</button>':'')+
+   '<div class="actions"><button class="mini" onclick="saveEquipmentPreset(&quot;'+id+'&quot;)">Üzerindekini kaydet</button>'+
+   (chosen?'<button class="mini" onclick="equipEquipmentPreset(&quot;'+id+'&quot;)">Dizilimi kuşan</button>':'')+
    '</div></div>';
  }).join('');
  const store=Object.entries(EQUIPMENT_CATALOG).filter(([id,d])=>!d.asset&&!e.owned.includes(id)).map(([id,d])=>
