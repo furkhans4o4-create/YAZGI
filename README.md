@@ -592,3 +592,13 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - Sırası gelen üye oyuncunun bulunduğu bölgeden ayrılmışsa, çalışmaya elverişli değilse veya artık yaşamıyorsa yokluğunda öğretim/para transferi gerçekleştirmiş sayılmaz. O yılın görev aksaması bir kez işlenir.
 - Aile ekranında sıradaki sorumlu ve gündem görüşmesi seçenekleri görünür. Yeni sayaçlar, retler ve onaylar kayıtlı aile meclisi arşivinde kalır; v72 kaydı v73'e geçerken `yazgi_before_v73` yedeği korunur.
 - 29 hedefli v73 testi, önceki tüm regresyonlarla birlikte çalıştırılır.
+
+
+### v74 — Aile Meclisi Kararlarının İki Yıllık Gerçek Etkisi
+
+- **Yalnızca gerçekten yapılmış** yıllık aile meclisi görevleri, yaşayan gerçek NPC kimlikleriyle bir `familyCouncilLegacy` izine dönüşür. Kuruluş, boş sorumluluk, reddedilmiş görüşme veya başarısız arabuluculuk kendiliğinden olumlu iz yaratmaz.
+- **Kuşak eğitimi:** Önceki eğitimi veren yakın ve 5–17 yaş arasındaki çocuk bir arada kalırsa, mevcut öğrenim kaydındaki ilerleme sonraki en fazla iki yılda yılda **+1** güçlenebilir. Yeni öğrenci veya doğrudan sahte beceri yaratılmaz.
+- **Gerçek hane yardımı:** Yapılan para aktarımının ardından iki yetişkinin güveni, aynı yerde kalıp husumet çıkarmadıkları sürece yılda küçük ölçekte güçlenebilir. Para yalnız hizmet yılı içinde aktarılır; gelecek yıllarda asla ikinci kez üretilmez.
+- **Uzlaşma:** Başarılmış ve sonradan korunmuş barış görüşmesi, gerçek ebeveyn–çocuk bağında en fazla iki kez gerilimi **−2** azaltabilir. Yeni husumet varsa veya kişilerden biri kaybolmuşsa geçmişteki meclis kararı kimseyi zorla barıştırmaz.
+- Başlangıçtan itibaren en fazla **iki sonraki yıl** etkili olabilen izler, oyuncu meclisi iptal etmiş veya meclis normal süresini tamamlamış olsa da gerçek insanlara bağlı kalır. Ölüm, uzaklaşma veya geçersiz bağ sürdürmeyi bitirir; yıllar atlandığında geçmiş hizmetler sonradan toplu halde yazılmaz.
+- Aile ekranında gerçek katılımcıların isimleri, tamamlanan ve sönen izler görünür. v73'ten v74'e geçerken `yazgi_before_v74` yedeği alınır. 34 özel regresyon testi ve tüm eski testler CI tarafından korunur.
