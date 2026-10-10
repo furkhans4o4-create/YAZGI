@@ -583,3 +583,12 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - **Uzlaşma:** Meclis üyesi ile genç kuşaktan yakınının v71'de kayıtlı gerçek kırgınlığı varsa, **karşılıklı rızaya bağlı** olarak gerilim azaltılabilir. Toplumsal bağ ve güven gerçekten güncellenir; mevcut bir kırgınlık yoksa sahte barışma sayılmaz.
 - Meclis en fazla **3 yıllık** görev süresini tamamlayınca otomatik biter; üyelerin ölümü düzeni sona erdirebilir, oyuncu dilerse bir ay harcayarak sonlandırabilir. Tek yıllık işlemin tekrarlanması engellenir. Meclis kararları aile ekranında tarihçeyle görünür.
 - `familyCouncil` kaydı v71'den güvenle taşınır ve `yazgi_before_v72` yedeği oluşturulur. 45 yeni test ile eski sürümlerin tüm regresyonları birleştirme öncesi çalıştırılır.
+
+
+### v73 — Aile Meclisinde Yıllık Gündem Görüşmesi ve Gerçek Görev Takibi
+
+- Üç yıllık aile meclisinde ilk kuruluş yılından sonra, yılda bir kez **gündem değiştirme görüşmesi** yapılabilir. Eğitim, haneler arası yardım ve uzlaşma gündemleri arasında geçiş, yaşayan ve ulaşılabilen bütün imzacıların **oybirliğini** gerektirir. Üyeler kabul etmezse önceki gündem devam eder.
+- Görüşme kabul veya reddedilse de **1 aylık eylem hakkı** harcanır. Aynı yılda tekrar teklif verilemez. Gündem değişikliği üye listesini, üç yıllık takvimi ve sonraki görev sahibini sıfırlamaz; ilave görev, ödül, para veya NPC yaratmaz.
+- Sırası gelen üye oyuncunun bulunduğu bölgeden ayrılmışsa, çalışmaya elverişli değilse veya artık yaşamıyorsa yokluğunda öğretim/para transferi gerçekleştirmiş sayılmaz. O yılın görev aksaması bir kez işlenir.
+- Aile ekranında sıradaki sorumlu ve gündem görüşmesi seçenekleri görünür. Yeni sayaçlar, retler ve onaylar kayıtlı aile meclisi arşivinde kalır; v72 kaydı v73'e geçerken `yazgi_before_v73` yedeği korunur.
+- 29 hedefli v73 testi, önceki tüm regresyonlarla birlikte çalıştırılır.
