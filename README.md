@@ -706,3 +706,11 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - CSS geçici portrede sağ/sol kol açısı, elde tutulan eşyanın yeri ve aktif duruş farklılaşır. Bir eşyaya sadece sahip olmak onu eline koymaz. Bakımsız varlıkların aktif iş pozu oluşmaz; envanterdeki kayıt yine durur. Silah simgesi hem eski yerinde hem yeni elde iki kez çizilmez.
 - Ölü, tutsak ve ciddi yaralı görünüşlerinin önceliği devam eder. Erkek/kadın ve yaşlara uygun `actionSpriteKey` eklendi. `spriteKeys` içindeki v84 on katman geriye dönük uyumlu; bunlar **gerçek görsel dosyaları değil**, sonraki pixel art çalışmasının kimlikleridir.
 - Eşya ekranı ve görünüş ekranı duruş açıklamasını gösterir. Eski sürümlerden geçişte `yazgi_before_v85` ham kayıt yedeği oluşturulur; **46 yeni v85 testi** ve tüm eski sürüm kontrolleri çalıştırılır.
+
+
+### v86 — Sefer, Meslek ve Yol için Eşya Dizilimleri
+
+- Kuşanma ekranına üç **oyuncu tarafından kaydedilen** dizilim eklendi: Sefer, Meslek ve Yol. Altı kuşanma yuvasındaki gerçek eşyalar anlık görüntü olarak saklanır; düzeni kuşanmak/yeniden kaydetmek aylık eylem hakkı tüketmez.
+- Kayıtlı düzende bulunan eşya daha sonra satılmış veya kaybolmuşsa dizilimi kuşanma **tümüyle reddedilir**, diğer takılı eşyalar da değiştirilmez. Henüz sahip olunmayan eşya oluşturulmaz, yaş kısıtı aşılmaz ve yay-kalkan gibi iki el çakışmaları reddedilir.
+- Tutsaklıkta, ölümde ve çözülmemiş karar kartı varken dizilim değiştirilemez. Yeni dizilimlerin kaydı eski eşyaları korur, eski v85 kayıtları `yazgi_before_v86` yedeğinden göç ettirilir.
+- Görünüş ve elde tutulan eşya katmanı yeni kuşanma dizilimine göre hemen güncellenir. Eski v82–v85 ekipman, portre ve olay kuralları korunur; v86 için ayrıca 17 otomatik regresyon testi eklendi.
