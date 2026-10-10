@@ -545,3 +545,12 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - Büyük ebeveyn yakınındaki yetişkin torununa kendi gerçek servetinden **3 birim mal desteği** aktarabilir veya işsiz torunu için gelecek yılın iş arama olasılığını yükselten **gönüllü iş bağlantısı** kurabilir. Her görüşme bir aylık haktır ve aynı yıl tekrarlanamaz.
 - Aile panelinde gerçek iş, terfi, kazanç, gider, geçim açığı, iş kaybı ve yardım geçmişi gösterilir. Yeni kayıtlar `grandchildCareers` altında tutulur; v67 ve öncesi kayıtların v68 göçünde `yazgi_before_v68` yedeği korunur.
 - 45 yeni regresyon testi ile yetişkin torun ekonomisi, yardım transferi, kariyer, erişim, tekrar işlem ve kayıt güvenliği doğrulanır.
+
+### v69 — Yetişkin Torunların Ayrı Haneleri, Dördüncü Kuşak ve Gerçek Miras Aktarımı
+
+- Yetişkin torunlar kendi istekleriyle aile yurdundan ayrı **kiralık hane** kurabilir, kirayı kendi gerçek kazançlarından öder; uygun şartlarda tekrar aile yurduna dönebilirler. Aynı yıl yalnız bir hane kararı görüşülebilir.
+- Kendi bütçelerinde 12 servet biriktiren kiracı torunlar **yurt satın alabilir**. 12 servet gerçek NPC varlığından düşer, yurt mevcut NPC mülk/miras sistemindeki gerçek `estate.assets` listesine geçer. Kiradaki yıllık ek gider sona erer.
+- Torunun eş ve çocukları, mevcut NPC evlenme/doğum sistemiyle oluşturulmaya devam eder; yeni çocuklar ikinci kez üretilmez. Doğan **dördüncü kuşak** üyesinin gerçek NPC kimliğiyle hanedeki bağı ve doğum kaydı tutulur.
+- Oyuncu torununa sağlığında **5 gerçek servetlik miras payı** aktarabilir; bu para oyuncudan çıkar, toruna girer ve torunun NPC mülk kökeni kaydına geçer. Her torun için yaşam boyu 3, yılda 1 hak; bu aktarım ölüm sonrası vasiyete ek bir sahte ödeme yaratmaz.
+- Hane kararı, mülkiyet, miras geçmişi ve dördüncü kuşak istatistiği yetişkin torunlar ekranında görünür. v68 kayıtları v69'a yükseltilirken `yazgi_before_v69` güvenlik yedeği alınır.
+- 46 yeni regresyon testi, önceki sürümler ve tam oyun test paketiyle doğrulanır.
