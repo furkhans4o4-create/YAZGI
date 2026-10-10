@@ -1,5 +1,5 @@
 /* Original YAZGI simulation rules; reference assets, text and code are not used. */
-const SAVE_VERSION=66,ADULT_AGE=18;
+const SAVE_VERSION=67,ADULT_AGE=18;
 const CAREER_RULES={
  herder:{age:10,skills:{riding:10}},hunter:{age:12,skills:{archery:20,riding:10}},horsekeeper:{age:12,skills:{riding:25}},smith_apprentice:{age:12,skills:{craft:17}},
  smith:{age:18,skills:{craft:40},months:12,track:'craft'},bard:{age:16,skills:{speech:35},months:6,track:'culture'},merchant:{age:18,skills:{trade:35},months:12,track:'trade'},caravan:{age:18,skills:{trade:30,riding:25},months:6,track:'trade'},
@@ -2332,9 +2332,23 @@ function ensureFamilyBranches(){
     startedYear:Math.floor(r.startedYear),
     lastYear:Number.isFinite(r.lastYear)?Math.floor(r.lastYear):null,
     sessions:Math.max(0,Math.min(20,Math.floor(Number.isFinite(r.sessions)?r.sessions:0))),
-    status:['active','declined','completed','ended'].includes(r.status)?r.status:'ended'
+    status:['active','declined','completed','ended'].includes(r.status)?r.status:'ended',
+   endedYear:Number.isFinite(r.endedYear)?Math.floor(r.endedYear):null,
+   reason:['voluntary','lost','absence','family','age',''].includes(r.reason)?r.reason:'',
+   missed:Math.max(0,Math.min(5,Math.floor(Number.isFinite(r.missed)?r.missed:0))),
+   lastMissYear:Number.isFinite(r.lastMissYear)?Math.floor(r.lastMissYear):null,
+   lastTalkYear:Number.isFinite(r.lastTalkYear)?Math.floor(r.lastTalkYear):null,
+   changes:Math.max(0,Math.min(8,Math.floor(Number.isFinite(r.changes)?r.changes:0))),
+   mentorHistory:Array.isArray(r.mentorHistory)?r.mentorHistory.filter(h=>h&&typeof h.id==='string'&&h.id.length<=128&&Number.isFinite(h.year)).slice(0,8).map(h=>({id:h.id,year:Math.floor(h.year)})):[],
+   careerRole:['Demirci','At Bakıcısı','Bitigçi'].includes(r.careerRole)?r.careerRole:null,
+   careerAccepted:r.careerAccepted===true?true:r.careerAccepted===false?false:null
    })) : [],
   placements:Math.max(0,Math.floor(Number.isFinite(learn?.placements)?learn.placements:0)),
+  interruptions:Math.max(0,Math.floor(Number.isFinite(learn?.interruptions)?learn.interruptions:0)),
+  withdrawals:Math.max(0,Math.floor(Number.isFinite(learn?.withdrawals)?learn.withdrawals:0)),
+  mentorChanges:Math.max(0,Math.floor(Number.isFinite(learn?.mentorChanges)?learn.mentorChanges:0)),
+  changeRefusals:Math.max(0,Math.floor(Number.isFinite(learn?.changeRefusals)?learn.changeRefusals:0)),
+  careers:Math.max(0,Math.floor(Number.isFinite(learn?.careers)?learn.careers:0)),
   apprenticeRefusals:Math.max(0,Math.floor(Number.isFinite(learn?.apprenticeRefusals)?learn.apprenticeRefusals:0)),
   apprenticeshipSessions:Math.max(0,Math.floor(Number.isFinite(learn?.apprenticeshipSessions)?learn.apprenticeshipSessions:0)),
   completions:Math.max(0,Math.floor(Number.isFinite(learn?.completions)?learn.completions:0)),
@@ -3369,27 +3383,56 @@ function familyGrandchildApprenticeEligible(rec){
   !npcLifeBlocksNormalInteraction(g)&&!npcLifeBlocksNormalInteraction(parent)&&
   !npcLifeBlocksNormalInteraction(mentor));
 }
+function familyApprenticeEnd(e,rec,year,reason){
+ rec.status='ended';rec.endedYear=year;rec.reason=reason;
+ if(reason==='voluntary')e.withdrawals++;else e.interruptions++;
+ const g=grandchildById(rec.grandId);
+ e.history.unshift({year,type:'apprentice_end',note:(g?.name||'Torun')+' çıraklığı sona erdi: '+reason});
+ e.history=e.history.slice(0,32);
+}
 function familyGrandchildApprenticeshipYearTick(){
- const f=ensureFamilyBranches(),e=f.grandchildLearning,year=s.year+s.age;
+ const e=ensureFamilyBranches().grandchildLearning,year=s.year+s.age;
  for(const rec of e.apprenticeships){
   if(rec.status!=='active')continue;
-  const g=grandchildById(rec.grandId),parent=grandchildParent(rec.grandId);
-  if(!g?.alive||!parent?.alive||parent.id!==rec.parentId){rec.status='ended';continue;}
+  const g=grandchildById(rec.grandId),parent=grandchildParent(rec.grandId),
+   mentor=s.children.find(c=>c.id===rec.mentorId);
+  if(!g?.alive||!parent?.alive||parent.id!==rec.parentId){
+   familyApprenticeEnd(e,rec,year,'family');continue;
+  }
   if(g.age>=18){
-   rec.status=rec.sessions?'completed':'ended';
+   rec.status=rec.sessions?'completed':'ended';rec.endedYear=year;rec.reason='age';
    if(rec.status==='completed'){
     e.completions++;
-    e.history.unshift({year,type:'apprentice_complete',note:g.name+' '+skillName(rec.field)+' çıraklık dönemini tamamladı.'});
+    const role={riding:'At Bakıcısı',craft:'Demirci',literacy:'Bitigçi'}[rec.field];
+    const qualified=rec.sessions>=2&&(g.skills?.[rec.field]||0)>=18&&!g.aspiration?.protectedRole&&!g.statusFlags?.workshopGraduate;
+    const accept=qualified&&Math.random()<Math.min(.85,.25+rec.sessions*.1+(g.skills?.[rec.field]||0)/260);
+    rec.careerRole=qualified?role:null;rec.careerAccepted=qualified?accept:null;
+    if(accept){
+     g.role=role;g.roleHistory=Array.isArray(g.roleHistory)?g.roleHistory:[];
+     g.roleHistory.push({year,role,source:'family_apprenticeship'});
+     g.statusFlags=g.statusFlags||{};
+     g.statusFlags.familyApprenticeCareer={year,role,field:rec.field};
+     rememberNPC(g,'career','Çıraklık sonrası '+role+' mesleğini kendi isteğiyle seçti.',5);
+     e.careers++;
+    }
+    e.history.unshift({year,type:'apprentice_complete',note:g.name+' çıraklık dönemini tamamladı.'});
     e.history=e.history.slice(0,32);
    }
    continue;
   }
-  if(year<=rec.startedYear||rec.lastYear===year||!familyGrandchildApprenticeEligible(rec))continue;
-  const mentor=s.children.find(c=>c.id===rec.mentorId),student=familyGrandchildStudent(g,parent);
-  rec.lastYear=year;rec.sessions++;e.apprenticeshipSessions++;
+  if(!mentor?.alive){familyApprenticeEnd(e,rec,year,'lost');continue;}
+  if(year<=rec.startedYear||rec.lastYear===year)continue;
+  if(!familyGrandchildApprenticeEligible(rec)){
+   if(rec.lastMissYear!==year){
+    rec.lastMissYear=year;rec.missed++;
+    if(rec.missed>=2)familyApprenticeEnd(e,rec,year,'absence');
+   }
+   continue;
+  }
+  const student=familyGrandchildStudent(g,parent);
+  rec.lastYear=year;rec.missed=0;rec.sessions++;e.apprenticeshipSessions++;
   g.skills=g.skills||{};g.skills[rec.field]=clamp((g.skills[rec.field]||0)+4);
-  student.progress=clamp(student.progress+4);
-  student.kinLessons++;
+  student.progress=clamp(student.progress+4);student.kinLessons++;
   adjustSocialLink(g,mentor,{score:2,trust:2,tag:'kin'},'Gönüllü aile çıraklığında ustasıyla çalıştı.');
   if(rec.sessions===1||rec.sessions%3===0){
    e.history.unshift({year,type:'apprentice_session',note:g.name+' '+mentor.name+' ile '+skillName(rec.field)+' çalıştı.'});
@@ -3410,7 +3453,7 @@ function familyGrandchildApprenticeIssue(grandId,mentorId){
  if((normalizeBonds(mentor).trust||0)<45)return 'Aile ustasının güveni en az 45 olmalı.';
  const e=ensureFamilyBranches().grandchildLearning,
   current=e.apprenticeships.find(r=>r.grandId===grandId&&
-   (r.status==='active'||r.startedYear===year));
+   (r.status==='active'||r.startedYear===year||r.endedYear===year));
  if(current)return 'Bu torunun açık bir çıraklığı veya bu yıl yapılmış bir görüşmesi var.';
  if(e.apprenticeships.some(r=>r.mentorId===mentorId&&r.status==='active'))
   return 'Bu aile ustası zaten başka bir toruna zaman ayırıyor.';
@@ -3443,28 +3486,90 @@ function familyGrandchildApprenticeAction(grandId,mentorId){
  },'Torununun kendi isteğine bağlı aile çıraklığını görüştün.');
 }
 
+
+/* v67: voluntary withdrawal or acceptance-based mentor replacement. */
+function familyGrandchildApprenticeManageIssue(grandId,mode,nextId=null){
+ if(!['leave','change'].includes(mode))return 'Çıraklık işlemi bilinmiyor.';
+ if(s.age<18)return 'Aile görüşmesi yetişkinlere açıktır.';
+ const e=ensureFamilyBranches().grandchildLearning,rec=e.apprenticeships.find(r=>r.grandId===grandId&&r.status==='active'),
+  g=grandchildById(grandId),parent=grandchildParent(grandId),year=s.year+s.age;
+ if(!rec||!g?.alive||g.age<12||g.age>=18||!parent?.alive||rec.parentId!==parent.id)return 'Yaşayan ergen torunun etkin çıraklığı olmalı.';
+ if(rec.startedYear===year||rec.lastTalkYear===year)return 'Bu yıl bu çıraklığın düzeni zaten konuşuldu.';
+ if([g,parent].some(n=>n.place!==s.place||n.realm!==s.realm||npcLifeBlocksNormalInteraction(n)))return 'Torun ve ebeveyni aynı yerde olmalı.';
+ if(mode==='leave')return '';
+ const mentor=s.children.find(n=>n.id===nextId);
+ if(!mentor?.alive||mentor.age<18||mentor.id===parent.id||mentor.id===rec.mentorId)return 'Farklı yetişkin bir aile ustası gerekli.';
+ if(mentor.place!==s.place||mentor.realm!==s.realm||npcLifeBlocksNormalInteraction(mentor))return 'Yeni usta aynı yerde ve görüşmeye uygun olmalı.';
+ if((normalizeBonds(mentor).trust||0)<45)return 'Yeni ustanın güveni 45 olmalı.';
+ if((mentor.skills?.[rec.field]||0)<8)return 'Yeni ustanın ilgili becerisi 8 olmalı.';
+ if(e.apprenticeships.some(r=>r!==rec&&r.status==='active'&&r.mentorId===nextId))return 'Bu usta başka torunla çalışıyor.';
+ return '';
+}
+function familyGrandchildApprenticeManageAction(grandId,mode,nextId=null){
+ const issue=familyGrandchildApprenticeManageIssue(grandId,mode,nextId);
+ if(issue){notice(issue);return false;}
+ return performAction({kind:'grandchildApprenticeManage',grandId,id:mode,mentorId:nextId},()=>{
+  const e=ensureFamilyBranches().grandchildLearning,rec=e.apprenticeships.find(r=>r.grandId===grandId&&r.status==='active'),
+   year=s.year+s.age,g=grandchildById(grandId);
+  rec.lastTalkYear=year;
+  if(mode==='leave'){familyApprenticeEnd(e,rec,year,'voluntary');adjustNPC(g,{trust:2},'Çıraklığı sonlandırma kararına saygı duyuldu.');return;}
+  const mentor=s.children.find(n=>n.id===nextId);
+  const chance=Math.min(.9,.26+(normalizeBonds(mentor).trust||0)/290+(mentor.skills?.[rec.field]||0)/450);
+  if(Math.random()<chance){
+   rec.mentorHistory=rec.mentorHistory||[];
+   rec.mentorHistory.unshift({id:rec.mentorId,year});rec.mentorHistory=rec.mentorHistory.slice(0,8);
+   rec.mentorId=nextId;rec.changes++;rec.missed=0;e.mentorChanges++;
+   adjustSocialLink(g,mentor,{score:2,trust:3,tag:'kin'},'Yeni aile ustasıyla çalışmaya başladı.');
+   e.history.unshift({year,type:'apprentice_change',note:g.name+' yeni ustası '+mentor.name+' ile çalışmaya başladı.'});
+  }else{
+   e.changeRefusals++;
+   e.history.unshift({year,type:'apprentice_change_refused',note:mentor.name+' ustalığı devralmayı kabul etmedi.'});
+  }
+  e.history=e.history.slice(0,32);
+ },'Çıraklık düzenini aile içinde görüştünüz.');
+}
+
 function familyGrandchildLearningHtml(){
- const f=ensureFamilyBranches(),e=f.grandchildLearning,groups=s.children.filter(c=>c?.alive&&c.age>=18),
-  visible=groups.flatMap(parent=>(parent.descendants||[]).filter(g=>g?.alive&&g.age<18).map(g=>({parent,g}))).slice(0,16);
- if(!visible.length)return '';
- let html='<div class="card"><h3>📚 Torunların Eğitimi ve Aile İçi Bakım</h3><p>5–17 yaş arasında yıllık öğrenme, büyüklerden özel ders ve kardeşlerin gönüllü çocuk bakım sözü. '+
+ const e=ensureFamilyBranches().grandchildLearning,groups=s.children.filter(c=>c?.alive&&c.age>=18),
+  visible=groups.flatMap(parent=>(parent.descendants||[]).filter(g=>g?.alive&&g.age<18).map(g=>({parent,g}))).slice(0,16),
+  graduates=e.apprenticeships.filter(r=>r.status==='completed').slice(0,6);
+ if(!visible.length&&!graduates.length)return '';
+ let html='<div class="card"><h3>📚 Torunların Eğitimi ve Aile İçi Bakım</h3><p>'+
   'Ders '+e.lessons+' • bakım görüşmesi '+e.invitations+' • kabul '+e.accepted+' • ret '+e.refusals+' • gerçekleşen bakım '+e.sharedCareYears+
   '<br>Çıraklık '+e.placements+' • ustayla çalışma '+e.apprenticeshipSessions+' • tamamlanan '+e.completions+
+  ' • usta değişimi '+e.mentorChanges+' • gönüllü ayrılık '+e.withdrawals+' • yarıda kalan '+e.interruptions+' • mesleğe geçen '+e.careers+
   (e.history.length?'<br>Son aile kaydı: '+safeText(e.history[0].note):'')+'</p></div>';
  for(const {parent,g} of visible){
-  const student=e.students.find(r=>r.grandId===g.id),apprentice=e.apprenticeships.find(r=>r.grandId===g.id&&r.status==='active'),plan=e.agreements.find(r=>r.grandId===g.id&&r.year>=s.year+s.age-1),
+  const student=e.students.find(r=>r.grandId===g.id),
+   apprentice=e.apprenticeships.find(r=>r.grandId===g.id&&r.status==='active'),
+   plan=e.agreements.find(r=>r.grandId===g.id&&r.year>=s.year+s.age-1),
    possible=groups.filter(h=>h.id!==parent.id&&h.place===parent.place&&h.realm===parent.realm).slice(0,3);
   html+='<div class="card"><h3>'+safeText(g.name)+' • '+g.age+' yaş</h3><p>Ebeveyni '+safeText(parent.name)+
    ' • öğrenme '+(student?.progress||0)+'/100 • aile dersleri '+(student?.homeLessons||0)+
    ' • akraba dersleri '+(student?.kinLessons||0)+
-   (apprentice?' • çıraklık: '+safeText(s.children.find(c=>c.id===apprentice.mentorId)?.name||'aile ustası')+' ('+apprentice.sessions+' dönem)':'')+
+   (apprentice?' • çıraklık: '+safeText(s.children.find(c=>c.id===apprentice.mentorId)?.name||'aile ustası')+' ('+apprentice.sessions+' dönem, aksama '+(apprentice.missed||0)+')':'')+
    (plan?' • bakım teklifi '+(plan.accepted?'kabul edildi':'reddedildi'):'')+'</p><div class="actions">'+
    (g.age>=5?['riding','craft','literacy'].map(field=>actionButton('Öğret: '+safeText(skillName(field)),{kind:'grandchildEducation',grandId:g.id,field},
     'familyGrandchildEducationAction('+JSON.stringify(g.id)+','+JSON.stringify(field)+')','Bir ay • yılda bir özel eğitim')).join(''):'')+
-   (g.age>=12?possible.map(h=>actionButton('Çıraklık: '+safeText(h.name),{kind:'grandchildApprentice',grandId:g.id,mentorId:h.id},
-    'familyGrandchildApprenticeAction('+JSON.stringify(g.id)+','+JSON.stringify(h.id)+')','Bir ay • gönüllü usta kabul ederse her yıl gerçek beceri gelişimi')).join(''):'')+
+   (apprentice?actionButton('Çıraklığı bırak',{kind:'grandchildApprenticeManage',grandId:g.id,id:'leave'},
+    'familyGrandchildApprenticeManageAction('+JSON.stringify(g.id)+',"leave")','Bir ay • kendi isteğiyle ayrıl')+
+    possible.filter(h=>h.id!==apprentice.mentorId).map(h=>actionButton('Ustayı değiştir: '+safeText(h.name),
+     {kind:'grandchildApprenticeManage',grandId:g.id,id:'change',mentorId:h.id},
+     'familyGrandchildApprenticeManageAction('+JSON.stringify(g.id)+',"change",'+JSON.stringify(h.id)+')',
+     'Bir ay • yeni usta kabul ederse önceki dersler korunur')).join(''):'')+
+   (g.age>=12&&!apprentice?possible.map(h=>actionButton('Çıraklık: '+safeText(h.name),{kind:'grandchildApprentice',grandId:g.id,mentorId:h.id},
+    'familyGrandchildApprenticeAction('+JSON.stringify(g.id)+','+JSON.stringify(h.id)+')',
+    'Bir ay • gönüllü usta kabul ederse yıllık beceri gelişimi')).join(''):'')+
    possible.map(h=>actionButton('Bakımı paylaş: '+safeText(h.name),{kind:'grandchildCare',grandId:g.id,helperId:h.id},
-    'familyGrandchildCareAction('+JSON.stringify(g.id)+','+JSON.stringify(h.id)+')','Bir ay • kabul ederse gelecek yıl 1 hane gideri azalır')).join('')+'</div></div>';
+    'familyGrandchildCareAction('+JSON.stringify(g.id)+','+JSON.stringify(h.id)+')','Bir ay • kabul ederse gelecek yıl 1 hane gideri azalır')).join('')+
+   '</div></div>';
+ }
+ for(const rec of graduates){
+  const g=grandchildById(rec.grandId);if(!g)continue;
+  html+='<div class="card"><h3>🎓 '+safeText(g.name)+' • çıraklık mezunu</h3><p>'+
+   safeText(skillName(rec.field))+' • '+rec.sessions+' eğitim dönemi • '+(rec.changes||0)+' usta değişimi • '+
+   (rec.careerAccepted?'Kendi isteğiyle '+safeText(rec.careerRole)+' mesleğine geçti.':
+    rec.careerAccepted===false?'Kendi meslek yolunu seçti.':'Çıraklık tamamlandı.')+'</p></div>';
  }
  return html;
 }
@@ -7963,6 +8068,7 @@ function accessIssue(a){
   }else if(a.kind==='grandchildEducation'){const issue=familyGrandchildEducationIssue(a.grandId,a.field);if(issue)return issue;min=18;
   }else if(a.kind==='grandchildCare'){const issue=familyGrandchildCareIssue(a.grandId,a.helperId);if(issue)return issue;min=18;
   }else if(a.kind==='grandchildApprentice'){const issue=familyGrandchildApprenticeIssue(a.grandId,a.mentorId);if(issue)return issue;min=18;
+  }else if(a.kind==='grandchildApprenticeManage'){const issue=familyGrandchildApprenticeManageIssue(a.grandId,a.id,a.mentorId??null);if(issue)return issue;min=18;
   }else if(a.kind==='familyBudgetTalk'){const issue=familyBudgetTalkIssue(a.childId);if(issue)return issue;min=18;
   }else if(a.kind==='familyHouseholdCrisis'){const issue=familyHouseholdCrisisIssue(a.childId,a.id);if(issue)return issue;min=18;
   }else if(a.kind==='familySiblingGuarantee'){const issue=familySiblingGuaranteeIssue(a.loanId);if(issue)return issue;min=18;
@@ -8456,7 +8562,7 @@ function migrateState(x){
  if(!x.alive){x.pendingEventId=null;x.pendingDecision=null;}return x;
 }
 function save(){if(s)try{localStorage.setItem('yazgi_full_v1',JSON.stringify(s));}catch(e){notice('Kayıt yazılamadı; tarayıcı depolama alanını kontrol et.');}}
-function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
+function load(){try{const raw=localStorage.getItem('yazgi_full_v1');if(!raw)return;const x=JSON.parse(raw);if(x.version!==SAVE_VERSION){if(!localStorage.getItem('yazgi_before_v67'))localStorage.setItem('yazgi_before_v67',raw);if(!localStorage.getItem('yazgi_before_v66'))localStorage.setItem('yazgi_before_v66',raw);if(!localStorage.getItem('yazgi_before_v65'))localStorage.setItem('yazgi_before_v65',raw);if(!localStorage.getItem('yazgi_before_v64'))localStorage.setItem('yazgi_before_v64',raw);if(!localStorage.getItem('yazgi_before_v63'))localStorage.setItem('yazgi_before_v63',raw);if(!localStorage.getItem('yazgi_before_v62'))localStorage.setItem('yazgi_before_v62',raw);if(!localStorage.getItem('yazgi_before_v61'))localStorage.setItem('yazgi_before_v61',raw);if(!localStorage.getItem('yazgi_before_v60'))localStorage.setItem('yazgi_before_v60',raw);if(!localStorage.getItem('yazgi_before_v59'))localStorage.setItem('yazgi_before_v59',raw);if(!localStorage.getItem('yazgi_before_v58'))localStorage.setItem('yazgi_before_v58',raw);if(!localStorage.getItem('yazgi_before_v57'))localStorage.setItem('yazgi_before_v57',raw);if(!localStorage.getItem('yazgi_before_v56'))localStorage.setItem('yazgi_before_v56',raw);if(!localStorage.getItem('yazgi_before_v55'))localStorage.setItem('yazgi_before_v55',raw);if(!localStorage.getItem('yazgi_before_v54'))localStorage.setItem('yazgi_before_v54',raw);if(!localStorage.getItem('yazgi_before_v53'))localStorage.setItem('yazgi_before_v53',raw);if(!localStorage.getItem('yazgi_before_v52'))localStorage.setItem('yazgi_before_v52',raw);if(!localStorage.getItem('yazgi_before_v51'))localStorage.setItem('yazgi_before_v51',raw);if(!localStorage.getItem('yazgi_before_v50'))localStorage.setItem('yazgi_before_v50',raw);if(!localStorage.getItem('yazgi_before_v49'))localStorage.setItem('yazgi_before_v49',raw);if(!localStorage.getItem('yazgi_before_v48'))localStorage.setItem('yazgi_before_v48',raw);if(!localStorage.getItem('yazgi_before_v47'))localStorage.setItem('yazgi_before_v47',raw);if(!localStorage.getItem('yazgi_before_v46'))localStorage.setItem('yazgi_before_v46',raw);if(!localStorage.getItem('yazgi_before_v45'))localStorage.setItem('yazgi_before_v45',raw);if(!localStorage.getItem('yazgi_before_v44'))localStorage.setItem('yazgi_before_v44',raw);if(!localStorage.getItem('yazgi_before_v43'))localStorage.setItem('yazgi_before_v43',raw);if(!localStorage.getItem('yazgi_before_v42'))localStorage.setItem('yazgi_before_v42',raw);if(!localStorage.getItem('yazgi_before_v41'))localStorage.setItem('yazgi_before_v41',raw);if(!localStorage.getItem('yazgi_before_v40'))localStorage.setItem('yazgi_before_v40',raw);if(!localStorage.getItem('yazgi_before_v39'))localStorage.setItem('yazgi_before_v39',raw);if(!localStorage.getItem('yazgi_before_v38'))localStorage.setItem('yazgi_before_v38',raw);if(!localStorage.getItem('yazgi_before_v37'))localStorage.setItem('yazgi_before_v37',raw);}clearTransient();s=migrateState(x);$('newModal').classList.remove('show');render();if(s.pendingEventId||s.pendingDecision)activateLifeTab();if(!s.alive)showHeirModal();save();}catch(e){console.error(e);s=null;$('newModal').classList.remove('show');notice('Kayıt okunamadı; mevcut kayıt korunuyor. Yeni yaşam açmadan önce tarayıcı verisini yedekle.');}}
 function configureRules(){
  D.assets.push({id:'smithy',name:'Demir Ocağı',icon:'🔥',cost:60});D.achievements.push({id:'trained',name:'Ustanın Emeği',desc:'Bir uzmanlıkta 60 seviyesine ulaş.'},{id:'reconciled',name:'Barış Sözü',desc:'Bir rakiple uzlaş.'});D.achievements.find(x=>x.id==='adult').desc='18 yaşına ulaş.';D.careers.forEach(r=>r.age=CAREER_RULES[r.id].age);
  const adult=new Set(['Sefer','Tutsaklık','Sürgün','Töre','Ocak','Ticaret','Kervan','Devlet','Elçilik','Servet','Sürü']);

@@ -526,3 +526,12 @@ Yeni eylemler `performAction` / `accessIssue` üzerinden çalışmalı; olaylar 
 - Kabul edilen çıraklık **sonraki yıldan itibaren** her uygun yıl gerçek torun NPC becerisine +4, öğrenme ilerlemesine +4 ekler. Torun/usta bağı gelişir. Taşınan, ölen, uzak veya görüşmeye kapalı ustanın adına sahte ders yazılmaz.
 - 18 yaşına ulaşınca gerçekleşen dersler kaybolmaz; uygun çıraklık tamamlanmış olarak arşivlenir. Rıza dışı meslek ataması ve sahte para üretimi yapılmaz.
 - Eski kayıtlar güvenle v66'ya yükseltilir; yazgi_before_v66 yedeği alınır. 30 yeni otomatik senaryo ile giriş koşulları, NPC devamlılığı, kayıt ve istismar önlemleri doğrulanır.
+
+### v67 — Çıraklıktan Bağımsız Mesleğe
+
+- Çıraklık yapan torun, ebeveyn ve büyük ebeveyniyle bir aylık görüşmede eğitimi **gönüllü bırakabilir**. Önceden kazanılan beceriler ve kayıtlar silinmez.
+- Başka bir aile ustasına geçiş, aynı alanda yetkin ve yakınında bulunan **yetişkin NPC'nin kabulüne** bağlıdır. Ret halinde eski düzen sürer; yılda tek görüşme yapılır, kazanılmış dersler korunur. Usta değişimi isim ve yıl geçmişiyle kaydedilir.
+- Ustanın ölümü çıraklığı kapatır; erişilemeyen/yurttan uzak ustanın arka arkaya iki yıllık eğitim aksaması çıraklığı sona erdirir. Tek yıllık kesintiden sonra aynı usta dönerse eğitim kaldığı yerden devam eder.
+- 18 yaşında en az iki gerçek mentorluk yılı ve 18 beceri seviyesi bulunan torun **bağımsız seçim** yapabilir: binicilik → At Bakıcısı, zanaat → Demirci, okuryazarlık → Bitigçi. Kabul/ret otomatik zorunlu atama değildir; doğrudan gerçek NPC rolü, meslek geçmişi ve aile eğitim arşivi güncellenir. Korunmuş özel meslekler ezilmez.
+- Aile ekranında devam eden eğitim, usta değişimi, yarıda kalma ve mezuniyet sonrası meslek sonucu görünür. v66 kayıtları v67'ye geçerken `yazgi_before_v67` yedeği oluşturulur.
+- 37 yeni regresyon testi ve tüm önceki testler birleştirmeden önce çalıştırılır.
