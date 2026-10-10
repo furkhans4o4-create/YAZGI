@@ -2765,7 +2765,7 @@ function familyBranchYearTick(){
  }
  for(const [asset,id] of Object.entries({...f.stewards}))if(!adultChildById(id)||!s.assets.includes(asset))delete f.stewards[asset];
  for(const [asset,id] of Object.entries({...f.assetHeirs}))if(!adultChildById(id)||!s.assets.includes(asset))delete f.assetHeirs[asset];
- familyCareLegacyYearTick();familySiblingRepairYearTick();familySiblingYearTick();familyAncestralMemoryYearTick();familyHouseholdCrisisYearTick();familyGrandchildEducationYearTick();familyGrandchildApprenticeshipYearTick();familyGrandchildCareersYearTick();familyGrandchildHomesYearTick();familyFourthGenerationYearTick();familyIntergenerationalBondsYearTick();familyCouncilYearTick();familyBudgetYearTick();familySiblingEconomyYearTick();
+ familyCareLegacyYearTick();familySiblingRepairYearTick();familySiblingYearTick();familyAncestralMemoryYearTick();familySiblingHeritageYearTick();familyHouseholdCrisisYearTick();familyGrandchildEducationYearTick();familyGrandchildApprenticeshipYearTick();familyGrandchildCareersYearTick();familyGrandchildHomesYearTick();familyFourthGenerationYearTick();familyIntergenerationalBondsYearTick();familyCouncilYearTick();familyBudgetYearTick();familySiblingEconomyYearTick();
 }
 function adultChildActionIssue(childId,id,extra=null){
  const child=adultChildById(childId);if(!child)return '18 yaşını geçmiş yaşayan bir çocuğun gerekiyor.';if(npcLifeBlocksNormalInteraction(child))return npcNormalInteractionIssue(child);
@@ -3297,6 +3297,117 @@ function familySiblingRepairHtml(){
  html+='</div>';
  if(e.history.length)html+='<div class="card"><h3>Güvenin Onarım Geçmişi</h3><p>'+
   e.history.slice(0,6).map(h=>safeText(h.year+' • '+h.note)).join('<br>')+'</p></div>';
+ return html;
+}
+/* A past voluntary reconciliation is not a legal claim to property. The family
+   can remember it when discussing an explicit will, at most once per year. */
+function familySiblingWillReaction(heirId){
+ const f=ensureFamilyBranches(),ledger=f.siblingWillMemory,year=s.year+s.age;
+ if(ledger.lastYear===year)return;
+ const record=f.siblingHealing.pairs.find(p=>
+  p.stage===2&&p.status==='reconciled'&&Number.isFinite(p.lastAttemptYear)&&
+  p.lastAttemptYear<=year&&year<=p.lastAttemptYear+12&&
+  s.children.some(c=>c.id===p.aId)&&s.children.some(c=>c.id===p.bId));
+ if(!record)return;
+ const a=s.children.find(c=>c.id===record.aId),b=s.children.find(c=>c.id===record.bId);
+ if(!a?.alive||!b?.alive||a.age<18||b.age<18||[a,b].some(c=>
+  c.place!==s.place||c.realm!==s.realm||npcLifeBlocksNormalInteraction(c)))return;
+ const link=socialLinkBetween(a,b);
+ if(!link)return;
+ const healed=link.trust>=50&&link.score>=40&&link.grudge<40;
+ const strained=link.grudge>=45||link.score<=15;
+ if(!healed&&!strained)return;
+ ledger.lastYear=year;ledger.talks++;
+ const q=ensureSuccession();
+ let type='unresolved',note='Kardeşlerin eski görüşmesi hatırlandı; paylaşımın koşulları değişmedi.';
+ if(heirId==='equal'){
+  if(healed){
+   q.familyHarmony=clamp(q.familyHarmony+2);ledger.calmed++;
+   note=a.name+' ile '+b.name+' geçmişteki uzlaşmayı eşit vasiyet görüşmesinde hatırladı.';
+   type='fair';
+  }else{
+   q.familyHarmony=clamp(q.familyHarmony+1);ledger.calmed++;
+   note='Eski kırgınlık sürerken eşit paylaşım, ailede daha az tartışmaya yol açtı.';
+   type='fair';
+  }
+ }else if(heirId===a.id||heirId===b.id){
+  q.familyHarmony=clamp(q.familyHarmony-2);ledger.strained++;
+  const excluded=heirId===a.id?b:a;
+  adjustNPC(excluded,{rel:-2,trust:-2,grudge:2},
+   'Önceki kardeş görüşmelerine rağmen vasiyetteki ayrıcalığı sorguladı.');
+  note=excluded.name+' kardeşler arasında geçmişi düşünerek tek varis kararını sorguladı.';
+  type='favored';
+ }
+ ledger.history.unshift({year,aId:a.id,bId:b.id,type,note});
+ ledger.history=ledger.history.slice(0,30);
+}
+/* Snapshot only authenticated, previously observed sibling relationships.
+   Estate distribution itself is untouched by these memories. */
+function familySiblingHeritageSnapshot(){
+ const f=ensureFamilyBranches(),year=s.year+s.age;
+ return {stories:f.siblingBonds.map(b=>{
+  const a=s.children.find(c=>c.id===b.aId),other=s.children.find(c=>c.id===b.bId);
+  if(!a||!other||a.age<18||other.age<18)return null;
+  const link=socialLinkBetween(a,other),repair=f.siblingHealing.pairs.find(p=>
+   socialKey(p.aId,p.bId)===socialKey(a,other));
+  if(!link)return null;
+  if(repair?.status==='reconciled'&&repair.stage===2&&b.status==='close'&&
+   link.trust>=52&&link.score>=45&&link.grudge<40)
+   return {aId:a.id,bId:other.id,year:repair.lastAttemptYear,status:'reconciled'};
+  if(b.status==='strained'&&(link.grudge>=45||link.score<=15))
+   return {aId:a.id,bId:other.id,year:Number.isFinite(b.lastYear)?b.lastYear:year,status:'strained'};
+  return null;
+ }).filter(Boolean).slice(0,12)};
+}
+function familyInheritSiblingHeritage(snapshot,origin,heirId){
+ const stories=(snapshot?.stories||[]).filter(v=>v&&Number.isFinite(v.year)&&
+  ['reconciled','strained'].includes(v.status)&&(v.aId===heirId||v.bId===heirId))
+  .map(v=>({id:v.aId===heirId?v.bId:v.aId,year:v.year,status:v.status}))
+  .filter(v=>s.siblings.some(n=>n.id===v.id)).slice(0,12);
+ if(!stories.length)return;
+ const f=ensureFamilyBranches();
+ f.siblingHeritage={origin:String(origin),heirId,stories,
+  toldToIds:[],lastYear:null,shared:0,history:[]};
+ ensureFamilyBranches();
+}
+function familySiblingHeritageYearTick(){
+ const f=ensureFamilyBranches(),h=f.siblingHeritage,year=s.year+s.age;
+ if(!h?.stories.length||h.heirId!==s.id||h.lastYear===year)return;
+ h.lastYear=year;
+ for(const child of s.children.filter(n=>n?.alive&&n.age>=8&&!h.toldToIds.includes(n.id))){
+  if(npcLifeBlocksNormalInteraction(child))continue;
+  const record=h.stories.find(v=>{
+   const sibling=s.siblings.find(n=>n.id===v.id);
+   return sibling?.alive&&sibling.place===child.place&&sibling.realm===child.realm&&
+    !npcLifeBlocksNormalInteraction(sibling);
+  });
+  if(!record)continue;
+  const relative=s.siblings.find(n=>n.id===record.id);
+  const link=socialLinkBetween(s,relative);
+  const sustained=record.status==='reconciled'&&link&&link.score>=40&&
+   link.trust>=45&&link.grudge<40;
+  const note=sustained?
+   child.name+' ailesinin eski barışma hikâyesini '+relative.name+' ile paylaştı.':
+   child.name+' eski aile anlaşmazlığını '+relative.name+' üzerinden öğrendi; kendi ilişkisini kurmakta özgür.';
+  if(sustained)adjustSocialLink(child,relative,{score:3,trust:2,tag:'kin'},
+   'Kendi tanıdığı akrabasıyla eski uzlaşmanın hikâyesini paylaştı.');
+  h.toldToIds.push(child.id);h.toldToIds=h.toldToIds.slice(-80);
+  h.shared++;h.history.unshift({year,childId:child.id,relativeId:relative.id,note});
+  h.history=h.history.slice(0,24);
+ }
+}
+function familySiblingLegacyHtml(){
+ const f=ensureFamilyBranches(),e=f.siblingWillMemory,h=f.siblingHeritage;
+ if(!e.history.length&&!h?.history.length)return '';
+ let html='<div class="card"><h3>📜 Kardeşliğin Aile Hafızası</h3><p>'+
+  'Vasiyette anılan ilişki '+e.talks+' • eşitlik etkisi '+e.calmed+
+  ' • yeni kırgınlık '+e.strained+
+  '<br>Barışma miras paylarını kendiliğinden değiştirmez; sonraki nesil büyüklerinin kavgalarını miras almak zorunda değildir.</p>';
+ if(h?.history.length)html+='<p>Önceki kuşaktan aktarılan '+h.shared+' gerçek aile hatırası</p>';
+ html+='<p>'+[
+  ...e.history.slice(0,3).map(x=>x.year+' • '+x.note),
+  ...(h?.history||[]).slice(0,3).map(x=>x.year+' • '+x.note)
+ ].map(safeText).join('<br>')+'</p></div>';
  return html;
 }
 function familySiblingYearTick(){
@@ -4924,7 +5035,7 @@ function adultChildrenSummaryHtml(){
    actionButton('Kardeşler arasında bakım nöbeti kur',{kind:'familyCareCircle',id:'start'},
     'familyCareCircleAction("start")','Bir ay • gönüllü kabul • üç ayda bir bakım ziyareti')+'</div>';
  }
- html+=familyCareLegacySummaryHtml()+familySiblingRepairHtml()+familySiblingRipplesHtml()+familyGrandchildLearningHtml()+familyGrandchildCareersHtml()+familyGrandchildHomesHtml()+familyFourthGenerationHtml()+familyIntergenerationalHtml()+familyCouncilHtml()+familyBudgetSummaryHtml()+familyHouseholdCrisisSummaryHtml()+familySiblingEconomySummaryHtml();
+ html+=familyCareLegacySummaryHtml()+familySiblingRepairHtml()+familySiblingLegacyHtml()+familySiblingRipplesHtml()+familyGrandchildLearningHtml()+familyGrandchildCareersHtml()+familyGrandchildHomesHtml()+familyFourthGenerationHtml()+familyIntergenerationalHtml()+familyCouncilHtml()+familyBudgetSummaryHtml()+familyHouseholdCrisisSummaryHtml()+familySiblingEconomySummaryHtml();
  html+='<div class="grid2">';
  const btn=(child,label,id,extra=null)=>{const issue=adultChildActionIssue(child.id,id,extra),x=JSON.stringify(extra);return '<button class="mini" '+(issue?'disabled':'')+' title="'+safeText(issue)+'" onclick=\'adultChildAction('+JSON.stringify(child.id)+','+JSON.stringify(id)+','+x+')\'>'+safeText(label)+'</button>';};
  html+=kids.map(child=>{const p=ensureAdultChildProfile(child),gcs=(child.descendants||[]).filter(g=>g?.alive),matches=!child.partner?.alive?adultChildMatchCandidates(child).slice(0,2):[],opp=adultChildCareerOpportunity(child),stewards=Object.entries(f.stewards).filter(([,id])=>id===child.id).map(([a])=>FAMILY_BRANCH_ENTERPRISES[a]?.name||a),inherit=Object.entries(f.assetHeirs).filter(([,id])=>id===child.id).map(([a])=>D.assets.find(x=>x.id===a)?.name||a);
@@ -9618,7 +9729,7 @@ function ageUp(){if(!s?.alive)return;if(s.pendingEventId||s.pendingDecision){not
 function die(){if(!s?.alive)return;if(ensureCaravanTrade().guild.convoys.active)caravanConvoyFinish('cancelled','Aracı öldüğü için ortak sevkiyat iptal edildi.');if(ensureCaravanTrade().contracts.active)caravanContractFinish('void','Sözleşme sahibinin vefatıyla yükümlülük kapatıldı.');const q=ensureSuccession(),cause=deathCauseLabel(),heirs=livingHeirs();s.alive=false;s.pendingEventId=null;s.pendingDecision=null;s.pendingEventContext=null;clearTransient();
  const elder=s.age>=50?ensureElderLife():null;s.deathRecord={name:s.name,age:s.age,year:s.year+s.age,role:s.role,retiredRole:s.retiredRole||null,prestige:s.prestige,wealth:s.wealth,cause,will:s.will,prepared:q.prepared,chosenHeirId:q.chosenHeirId,familyHarmony:q.familyHarmony,lastWish:q.lastWish,assets:[...s.assets],workshop:workshopLegacySnapshot(),caravanTrade:caravanLegacySnapshot(),credit:creditLegacySnapshot(),toyFestival:toyLegacySnapshot(),lifePurpose:purposeLegacySnapshot(),reputation:communityReputationSnapshot(),heirs:heirs.map(n=>({id:n.id,name:n.name,age:n.age})),familyCareLegacy:JSON.parse(JSON.stringify(ensureFamilyBranches().careLegacies.slice(0,8))),elder:elder?{standing:elder.standing,purpose:elder.purpose,careSupport:elder.careSupport,councils:elder.councils,lessons:elder.lessons,reconciliations:elder.reconciliations,delegations:elder.delegations,memoriesShared:elder.memoriesShared}:null};
  log(`${s.age} yaşında, ${s.year+s.age} yılında yaşamın sona erdi. Neden: ${cause}.`,'bad');s.legacy.past.push({...s.deathRecord});s.legacy.purposes=Array.isArray(s.legacy.purposes)?s.legacy.purposes:[];s.legacy.purposes.unshift({name:s.name,year:s.year+s.age,purpose:s.deathRecord.lifePurpose});s.legacy.purposes=s.legacy.purposes.slice(0,30);render();save();showHeirModal();}
-function setWill(id){if(id!=='equal'&&!s.children.some(x=>x.id===id&&x.alive))return;performAction({kind:'will'},()=>{const q=ensureSuccession();s.will=id;q.prepared=true;q.chosenHeirId=id==='equal'?null:id;q.lastCouncilYear=s.year+s.age;q.familyHarmony=clamp(q.familyHarmony+(id==='equal'?2:-2));familyCareLegacyWillReaction(id);familyCouncilWillReaction(id);q.history.unshift({year:s.year+s.age,age:s.age,mode:id==='equal'?'equal':'chosen',targetId:q.chosenHeirId,note:'Mal paylaşımı doğrudan konuşuldu.',harmony:q.familyHarmony});q.history=q.history.slice(0,24);},'Mal paylaşımı isteğini yakınlarınla konuştun.');}
+function setWill(id){if(id!=='equal'&&!s.children.some(x=>x.id===id&&x.alive))return;performAction({kind:'will'},()=>{const q=ensureSuccession();s.will=id;q.prepared=true;q.chosenHeirId=id==='equal'?null:id;q.lastCouncilYear=s.year+s.age;q.familyHarmony=clamp(q.familyHarmony+(id==='equal'?2:-2));familyCareLegacyWillReaction(id);familyCouncilWillReaction(id);familySiblingWillReaction(id);q.history.unshift({year:s.year+s.age,age:s.age,mode:id==='equal'?'equal':'chosen',targetId:q.chosenHeirId,note:'Mal paylaşımı doğrudan konuşuldu.',harmony:q.familyHarmony});q.history=q.history.slice(0,24);},'Mal paylaşımı isteğini yakınlarınla konuştun.');}
 function continueAsHeir(i){
  if(!s||s.alive)return;const heirs=s.children.filter(x=>x.alive),c=heirs[i];if(!c)return;const old=s,heirOwnJourney=npcAspirationLegacyRecord(c),oldCommunity=JSON.parse(JSON.stringify(ensureCommunityReputation())),oldSuccession=JSON.parse(JSON.stringify(ensureSuccession())),creditEstate=creditEstateSettlement(old),equal=old.will==='equal'||!heirs.some(x=>x.id===old.will),share=inheritanceShareFor(c,heirs),deathRecord=old.deathRecord||null;clearTransient();
  s=newCharacter({name:c.name,gender:c.gender,realm:old.realm,year:old.year+old.age-c.age,place:c.place||old.place,tribe:c.tribe||old.tribe,age:c.age,monthsRemaining:old.monthsRemaining,wealth:share.wealth,health:c.health,happiness:65,skill:Math.min(60,c.age*2),skills:c.skills||{},prestige:clamp(old.prestige*.35),achievements:[...old.achievements],familyDynamics:JSON.parse(JSON.stringify(old.familyDynamics||null)),horseStable:horseStableInheritance(old,share),workshop:workshopInheritance(old,share),caravanTrade:caravanInheritance(old,share),legacy:{generation:old.legacy.generation+1,familyName:old.legacy.familyName,past:old.legacy.past,purposes:old.legacy.purposes||[],heirJourneys:[...(old.legacy.heirJourneys||[]),...(heirOwnJourney?[heirOwnJourney]:[])].slice(-30),toyTitles:[...(old.legacy.toyTitles||[]),...(old.deathRecord?.toyFestival?.titles||[])].slice(-70)}});
