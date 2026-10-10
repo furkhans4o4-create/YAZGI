@@ -7974,12 +7974,12 @@ function workshopIssue(mode,id,extra=null){
  }else return 'Atölye eylemi bulunamadı.';
  return '';
 }
-function workshopForgeResult(order,roll=null){
+function workshopForgeResult(order,roll=null,method='standard'){
  const apprentice=workshopCurrentApprentice();
  const level=s.skills.craft||0,condition=assetState('smithy').condition,mastery=careerProfile('smith').mastery||0;
  const base=14+level*.62+condition*.14+Math.min(16,mastery/7)+
   (apprentice?6+Math.min(6,(apprentice.skills?.craft||0)/12):0)+equipmentWorkshopQualityBonus();
- return clamp(Math.round(base+(roll===null?rng(-18,13):roll)));
+ return clamp(Math.round(base+(WORKSHOP_FORGE_METHODS[method]?.qualityBonus||0)+(roll===null?rng(-18,13):roll)));
 }
 function workshopFinishOrder(order,mode,amount=0){
  const w=ensureWorkshop(),customer=npcById(order.clientId);
@@ -7989,7 +7989,10 @@ function workshopFinishOrder(order,mode,amount=0){
   apply({prestige:2,happiness:2});skillGain('craft',2);
   careerProfile('smith').reputation=clamp(careerProfile('smith').reputation+3);
   economyLedger('workshop',amount,WORKSHOP_RECIPES[order.recipe].name+' sipariş teslimi');
-  workshopRecord('delivered',WORKSHOP_RECIPES[order.recipe].name+' müşteriye teslim edildi.',order.id,{amount});
+  workshopRecord('delivered',WORKSHOP_RECIPES[order.recipe].name+' müşteriye teslim edildi: '+
+    (WORKSHOP_FORGE_METHODS[order.finishMethod]?.name||'Standart Dövme')+
+    ' • '+(order.finishedQuality??0)+'/100.',order.id,
+    {amount,quality:order.finishedQuality,method:order.finishMethod,grade:order.finishGrade});
  }else{
   order.status='failed';order.failedSerial=lifeSerial();w.failed++;
   const repayment=Math.min(s.wealth,order.deposit);s.wealth-=repayment;
@@ -8018,23 +8021,32 @@ function workshopAction(mode,id,extra=null){
    economyLedger('workshop',deposit,spec.name+' ön ödeme');workshopRecord('take',customer.name+' için '+spec.name+' siparişi alındı.',order.id);
   }else if(mode==='forge'){
    const order=workshopOrderById(id),rec=WORKSHOP_RECIPES[order.recipe];
-   workshopConsumeMaterials(order.recipe);const q=workshopForgeResult(order);
+   const method=extra??'standard',definition=WORKSHOP_FORGE_METHODS[method];
+   workshopConsumeMaterials(order.recipe);
+   for(const [material,n] of Object.entries(definition.extra))w.materials[material]-=n;
+   const q=workshopForgeResult(order,null,method);
    assetState('smithy').condition=clamp(assetState('smithy').condition-rng(2,5));
    skillGain('craft',2);addExperience('craft');
-   const item={id:'item_'+npcId(),orderId:order.id,recipe:order.recipe,quality:q,status:q>=order.minQuality?'ready':'defective'};
+   const item={id:'item_'+npcId(),orderId:order.id,recipe:order.recipe,quality:q,
+    method,grade:workshopQualityGrade(q),makerCraft:s.skills.craft,
+    makerMastery:careerProfile('smith').mastery,
+    status:q>=order.minQuality?'ready':'defective'};
    w.items.push(item);if(item.status==='ready')order.status='ready';
-   workshopRecord(item.status,'Üretilen '+rec.name+' kalite '+q+'/100.',order.id,{quality:q});
+   workshopRecord(item.status,definition.name+' ile '+rec.name+' kalite '+q+'/100 • '+item.grade+'.',
+    order.id,{quality:q,method,grade:item.grade});
    if(q<order.minQuality&&Math.random()<.12)apply({health:-rng(1,4)});
    const apprentice=workshopCurrentApprentice();
    if(apprentice?.alive)apprentice.skills.craft=clamp((apprentice.skills.craft||0)+2);
   }else if(mode==='rework'){
    const order=workshopOrderById(id),item=workshopItemFor(id);
-   workshopConsumeMaterials(null,true);item.quality=clamp(item.quality+rng(14,23));
+   workshopConsumeMaterials(null,true);item.quality=clamp(item.quality+rng(14,23));item.grade=workshopQualityGrade(item.quality);
    if(item.quality>=order.minQuality){item.status='ready';order.status='ready';}
    skillGain('craft',1);addExperience('craft');assetState('smithy').condition=clamp(assetState('smithy').condition-2);
    workshopRecord('rework','Kusurlu ürün yeniden dövüldü, kalite '+item.quality+'/100.',order.id);
   }else if(mode==='deliver'){
-   const order=workshopOrderById(id),item=workshopItemFor(id),premium=item.quality>=80?Math.floor(order.price*.18):0;
+   const order=workshopOrderById(id),item=workshopItemFor(id),def=WORKSHOP_FORGE_METHODS[item.method]||WORKSHOP_FORGE_METHODS.standard,
+    premium=(item.quality>=80?Math.floor(order.price*.18):0)+(item.quality>=order.minQuality?Math.floor(order.price*def.priceBonus):0);
+   order.finishedQuality=item.quality;order.finishMethod=item.method;order.finishGrade=item.grade;
    const amount=Math.max(0,order.price-order.deposit+premium);s.wealth+=amount;
    workshopFinishOrder(order,'delivered',amount);
   }else if(mode==='hire'){
