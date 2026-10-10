@@ -3530,27 +3530,46 @@ function familyGrandchildApprenticeManageAction(grandId,mode,nextId=null){
 }
 
 function familyGrandchildLearningHtml(){
- const f=ensureFamilyBranches(),e=f.grandchildLearning,groups=s.children.filter(c=>c?.alive&&c.age>=18),
-  visible=groups.flatMap(parent=>(parent.descendants||[]).filter(g=>g?.alive&&g.age<18).map(g=>({parent,g}))).slice(0,16);
- if(!visible.length)return '';
- let html='<div class="card"><h3>📚 Torunların Eğitimi ve Aile İçi Bakım</h3><p>5–17 yaş arasında yıllık öğrenme, büyüklerden özel ders ve kardeşlerin gönüllü çocuk bakım sözü. '+
+ const e=ensureFamilyBranches().grandchildLearning,groups=s.children.filter(c=>c?.alive&&c.age>=18),
+  visible=groups.flatMap(parent=>(parent.descendants||[]).filter(g=>g?.alive&&g.age<18).map(g=>({parent,g}))).slice(0,16),
+  graduates=e.apprenticeships.filter(r=>r.status==='completed').slice(0,6);
+ if(!visible.length&&!graduates.length)return '';
+ let html='<div class="card"><h3>📚 Torunların Eğitimi ve Aile İçi Bakım</h3><p>'+
   'Ders '+e.lessons+' • bakım görüşmesi '+e.invitations+' • kabul '+e.accepted+' • ret '+e.refusals+' • gerçekleşen bakım '+e.sharedCareYears+
   '<br>Çıraklık '+e.placements+' • ustayla çalışma '+e.apprenticeshipSessions+' • tamamlanan '+e.completions+
+  ' • usta değişimi '+e.mentorChanges+' • gönüllü ayrılık '+e.withdrawals+' • yarıda kalan '+e.interruptions+' • mesleğe geçen '+e.careers+
   (e.history.length?'<br>Son aile kaydı: '+safeText(e.history[0].note):'')+'</p></div>';
  for(const {parent,g} of visible){
-  const student=e.students.find(r=>r.grandId===g.id),apprentice=e.apprenticeships.find(r=>r.grandId===g.id&&r.status==='active'),plan=e.agreements.find(r=>r.grandId===g.id&&r.year>=s.year+s.age-1),
+  const student=e.students.find(r=>r.grandId===g.id),
+   apprentice=e.apprenticeships.find(r=>r.grandId===g.id&&r.status==='active'),
+   plan=e.agreements.find(r=>r.grandId===g.id&&r.year>=s.year+s.age-1),
    possible=groups.filter(h=>h.id!==parent.id&&h.place===parent.place&&h.realm===parent.realm).slice(0,3);
   html+='<div class="card"><h3>'+safeText(g.name)+' • '+g.age+' yaş</h3><p>Ebeveyni '+safeText(parent.name)+
    ' • öğrenme '+(student?.progress||0)+'/100 • aile dersleri '+(student?.homeLessons||0)+
    ' • akraba dersleri '+(student?.kinLessons||0)+
-   (apprentice?' • çıraklık: '+safeText(s.children.find(c=>c.id===apprentice.mentorId)?.name||'aile ustası')+' ('+apprentice.sessions+' dönem)':'')+
+   (apprentice?' • çıraklık: '+safeText(s.children.find(c=>c.id===apprentice.mentorId)?.name||'aile ustası')+' ('+apprentice.sessions+' dönem, aksama '+(apprentice.missed||0)+')':'')+
    (plan?' • bakım teklifi '+(plan.accepted?'kabul edildi':'reddedildi'):'')+'</p><div class="actions">'+
    (g.age>=5?['riding','craft','literacy'].map(field=>actionButton('Öğret: '+safeText(skillName(field)),{kind:'grandchildEducation',grandId:g.id,field},
     'familyGrandchildEducationAction('+JSON.stringify(g.id)+','+JSON.stringify(field)+')','Bir ay • yılda bir özel eğitim')).join(''):'')+
-   (g.age>=12?possible.map(h=>actionButton('Çıraklık: '+safeText(h.name),{kind:'grandchildApprentice',grandId:g.id,mentorId:h.id},
-    'familyGrandchildApprenticeAction('+JSON.stringify(g.id)+','+JSON.stringify(h.id)+')','Bir ay • gönüllü usta kabul ederse her yıl gerçek beceri gelişimi')).join(''):'')+
+   (apprentice?actionButton('Çıraklığı bırak',{kind:'grandchildApprenticeManage',grandId:g.id,id:'leave'},
+    'familyGrandchildApprenticeManageAction('+JSON.stringify(g.id)+',"leave")','Bir ay • kendi isteğiyle ayrıl')+
+    possible.filter(h=>h.id!==apprentice.mentorId).map(h=>actionButton('Ustayı değiştir: '+safeText(h.name),
+     {kind:'grandchildApprenticeManage',grandId:g.id,id:'change',mentorId:h.id},
+     'familyGrandchildApprenticeManageAction('+JSON.stringify(g.id)+',"change",'+JSON.stringify(h.id)+')',
+     'Bir ay • yeni usta kabul ederse önceki dersler korunur')).join(''):'')+
+   (g.age>=12&&!apprentice?possible.map(h=>actionButton('Çıraklık: '+safeText(h.name),{kind:'grandchildApprentice',grandId:g.id,mentorId:h.id},
+    'familyGrandchildApprenticeAction('+JSON.stringify(g.id)+','+JSON.stringify(h.id)+')',
+    'Bir ay • gönüllü usta kabul ederse yıllık beceri gelişimi')).join(''):'')+
    possible.map(h=>actionButton('Bakımı paylaş: '+safeText(h.name),{kind:'grandchildCare',grandId:g.id,helperId:h.id},
-    'familyGrandchildCareAction('+JSON.stringify(g.id)+','+JSON.stringify(h.id)+')','Bir ay • kabul ederse gelecek yıl 1 hane gideri azalır')).join('')+'</div></div>';
+    'familyGrandchildCareAction('+JSON.stringify(g.id)+','+JSON.stringify(h.id)+')','Bir ay • kabul ederse gelecek yıl 1 hane gideri azalır')).join('')+
+   '</div></div>';
+ }
+ for(const rec of graduates){
+  const g=grandchildById(rec.grandId);if(!g)continue;
+  html+='<div class="card"><h3>🎓 '+safeText(g.name)+' • çıraklık mezunu</h3><p>'+
+   safeText(skillName(rec.field))+' • '+rec.sessions+' eğitim dönemi • '+(rec.changes||0)+' usta değişimi • '+
+   (rec.careerAccepted?'Kendi isteğiyle '+safeText(rec.careerRole)+' mesleğine geçti.':
+    rec.careerAccepted===false?'Kendi meslek yolunu seçti.':'Çıraklık tamamlandı.')+'</p></div>';
  }
  return html;
 }
