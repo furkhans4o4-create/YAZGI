@@ -759,3 +759,13 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - En az ikinci kuşağa gerçekten miras kalmış bir silah için yılda **bir kez Ataları An** kararı verilebilir. Anma 1 ay ve **2 servet** gerektirir; mutluluk +3, prestij +1 ve aile uyumu +3 sağlar. Tutsaklık, sürgün, açık karar, düşük kondisyon veya yetersiz para bunu engeller.
 - Satılan veya envanterden çıkan dövme silahın aile belleği silinerek başka eşyaya taşınamaz. Yeni yaşamda olmayan, eski v90 kayıtları için eksik geçmiş güvenle tamamlanır ve `yazgi_before_v91` yedeği alınır.
 - Test iş akışı **v91 odak testleri + tüm regresyon paketini** çalıştırır; önceki sürümlerin tekrar tekrar ayrı ayrı çalıştırılması yerine tüm testler bir kez kontrol edilir.
+
+
+### v92 — Bağlama Göre Olaylar, Yıl Dönümü ve Önemli Yaşam Kartları
+
+- Aylık kartların bağlamı kesinleştirildi: bir eylem seçildiyse kart o etkinliğin kendi eylem + alt etkinlik eşleşmesiyle veya güvenli, etkinliğe özel yedek kartla gelir. Eylem alanı olmayan yüzlerce eski olay artık her etkinliğe karışmaz.
+- At biniciliği, okçuluk, güreş ve pazar için ayrı talim/takas kartları; sürü bakımı için sürü kartları; sağlık ve NPC görüşmesi için kendi kartları eklendi.
+- NPC görüşmesinde özel bir kişinin olayı başka arkadaş/ebeveyne rastgele aktarılmaz; eğitimde mentor/yoldaş da seçilen eğitim yoluna göre eşleşir.
+- Kendiliğinden gelişen dünya/aile/soy/husumet olayları yılda bir kez yeni yıl havuzundan seçilir. 1 Yıl Geçir kullanılmayan ayları aylık dünya ilerlemesiyle atlar; ardından yıllık kart aşamasına girer. 18, 50 ve 65 yaş dönümleri için özel kartlar eklendi. Sefer çağrısı gibi açık zorunlu kararlar önceliklidir.
+- Yaş/kariyer/hastalık/hedef kişi/tutsaklık/sefer/sürgün kontrolleri korunur; eski v91 kayıtları yazgi_before_v92 ham yedeğiyle tutulur.
+- 11 yeni odaklı otomatik test ve tam regresyon kapısı eklendi.
