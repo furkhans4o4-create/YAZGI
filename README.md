@@ -779,3 +779,12 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - **Büyük aile buluşması** gerçek katılımcı koşuluna ek olarak **18 yaş** ister; 9 yaşında aile toplantısı düzenleme hatası giderildi. Eski sıradan akraba görüşmeleri yaşa uygun şekilde korunur.
 - Sefer sırasında aile kartları açılmaz. Birlikten döndükten sonra uygun ve yaşayan aile/soy/ilişki meseleleri öncelikle gösterilir; tutsak veya sürgünken bu öncelik bekler.
 - Eski v92 kayıtları `yazgi_before_v93` yedeği alınarak korunur. Risk yüzdesi, sonuç kaydı, UI ve aile kısıtları için yeni testler eklendi.
+
+
+### v94 — Gerçekçi Bebeklik, Yaşamın İlk Anları, Soy Ağacı ve Kart Renkleri
+
+- **0–4 yaş:** Bakım, yemek ve gerektiğinde yetişkinlerin olağan ilgisi karakterin yetişkin kararı değil; her ay zorunlu 'ailen baksın' kartı kaldırıldı. Aylar aynı sayıda ilerler ancak yalnız yaşa uygun özel gelişim/gözlem olayları açılır.
+- **Gelişim anları:** 0 yaş göz ve ses takibi, ağlama, çimlere dokunma; 1 yaş heceleme, oyuncağı keşfetme, ilk kelimeler, ilk adımlar; 2 yaş kısa cümle ve hareket; 3–4 yaş merak, oyun, küçük yardımlar. Gelişim kartları ebeveynin stratejik kararları gibi adlandırılmaz. İlk kelimeler ve ilk adımlar özel turkuaz dönüm noktası kartıdır. Acil bakım yalnız gerçekten sağlık gerekirse yıl olayından çıkabilir.
+- **Soy ağacı:** Düzgün kronoloji artık üstten alta 'anne/baba tarafından büyükanne-büyükbaba -> anne/baba -> sen'; anne ve baba soyları ayrı dallarda görülür; senin turkuaz kartın korunur.
+- **Kartların görünümü:** Sol seçenek mor-gri/lavanta, sağ açık mavi-gri, ortadaki anlatım parşömen. Yan kartlar %75 opaklıkla başlar; seçilen yöne yaklaştıkça büyür ve tam görünür olur.
+- Eski v93 kayıtları `yazgi_before_v94` yedeğiyle korunur. Bebeklik davranışları ve kuşak sıralaması için regresyon testleri eklendi. Genel 195+ olay havuzunun yeniden yazımı bu sürüme dahil değildir.

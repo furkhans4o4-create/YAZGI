@@ -162,11 +162,11 @@ button,input,select{font:inherit}
 .decisionOverlay.lean-left:before{opacity:var(--swipe-strength,.7)}
 .decisionOverlay.lean-right:after{opacity:var(--swipe-strength,.7)}
 .decisionStage{position:relative;width:min(1120px,96vw);min-height:min(620px,88vh);display:grid;grid-template-columns:minmax(190px,1fr) minmax(310px,440px) minmax(190px,1fr);gap:28px;align-items:center}
-.decisionSide{position:relative;z-index:2;min-height:280px;border:2px solid transparent;border-radius:20px;padding:18px;display:flex;flex-direction:column;justify-content:center;gap:10px;opacity:1;transform:scale(var(--focus-scale,1));transition:transform .15s ease,box-shadow .15s ease,filter .15s ease;background:#eee2be;color:#28251e;cursor:pointer;box-shadow:0 16px 38px #0008}
-.decisionSide.left{border-color:#c3a368;background:linear-gradient(145deg,#fff1cb,#e5d09b)}
+.decisionSide{position:relative;z-index:2;min-height:280px;border:2px solid transparent;border-radius:20px;padding:18px;display:flex;flex-direction:column;justify-content:center;gap:10px;opacity:.75;transform:scale(var(--focus-scale,1));transition:transform .15s ease,box-shadow .15s ease,filter .15s ease;background:#eee2be;color:#28251e;cursor:pointer;box-shadow:0 16px 38px #0008}
+.decisionSide.left{border-color:#a48aa9;background:linear-gradient(145deg,#eee5f0,#cbbcd6)}
 .decisionSide.right{border-color:#8a9bb7;background:linear-gradient(225deg,#e8edf7,#c6d3e5)}
 .decisionSide.active{opacity:1;filter:brightness(1.035)}
-.decisionSide.left.active{box-shadow:0 24px 75px #000a,0 0 0 4px #dfc38188}
+.decisionSide.left.active{box-shadow:0 24px 75px #000a,0 0 0 4px #c4a6cb88}
 .decisionSide.right.active{box-shadow:0 24px 75px #000a,0 0 0 4px #9cbbec88}
 .decisionSide:disabled{cursor:not-allowed;filter:grayscale(.65);opacity:.58}
 .decisionSide:focus-visible{outline:3px solid #f3bc58;outline-offset:5px}
@@ -183,6 +183,8 @@ button,input,select{font:inherit}
 .impact.neg{background:#f7e2dc;border-color:#c1837466;color:#933e33}
 .impact.neutral{background:#f4e9cf;border-color:#ba9a6377;color:#56442f}
 .swipeCard{position:relative;z-index:4;width:100%;min-height:330px;border:1px solid #b79c61;background:linear-gradient(145deg,#fff2c8,#e5cf96);color:#211d15;border-radius:22px;padding:24px;box-shadow:0 30px 90px #0009;cursor:grab;user-select:none;touch-action:none;transition:transform .2s ease,opacity .2s ease,box-shadow .12s ease;display:flex;flex-direction:column}
+.swipeCard.milestone{border:2px solid #48a9a3;background:linear-gradient(145deg,#e5f5ed,#bcded7);box-shadow:0 30px 90px #0009,0 0 0 5px #75cfbf55}
+.swipeCard.milestone .swipeBadge{background:#65b8b0;color:#083f3d}
 .swipeCard.dragging{transition:none;cursor:grabbing}
 .swipeCard:before{content:"";position:absolute;inset:9px;border:1px solid #9f834955;border-radius:15px;pointer-events:none}
 .swipeTop{display:flex;justify-content:space-between;gap:10px;align-items:center;position:relative;z-index:1}
@@ -192,7 +194,7 @@ button,input,select{font:inherit}
 .swipeInstruction{text-align:center;font-size:11px;color:#7d6b4d;margin-top:8px;position:relative;z-index:1}
 .swipeBadge{display:inline-block;padding:5px 8px;border-radius:999px;background:#d7c69a;color:#5e5037;font-size:10px;font-weight:900}
 .swipeLeftStamp,.swipeRightStamp{position:absolute;top:52px;font-size:17px;font-weight:900;padding:5px 9px;border:3px solid;border-radius:9px;opacity:0;z-index:5;pointer-events:none;max-width:70%}
-.swipeLeftStamp{left:18px;color:#9c7438;border-color:#9c7438;transform:rotate(-8deg)}
+.swipeLeftStamp{left:18px;color:#735581;border-color:#735581;transform:rotate(-8deg)}
 .swipeRightStamp{right:18px;color:#556d9d;border-color:#556d9d;transform:rotate(8deg)}
 .decisionHint{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:5;color:#dfd3b8;font-size:11px;text-align:center;opacity:.8;white-space:nowrap}
 .decisionPager{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:5;border:1px solid #ffffff26;background:#14160fd9;color:#eee2bd;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:900;cursor:pointer}
@@ -288,6 +290,27 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
 .pedigreeSide{width:min(92%,850px);margin:4px auto 0;border-top:1px dashed #c2ae7d;padding-top:12px}
 .pedigreeSideTitle{text-align:center;font-size:10px;font-weight:900;color:#796849;margin-bottom:8px}
 .pedigreeSideNodes{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
+
+/* v94: chronology is top-down: grandparents -> parents -> player */
+.ancestryTree{min-width:720px;width:100%;padding:16px 8px 24px;gap:0}
+.ancestryGenerationTitle{text-align:center;font-size:10px;font-weight:900;letter-spacing:.08em;color:#806e4d;text-transform:uppercase;margin:0 auto 13px}
+.ancestryBranches{position:relative;width:100%;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+.ancestryBranches:after{content:"";position:absolute;left:25%;right:25%;bottom:-17px;border-bottom:2px solid #aa9365}
+.ancestryBranch{position:relative;display:flex;align-items:center;flex-direction:column;gap:0}
+.ancestrySideLabel{text-align:center;color:#856f49;font-weight:900;font-size:11px;margin-bottom:12px}
+.ancestryGrandparents{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;justify-items:center;padding-bottom:20px}
+.ancestryGrandparents:before{content:"";position:absolute;bottom:13px;left:25%;right:25%;border-bottom:2px solid #aa9365}
+.ancestryGrand{position:relative;display:flex;justify-content:center}
+.ancestryGrand:after{content:"";position:absolute;top:100%;left:50%;height:13px;border-left:2px solid #aa9365}
+.ancestryParent{position:relative;padding-top:16px;display:flex;justify-content:center}
+.ancestryParent:before{content:"";position:absolute;left:50%;top:0;height:16px;border-left:2px solid #aa9365}
+.ancestryParent:after{content:"";position:absolute;left:50%;top:100%;height:17px;border-left:2px solid #aa9365}
+.ancestrySelf{position:relative;display:flex;align-items:center;flex-direction:column;margin-top:17px;padding-top:22px}
+.ancestrySelf:before{content:"";position:absolute;top:0;height:20px;left:50%;border-left:2px solid #aa9365}
+.ancestrySelf .ancestryGenerationTitle{margin:7px 0 14px}
+.ancestryTree .treeNode{width:142px;min-width:142px;max-width:142px}
+.ancestrySelf .treeNode.self{width:170px;min-width:170px;max-width:170px}
+@media(max-width:700px){.ancestryTree{min-width:700px}.ancestryTree .treeNode{width:135px;min-width:135px;max-width:135px}}
 .descTree{margin-top:18px;border-top:1px solid #cdbb8f;padding-top:18px}
 .descRoot{display:flex;justify-content:center;position:relative;margin-bottom:28px}
 .descRoot:after{content:"";position:absolute;left:50%;top:100%;height:29px;width:2px;background:#9d895f}
@@ -1042,12 +1065,15 @@ function renderLegacy(){
   </div>`;
  };
  const mini=p=>`<span class="treeMiniNode">${icon(p)} ${safeText(p.name)} • ${safeText(p.type||"Akraba")}${p.age!=null?" • "+p.age:""}</span>`;
- const parentBranch=(p,label)=>{
+ const parentBranch=(p,label,side)=>{
    const gs=parentGrandparents(p);
-   return `<div class="pedigreeParent">
-     ${node(p,"",label)}
-     <div class="pedigreeGrandparents">
-       ${[0,1].map(i=>`<div class="pedigreeGrand">${node(gs[i],"",gs[i]?.type||"Dede / Nine")}</div>`).join("")}
+   return `<div class="ancestryBranch">
+     <div class="ancestrySideLabel">${side}</div>
+     <div class="ancestryGrandparents">
+       ${[0,1].map(i=>`<div class="ancestryGrand">${node(gs[i],"",gs[i]?.type||"Dede / Nine")}</div>`).join("")}
+     </div>
+     <div class="ancestryParent">
+       ${node(p,"",label)}
      </div>
    </div>`;
  };
@@ -1062,13 +1088,15 @@ function renderLegacy(){
 
  <div class="tree">
   <div class="treeSectionTitle">Ata Soyu</div>
-  <div class="pedigree">
-    <div class="pedigreeSelf">
-      ${node({name:s.name,age:s.age,gender:s.gender,alive:s.alive,role:s.role,type:"Sen"},"self","Sen")}
+  <div class="pedigree ancestryTree">
+    <div class="ancestryGenerationTitle">Büyükanne ve Büyükbabalar</div>
+    <div class="ancestryBranches">
+      ${parentBranch(mother,"Ana","Anne Tarafı")}
+      ${parentBranch(father,"Ata","Baba Tarafı")}
     </div>
-    <div class="pedigreeParents">
-      ${parentBranch(mother,"Ana")}
-      ${parentBranch(father,"Ata")}
+    <div class="ancestrySelf">
+      <div class="ancestryGenerationTitle">Senin Kuşağın</div>
+      ${node({name:s.name,age:s.age,gender:s.gender,alive:s.alive,role:s.role,type:"Sen"},"self","Sen")}
     </div>
   </div>
 
