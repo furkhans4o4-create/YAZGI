@@ -10975,7 +10975,8 @@ const ACTION_EVENT_BINDINGS={
  merchant_offer:['period:market','period:caravanmarket','education:trade'],
  caravan_invite:['period:summer_caravan','period:caravanmarket'],
  bandit_tracks:['period:summer_caravan','period:caravanmarket'],
- minor_wound:['activity:av','period:summer_hunt']
+ wolf_attack:['period:herdcare','period:spring_move','venture:herd'],
+ minor_wound:['activity:av','period:summer_hunt','military:drill']
 };
 EVENT_DECK.push(
  {id:'riding_balance_v92',cat:'Binicilik',min:5,max:100,w:12,cool:4,actions:['activity','education','period'],actionIds:['at','horse','foal_training'],text:'Atın dengesini değiştirerek seni sınadı. Dizginleri nasıl kullanacaksın?',choices:[['Atın ritmine uy',{riding:2,skill:1}],['Yavaşlayıp yeniden dene',{riding:1,happiness:2}]]},
@@ -11005,8 +11006,8 @@ function eventMatchesActionContext(e,context={}){
   const ageFallback=s.age<5?'guardian_month':s.age<10?'child_month':s.age<18?'youth_month':'adult_month';
   return e.id===ageFallback&&['wait','guardian'].includes(kind);
  }
- if(e.actions&&(!e.actions.includes(kind)||e.actionIds&&!e.actionIds.includes(context.id)))return false;
- if(!e.actions&&!(ACTION_EVENT_BINDINGS[e.id]||[]).includes(key))return false;
+ if(ACTION_EVENT_BINDINGS[e.id]){if(!ACTION_EVENT_BINDINGS[e.id].includes(key))return false;}
+ else if(!e.actions||!e.actions.includes(kind)||e.actionIds&&!e.actionIds.includes(context.id))return false;
  if(kind==='npc'){
   const chosen=getFamilyGroup(context.group)?.[context.index];
   if(!chosen?.alive)return false;
