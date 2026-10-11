@@ -11091,7 +11091,7 @@ function applyEventChoice(x={}){
 }
 function chooseContextEvent(i){
  const ev=activeContextEvent();if(!ev||!s.alive)return;const ch=ev.choices[i];if(!ch)return;const issue=eventChoiceIssue(ch);if(issue){notice(issue);return;}
- const context=s.pendingEventContext||{age:s.age,year:s.year+s.age,month:currentMonth()},target=allNPCs().find(n=>n.id===context.targetId),other=allNPCs().find(n=>n.id===context.otherTargetId),chance=eventChoiceChance(ev,ch,context),success=Math.random()*100<chance,fx=success?(ch[1]||{}):((ch[1]||{}).failureEffects||{});
+ const context=s.pendingEventContext||{age:s.age,year:s.year+s.age,month:currentMonth()},target=allNPCs().find(n=>n.id===context.targetId),other=allNPCs().find(n=>n.id===context.otherTargetId),chance=eventChoiceChance(ev,ch,context),success=chance===100||Math.random()*100<chance,fx=success?(ch[1]||{}):((ch[1]||{}).failureEffects||{});
  applyEventChoice(fx);if(!success)log('Deneme başarısız oldu ('+chance+'% başarı şansı).','bad');
  if(target?.alive&&(fx.targetRel||fx.targetTrust||fx.targetRespect||fx.targetFear||fx.targetGrudge))adjustNPC(target,{rel:fx.targetRel||0,trust:fx.targetTrust||0,respect:fx.targetRespect||0,fear:fx.targetFear||0,grudge:fx.targetGrudge||0},eventDisplayText(ev,context)+' — '+ch[0]);
  if(other?.alive&&(fx.otherRel||fx.otherTrust||fx.otherRespect||fx.otherFear||fx.otherGrudge))adjustNPC(other,{rel:fx.otherRel||0,trust:fx.otherTrust||0,respect:fx.otherRespect||0,fear:fx.otherFear||0,grudge:fx.otherGrudge||0},eventDisplayText(ev,context)+' — '+ch[0]);
@@ -11121,7 +11121,7 @@ function chooseContextEvent(i){
  for(const spec of [...(Array.isArray(fx.scheduleEvents)?fx.scheduleEvents:[]),...(fx.scheduleEvent?[fx.scheduleEvent]:[])])scheduleDelayedEvent(spec,{...context,sourceEventId:ev.id});
  resolveDelayedRecord(context.delayedId);
  if(ev.once&&!s.eventHistory.includes(ev.id))s.eventHistory.push(ev.id);if(!ev.fallback)s.eventCooldowns[ev.id]=ev.cool||12;
- s.eventArchive.push({id:ev.id,cat:ev.cat,...context,choice:i,success,chance,actor:hasDirectAgency(ev)?'self':'guardian'});s.eventArchive=s.eventArchive.slice(-300);if(success)recordStoryArcChoice(ev.id,i,ch[0],context,false);log(`<b>${ev.cat}:</b> ${safeText(eventDisplayText(ev,context))} <i>${hasDirectAgency(ev)?'':'Ailen/bakıcıların: '}${safeText(ch[0])}</i>`);
+ s.eventArchive.push({id:ev.id,cat:ev.cat,...context,choice:i,success,chance,actor:hasDirectAgency(ev)?'self':'guardian'});s.eventArchive=s.eventArchive.slice(-300);if(success)recordStoryArcChoice(ev.id,i,ch[0],context,false);log(`<b>${ev.cat}:</b> ${safeText(eventDisplayText(ev,context))} <i>${hasDirectAgency(ev)?'':'Ailen/bakıcıların: '}${safeText(ch[0])}${success?'':' (başarısız)'}</i>`);
  s.pendingEventId=null;s.pendingEventContext=null;s.decisionOffset=0;window._contextEvent=null;checkAchievements();if(s.health<=0)die();render();save();
 }
 function eventDisplayText(e,ctx){if(e?.id==='context_month_v92')return contextualMonthText({kind:ctx?.kind,id:ctx?.actionId,group:ctx?.actionGroup,index:ctx?.actionIndex});const target=allNPCs().find(n=>n.id===ctx?.targetId),other=allNPCs().find(n=>n.id===ctx?.otherTargetId),fc=target&&other?familyConflictForPair(target,other):null;return String(e?.text||'').replaceAll('{name}',target?.name||'Yakının').replaceAll('{other}',other?.name||'yakının').replaceAll('{conflict}',fc?.reason||'aile içindeki eski mesele').replaceAll('{training}',target&&childTrainingDef(target)?.name||'yetişme düzeni').replaceAll('{horse}',horses().filter(h=>h.health<60).sort((a,b)=>a.health-b.health)[0]?.name||'At').replaceAll('{detail}',delayedDetail(ctx)).replaceAll('{past}',targetPastLabel(target));}
@@ -11186,13 +11186,19 @@ function renderEventBoard(){
  const offset=s.decisionOffset||0,more=offset+2<p.choices.length,l=p.choices[offset],r=more?['Diğer seçenekler',{}]:p.choices[offset+1],ctx=p.context||{age:s.age,year:s.year+s.age,month:currentMonth()};
  const issue=i=>p.kind==='event'?eventChoiceIssue(p.choices[i]):i===0&&(s.health<40||s.captive||s.exile)?'Özgürlük ve 40 sağlık gerekiyor':'';
  const li=issue(offset),ri=more?'':issue(offset+1),target=allNPCs().find(n=>n.id===ctx.targetId);
+ const odds=ch=>p.kind==='event'?eventChanceLabel(activeContextEvent(),ch,ctx):'Kesin sonuç · %100';
+ const risk=ch=>{
+  if(p.kind!=='event'||eventChoiceChance(activeContextEvent(),ch,ctx)===100)return '';
+  const failed=ch[1]?.failureEffects||{},effect=impactHtml(['Başarısızlık',failed]);
+  return '<div class="decisionRisk"><span class="decisionRiskLabel">Başarısız olursa</span>'+(effect?'<span class="impactList">'+effect+'</span>':'<span class="decisionRiskLabel">Ek kazanım yok</span>')+'</div>';
+ };
  board.innerHTML=`<div class="decisionOverlay" id="decisionOverlay">
    <div class="decisionStage">
      <button class="decisionSide left" id="decisionLeft" ${li?'disabled':''} onclick="animateSwipeOut(0)">
        <span class="decisionDirection">←</span>
-       <span class="decisionChoice">${safeText(l[0])}</span>
+       <span class="decisionChoice">${safeText(l[0])}</span><span class="decisionOdds">${safeText(odds(l))}</span>
        ${li?`<span class="decisionIssue">${safeText(li)}</span>`:''}
-       <span class="impactList">${impactHtml(l,false)}</span>
+       <span class="impactList">${impactHtml(l,false)}</span>${risk(l)}
      </button>
      <div class="swipeCard" id="swipeCard" tabindex="0" aria-label="${safeText(p.title)}">
        <div class="swipeLeftStamp" id="swipeLeftStamp">← ${safeText(l[0])}</div>
@@ -11204,9 +11210,9 @@ function renderEventBoard(){
      </div>
      <button class="decisionSide right" id="decisionRight" ${ri?'disabled':''} onclick="animateSwipeOut(1)">
        <span class="decisionDirection">→</span>
-       <span class="decisionChoice">${safeText(r[0])}</span>
+       <span class="decisionChoice">${safeText(r[0])}</span>${more?'':`<span class="decisionOdds">${safeText(odds(r))}</span>`}
        ${ri?`<span class="decisionIssue">${safeText(ri)}</span>`:''}
-       <span class="impactList">${impactHtml(r,more)}</span>
+       <span class="impactList">${impactHtml(r,more)}</span>${more?'':risk(r)}
      </button>
      ${offset?`<button class="decisionPager" onclick="s.decisionOffset=0;renderEventBoard();save()">← İlk seçeneklere dön</button>`:''}
      <div class="decisionHint">Sola: ${safeText(l[0])} &nbsp; • &nbsp; Sağa: ${safeText(r[0])}</div>
