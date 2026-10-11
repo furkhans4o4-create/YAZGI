@@ -5533,7 +5533,7 @@ function extendedFamilyVisible(){
  for(const n of ensureExtendedFamily().inLaws)add(n);
  return out;
 }
-function familyReunionGuests(){return [...s.parents,...s.siblings,...s.children,...extendedFamilyVisible(),...(s.partner?[s.partner]:[])].filter(n=>n?.alive&&n.place===s.place&&n.realm===s.realm);}
+function familyReunionGuests(){const seen=new Set();return [...s.parents,...s.siblings,...s.children,...extendedFamilyVisible(),...(s.partner?[s.partner]:[])].filter(n=>{if(!n?.id||!n.alive||n.place!==s.place||n.realm!==s.realm||seen.has(n.id))return false;seen.add(n.id);return true;});}
 function extendedFamilyAction(id,index=-1){
  if(id==='reunion'){
   return performAction({kind:'extendedFamily',id},()=>{
@@ -10971,7 +10971,6 @@ function activateEventRiskRules(){
   });
  }
 }
-activateEventRiskRules();
 function eventChoiceIssue(ch){const x=ch[1]||{};if(x.wealth<0&&s.wealth<-x.wealth)return `${-x.wealth} servet gerekiyor`;if(x.healerCare&&s.wealth<2)return 'Otacı bakımı için 2 servet gerekiyor';if(x.setRole)return careerIssue(D.careers.find(r=>r.name===x.setRole));return '';}
 function eventTargetCandidates(target){
  const pools={
@@ -11578,3 +11577,6 @@ if(typeof EVENT_DECK!=='undefined'&&Array.isArray(EVENT_DECK)&&!EVENT_DECK.some(
   text:'Yıllardır peşinden gittiğin ülkü ağırlaştı. Yolda ilerleyemediğini hissediyorsun. Bundan sonra ne yapacaksın?',
   choices:[['Yoluma devam edeceğim',{}],['Başka birinden yol gösterimi iste',{}],['Bu ülküden vazgeç',{}]]});
 }
+
+// All event packs are now loaded: activate outcome probabilities only after registration.
+activateEventRiskRules();
