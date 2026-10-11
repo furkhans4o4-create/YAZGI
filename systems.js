@@ -11031,7 +11031,7 @@ function contextualMonthText(context={}){
 }
 function eligibleContextEvents(context=s.lastAction||{}){return EVENT_DECK.filter(e=>{
  if(s.age<e.min||s.age>e.max||e.once&&s.eventHistory.includes(e.id)||!e.fallback&&(s.eventCooldowns[e.id]||0)>0)return false;
- if(e.months&&!e.months.includes(context.month||currentMonth())||!eventMatchesActionContext(e,context))return false;
+ if(e.months&&context.kind!=='year'&&!e.months.includes(context.month||currentMonth())||!eventMatchesActionContext(e,context))return false;
  if(s.captive&&e.cat!=='Tutsaklık'||!s.captive&&e.cat==='Tutsaklık')return false;
  if(s.military.active&&!['Sefer','Sağlık'].includes(e.cat)||!s.military.active&&e.cat==='Sefer'&&e.id!=='spoils_choice')return false;
  if(s.exile&&['Boy','Devlet','Ocak'].includes(e.cat)||!s.exile&&e.cat==='Sürgün')return false;
