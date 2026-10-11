@@ -769,3 +769,13 @@ YAZGI'nın HTML/CSS/JavaScript oyun mekaniği korunacak; Godot'a yeniden yazmak 
 - Kendiliğinden gelişen dünya/aile/soy/husumet olayları yılda bir kez yeni yıl havuzundan seçilir. 1 Yıl Geçir kullanılmayan ayları aylık dünya ilerlemesiyle atlar; ardından yıllık kart aşamasına girer. 18, 50 ve 65 yaş dönümleri için özel kartlar eklendi. Sefer çağrısı gibi açık zorunlu kararlar önceliklidir.
 - Yaş/kariyer/hastalık/hedef kişi/tutsaklık/sefer/sürgün kontrolleri korunur; eski v91 kayıtları yazgi_before_v92 ham yedeğiyle tutulur.
 - 11 yeni odaklı otomatik test ve tam regresyon kapısı eklendi.
+
+
+### v93 — Başarı Olasılığı, Net Karar Kartları ve Aile Yaş Sınırı
+
+- Seçenek kartları baştan **tam okunaklı ve opak**: sol kum/sarı, sağ mavi-gri. Renkler iyi/kötü cevap anlamı taşımaz. Seçilen tarafa doğru kaydırdıkça yalnız o taraftaki kart ölçülü biçimde büyür; sürükleme bırakılınca eski boyutuna döner.
+- Her seçenekte ekranda gerçek sonuç olasılığı gösterilir. Belirsiz beceri denemelerinde (v92 binicilik, okçuluk, güreş, pazar ve sürü alt olayları) yaşanan başarı/başarısızlık, seçimin gösterdiği aynı yüzdeyle hesaplanır; yetenek arttıkça şans artar ve 10–95 arasında sınırlanır. Başarısızlık halinde başarı ödülü verilmez, ayrıca varsa negatif sonuç uygulanır. Olay arşivi şansı ve sonucu kaydeder.
+- Oyuncunun zaten kesin karar verdiği büyük aile, miras ve zorunlu hikâye düğümleri rastgele bozulmaz: bu tercihler %100 kesin olarak gösterilir. Diğer alanlara yapay rastgelelik yayılmaz; riskleri sonraki kapsamlı olay dengelemesinde tek tek açacağız.
+- **Büyük aile buluşması** gerçek katılımcı koşuluna ek olarak **18 yaş** ister; 9 yaşında aile toplantısı düzenleme hatası giderildi. Eski sıradan akraba görüşmeleri yaşa uygun şekilde korunur.
+- Sefer sırasında aile kartları açılmaz. Birlikten döndükten sonra uygun ve yaşayan aile/soy/ilişki meseleleri öncelikle gösterilir; tutsak veya sürgünken bu öncelik bekler.
+- Eski v92 kayıtları `yazgi_before_v93` yedeği alınarak korunur. Risk yüzdesi, sonuç kaydı, UI ve aile kısıtları için yeni testler eklendi.
