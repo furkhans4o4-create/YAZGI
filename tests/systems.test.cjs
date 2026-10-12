@@ -4,7 +4,7 @@ function game(){
  const math=Object.create(Math);math.random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/2**32};
  const element=id=>{if(!elements.has(id))elements.set(id,{value:id==='gender'?'male':'',textContent:'',innerHTML:'',style:{},dataset:{},disabled:false,title:'',classList:{add(){},remove(){},toggle(){}},addEventListener(){},querySelectorAll(){return []},insertAdjacentHTML(_,x){this.innerHTML+=x},getBoundingClientRect(){return {left:0,width:500}},setPointerCapture(){},releasePointerCapture(){}});return elements.get(id)};
  const c={console,Math:math,Date,setTimeout,clearTimeout,alert(){throw Error('Unexpected popup')},document:{getElementById:element,querySelectorAll(){return []},querySelector(){return null},addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}};c.window=c;vm.createContext(c);
- const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');for(const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g))vm.runInContext(m[1],c);vm.runInContext(fs.readFileSync(path.join(__dirname,'../systems.js'),'utf8'),c);const run=code=>vm.runInContext(code,c);run('createLife()');return {run,storage};
+ const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8');for(const m of html.matchAll(/<script>([\s\S]*?)<\/script>/g))vm.runInContext(m[1],c);for(const m of html.matchAll(/<script src="([^"]+)"\s*><\/script>/g))vm.runInContext(fs.readFileSync(path.join(__dirname,'..',m[1]),'utf8'),c);const run=code=>vm.runInContext(code,c);run('createLife()');return {run,storage};
 }
 const setup=`s.age=25;s.health=100;s.skill=100;s.wealth=100;s.prestige=100;Object.keys(s.skills).forEach(k=>s.skills[k]=100);s.experience={craft:100,state:100,trade:100,culture:100,military:100};s.pendingEventId=null;s.pendingDecision=null;s.monthsRemaining=12;`;
 
@@ -3297,3 +3297,43 @@ test("v94 daily care does not force arbitrary parent or medical decisions",()=>{
 test("v94 age three features curiosity and pretend play",()=>{const {run}=game();run('s.age=3;');assert.ok(run("eligibleContextEvents({kind:'guardian',month:1}).some(e=>e.id==='child_questions_v94')"));assert.equal(run("eligibleContextEvents({kind:'guardian',month:1}).some(e=>e.cat==='Bakım')"),false);});
 test("v94 ancestry displays grandparents then parents then the player",()=>{const {run}=game();run("renderLegacy();window.__tree=document.getElementById('tab-soy').innerHTML;");assert.ok(run("__tree.indexOf('ancestryGrandparents')<__tree.indexOf('ancestryParent')"));assert.ok(run("__tree.indexOf('ancestryParent')<__tree.indexOf('ancestrySelf')"));assert.ok(run("/treeNode\\s+self/.test(__tree)"));assert.ok(run("__tree.includes('Anne Tarafı')&&__tree.includes('Baba Tarafı')"));});
 test("v94 migration backs up previous version and keeps baby stage",()=>{const {run,storage}=game();run("s.version=93;s.age=1;save();load();");assert.equal(run('s.version'),94);assert.ok(storage.has('yazgi_before_v94'));assert.equal(run('s.age'),1);});
+
+// v95 — 500 new 0–4 moments; per-playthrough non-repeating story events.
+test('v95 every infant year has exactly 100 newly authored event cards',()=>{
+ const {run}=game();
+ assert.equal(run("EVENT_DECK.filter(e=>/^infant[0-4]_/.test(e.id)).length"),500);
+ for(let age=0;age<5;age++){
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('infant'+age+'_')).length"),100);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('infant'+age+'_')).every(e=>e.min===age&&e.max===age&&e.agency==='infant'&&e.once&&e.choices.length===2&&e.actions.includes('guardian'))"),true);
+ }
+ assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size===EVENT_DECK.length"),true);
+});
+test('v95 infant event texts are unique and have distinct choices',()=>{
+ const {run}=game();
+ assert.equal(run("new Set(EVENT_DECK.filter(e=>/^infant[0-4]_/.test(e.id)).map(e=>e.text)).size"),500);
+ assert.equal(run("EVENT_DECK.filter(e=>/^infant[0-4]_/.test(e.id)).every(e=>e.choices[0][0]!==e.choices[1][0])"),true);
+});
+test('v95 an infant moment can appear once, survives save and resets only with new life',()=>{
+ const {run}=game();
+ run("s.age=0;s.pendingEventId='infant0_ses_yon_1';s.pendingEventContext={kind:'guardian',age:0,year:s.year,month:1};chooseContextEvent(0);load();");
+ assert.equal(run("s.eventHistory.includes('infant0_ses_yon_1')"),true);
+ assert.equal(run("eligibleContextEvents({kind:'guardian',month:1}).some(e=>e.id==='infant0_ses_yon_1')"),false);
+ run("createLife()");
+ assert.equal(run("s.eventHistory.includes('infant0_ses_yon_1')"),false);
+ assert.equal(run("eligibleContextEvents({kind:'guardian',month:1}).some(e=>e.id==='infant0_ses_yon_1')"),true);
+});
+test('v95 ordinary adult event is also suppressed after being chosen',()=>{
+ const {run}=game();run(setup+"s.age=20;s.pendingEventId='riding_balance_v92';s.pendingEventContext={kind:'activity',actionId:'at',age:20,year:s.year+20,month:1};chooseContextEvent(0);");
+ assert.equal(run("s.eventHistory.includes('riding_balance_v92')"),true);
+ assert.equal(run("eligibleContextEvents({kind:'activity',id:'at',month:1}).some(e=>e.id==='riding_balance_v92')"),false);
+});
+test('v95 seen cards in legacy archive are backfilled into permanent history',()=>{
+ const {run}=game();run("s.eventArchive.push({id:'infant0_ses_yon_1',choice:0});save();load();");
+ assert.equal(run("s.eventHistory.includes('infant0_ses_yon_1')"),true);
+});
+test('v95 infant card pools respect age and basic safety',()=>{
+ const {run}=game();for(let age=0;age<5;age++){
+  run("s.age="+age+";s.eventHistory=[];");
+  assert.equal(run("eligibleContextEvents({kind:'guardian',month:6}).filter(e=>/^infant[0-4]_/.test(e.id)).every(e=>e.min===s.age)"),true);
+ }
+});
