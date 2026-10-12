@@ -3376,3 +3376,50 @@ test('v96 choosing a parent-child card affects the actual parent bond',()=>{
  assert.ok(run("__n.rel>=__before"));
  assert.equal(run("s.eventHistory.includes('child6_aile_yardim_1')"),true);
 });
+
+// v97 — 10–15 yaşta 500 farklı, yaşa ve eyleme bağlı olay.
+test('v97 has 500 distinct youth cards in age-specific counts',()=>{
+ const {run}=game();const counts={10:85,11:85,12:85,13:85,14:80,15:80};
+ assert.equal(run("EVENT_DECK.filter(e=>/^youth1[0-5]_/.test(e.id)).length"),500);
+ for(const [age,count] of Object.entries(counts)){
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('youth"+age+"_')).length"),count);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('youth"+age+"_')).every(e=>e.min==="+age+"&&e.max==="+age+"&&e.once&&e.choices.length===2)"),true);
+ }
+ assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size===EVENT_DECK.length"),true);
+});
+test('v97 all 500 youth event texts are distinct and detailed',()=>{
+ const {run}=game();
+ assert.equal(run("new Set(EVENT_DECK.filter(e=>/^youth1[0-5]_/.test(e.id)).map(e=>e.text)).size"),500);
+ assert.equal(run("EVENT_DECK.filter(e=>/^youth1[0-5]_/.test(e.id)).every(e=>e.text.length>=130)"),true);
+});
+test('v97 supervised trade and caravan cards are not raised to adult age',()=>{
+ const {run}=game();
+ assert.equal(run("EVENT_DECK.filter(e=>/^youth1[0-5]_/.test(e.id)).every(e=>e.min<18&&e.max<18)"),true);
+ run('s.age=12;');assert.equal(run("eligibleContextEvents({kind:'education',id:'trade',month:5}).some(e=>e.id.startsWith('youth12_takas_hesabı_'))"),true);
+ run('s.age=14;');assert.equal(run("eligibleContextEvents({kind:'period',id:'summer_caravan',month:5}).some(e=>e.id.startsWith('youth15_ilk_uzun_yol_'))"),false);
+ run('s.age=15;');assert.equal(run("eligibleContextEvents({kind:'period',id:'summer_caravan',month:5}).some(e=>e.id.startsWith('youth15_ilk_uzun_yol_'))"),true);
+});
+test('v97 future event chain depends on meaningful past choices',()=>{
+ const {run}=game();run('s.age=13;');
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('youth13_öğrenme_yolu_'))"),false);
+ run("s.flags.youth_interest_chosen=true;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('youth13_öğrenme_yolu_'))"),true);
+ run("s.age=14;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('youth14_güvenin_sonucu_'))"),false);
+ run("s.flags.youth_earned_voice=true;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('youth14_güvenin_sonucu_'))"),true);
+ run("s.age=15;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('youth15_güvenin_sınanması_'))"),true);
+});
+test('v97 a youth trade choice applies skill and never recurs after reload',()=>{
+ const {run}=game();run("s.age=12;s.skills.trade=0;window.__before=s.skills.trade;s.pendingEventId='youth12_takas_güven_1';s.pendingEventContext={kind:'education',actionId:'trade',age:12,year:s.year+12,month:3};chooseContextEvent(0);save();load();");
+ assert.equal(run("s.skills.trade>__before"),true);
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'trade',month:3}).some(e=>e.id==='youth12_takas_güven_1')"),false);
+ run("createLife();s.age=12;");
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'trade',month:3}).some(e=>e.id==='youth12_takas_güven_1')"),true);
+});
+test('v97 training cannot trigger irrelevant yearly events as monthly cards',()=>{
+ const {run}=game();run('s.age=10;');
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:2}).some(e=>e.id.startsWith('youth10_gelecek_düşü_'))"),false);
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:2}).some(e=>e.id.startsWith('youth10_ilk_ustalık_'))"),true);
+});
