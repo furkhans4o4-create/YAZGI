@@ -3527,3 +3527,58 @@ test('v99 an adult decision changes stats and is saved as seen for the current l
  run("createLife();s.age=23;");
  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='adult18_kazanc_hesabi_1')"),true);
 });
+
+// v100 — 50–64 yaş: beş yaş bandı, 500 karar, koşullu ilişkiler ve ömür boyu tekrar yasağı.
+test('v100 five senior phases register exactly 100 rich and distinct events each',()=>{
+ const {run}=game();const ages=[[50,52],[53,55],[56,58],[59,61],[62,64]];
+ assert.equal(run("EVENT_DECK.filter(e=>/^senior(50|53|56|59|62)_/.test(e.id)).length"),500);
+ for(const [min,max] of ages){
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('senior"+min+"_')).length"),100);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('senior"+min+"_')).every(e=>e.min==="+min+"&&e.max==="+max+"&&e.once===true&&e.choices.length===2&&e.text.length>=160)"),true);
+ }
+ assert.equal(run("new Set(EVENT_DECK.filter(e=>/^senior(50|53|56|59|62)_/.test(e.id)).map(e=>e.text)).size"),500);
+ assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size===EVENT_DECK.length"),true);
+});
+test('v100 senior cards never appear outside their own age band',()=>{
+ const {run}=game();
+ for(const age of [18,49,65]){run("s.age="+age);assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>/^senior(50|53|56|59|62)_/.test(e.id))"),false);}
+ for(const [age,prefix] of [[50,'senior50_'],[53,'senior53_'],[56,'senior56_'],[59,'senior59_'],[62,'senior62_']]){
+  run("s.age="+age+";");
+  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('"+prefix+"'))"),true);
+  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).filter(e=>/^senior(50|53|56|59|62)_/.test(e.id)).every(e=>e.min<=s.age&&e.max>=s.age)"),true);
+ }
+});
+test('v100 spouse events require a living married partner',()=>{
+ const {run}=game();run("s.age=53;s.partner=null;s.married=false;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('senior53_esle_gelecek_yurt_'))"),false);
+ run("s.partner=normalizeNPC({name:'Ayca',gender:'female',age:52,alive:true,rel:75,type:'Eş'});s.married=true;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('senior53_esle_gelecek_yurt_'))"),true);
+});
+test('v100 adult-child and grandchild stories are family-conditioned',()=>{
+ const {run}=game();run("s.age=53;s.children=[];");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('senior53_yetiskin_cocukla_sinir_'))"),false);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('senior53_torunun_oyununda_'))"),false);
+ run("s.children=[normalizeNPC({name:'Bora',gender:'male',age:27,alive:true,rel:70,type:'Çocuk',children:1})];");
+ assert.equal(run("eventRequirementOK(EVENT_DECK.find(e=>e.id==='senior53_yetiskin_cocukla_sinir_1'))"),true);
+ assert.equal(run("eventRequirementOK(EVENT_DECK.find(e=>e.id==='senior53_torunun_oyununda_1'))"),true);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('senior53_torunun_oyununda_'))"),true);
+});
+test('v100 story consequences unlock later elder-period choices',()=>{
+ const {run}=game();
+ const stages=[[53,'senior53_genc_ustanin_yeni_yolu_1','elder50_reflection'],[56,'senior56_is_yukunu_azaltmak_1','senior53_mentored_successor'],[59,'senior59_ustanin_son_siparisi_1','senior56_delegation'],[62,'senior62_is_basinda_son_soz_1','senior59_handed_down_craft']];
+ for(const [age,id,flag] of stages){
+  run("s.age="+age+";delete s.flags['"+flag+"'];");
+  assert.equal(run("eventRequirementOK(EVENT_DECK.find(e=>e.id==='"+id+"'))"),false);
+  run("s.flags['"+flag+"']=true;");
+  assert.equal(run("eventRequirementOK(EVENT_DECK.find(e=>e.id==='"+id+"'))"),true);
+ }
+});
+test('v100 adult-elder story is recorded permanently after save and resets for new life',()=>{
+ const {run}=game();
+ run("s.age=50;s.pendingEventId='senior50_yeni_yilin_hesabi_1';s.pendingEventContext={kind:'year',age:50,year:s.year+50,month:12};chooseContextEvent(0);save();load();");
+ assert.equal(run("s.flags.elder50_reflection"),true);
+ assert.equal(run("s.eventHistory.includes('senior50_yeni_yilin_hesabi_1')"),true);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='senior50_yeni_yilin_hesabi_1')"),false);
+ run("createLife();s.age=50;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='senior50_yeni_yilin_hesabi_1')"),true);
+});
