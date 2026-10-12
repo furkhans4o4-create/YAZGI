@@ -36,5 +36,7 @@ jobs:
         run: node --test --test-name-pattern='v99 ' tests/systems.test.cjs
       - name: Validate 500 age 50-64 life events and continuity (v100)
         run: node --test --test-name-pattern='v100 ' tests/systems.test.cjs
+      - name: Validate elder 65+ event pack and succession (v101)
+        run: node --test --test-name-pattern='v101 ' tests/systems.test.cjs
       - name: Run complete regression suite (all versions)
         run: node --test tests/systems.test.cjs
