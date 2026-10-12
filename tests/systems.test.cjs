@@ -3303,8 +3303,8 @@ test('v95 every infant year has exactly 100 newly authored event cards',()=>{
  const {run}=game();
  assert.equal(run("EVENT_DECK.filter(e=>/^infant[0-4]_/.test(e.id)).length"),500);
  for(let age=0;age<5;age++){
-  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('infant'+age+'_')).length"),100);
-  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('infant'+age+'_')).every(e=>e.min===age&&e.max===age&&e.agency==='infant'&&e.once&&e.choices.length===2&&e.actions.includes('guardian'))"),true);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('infant"+age+"_')).length"),100);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('infant"+age+"_')).every(e=>e.min==="+age+"&&e.max==="+age+"&&e.agency==='infant'&&e.once&&e.choices.length===2&&e.actions.includes('guardian'))"),true);
  }
  assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size===EVENT_DECK.length"),true);
 });
