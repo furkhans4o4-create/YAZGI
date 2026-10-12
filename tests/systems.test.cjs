@@ -3423,3 +3423,56 @@ test('v97 training cannot trigger irrelevant yearly events as monthly cards',()=
  assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:2}).some(e=>e.id.startsWith('youth10_gelecek_düşü_'))"),false);
  assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:2}).some(e=>e.id.startsWith('youth10_ilk_ustalik_'))"),true);
 });
+
+// v98 — 16-17 yaş: 500 kart, yaş sınırı, sosyal bağlar, etkiler ve tekrar yasağı.
+test('v98 exactly 250 non-repeating event definitions per age 16 and 17',()=>{
+ const {run}=game();
+ assert.equal(run("EVENT_DECK.filter(e=>/^youth1[67]_/.test(e.id)).length"),500);
+ for(const age of [16,17]){
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('youth"+age+"_')).length"),250);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('youth"+age+"_')).every(e=>e.min==="+age+"&&e.max==="+age+"&&e.once===true&&e.choices.length===2&&e.text.length>=150)"),true);
+ }
+ assert.equal(run("new Set(EVENT_DECK.filter(e=>/^youth1[67]_/.test(e.id)).map(e=>e.text)).size"),500);
+ assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size===EVENT_DECK.length"),true);
+});
+test('v98 16-year-old training events are relevant and unavailable at 17',()=>{
+ const {run}=game();run("s.age=16;s.eventHistory=[];");
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:3}).some(e=>e.id.startsWith('youth16_demir_ocaginda_hata_'))"),true);
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:3}).some(e=>e.id.startsWith('youth16_bitig_emaneti_'))"),false);
+ run("s.age=17;");
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:3}).some(e=>e.id.startsWith('youth16_demir_ocaginda_hata_'))"),false);
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:3}).some(e=>e.id.startsWith('youth17_ustanin_guven_sinavi_'))"),true);
+});
+test('v98 conditional romantic cards require an existing living partner',()=>{
+ const {run}=game();run("s.age=16;s.partner=null;");
+ assert.equal(run("eligibleContextEvents({kind:'romance',id:'time',month:2}).some(e=>e.id.startsWith('youth16_ilk_yakinlik_'))"),false);
+ run("s.partner=normalizeNPC({name:'Esin',gender:'female',age:16,alive:true,rel:75,type:'Sevgili'});");
+ assert.equal(run("eligibleContextEvents({kind:'romance',id:'time',month:2}).some(e=>e.id.startsWith('youth16_ilk_yakinlik_'))"),true);
+});
+test('v98 year events never show during unrelated monthly training',()=>{
+ const {run}=game();run("s.age=16;");
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'archery',month:4}).some(e=>e.id.startsWith('youth16_on_yediye_dogru_'))"),false);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('youth16_on_yediye_dogru_'))"),true);
+});
+test('v98 age-16 future goal unlocks 17-year-old narrative follow-up',()=>{
+ const {run}=game();run("s.age=17;delete s.flags.teen16_future_goal;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('youth17_onceki_secimin_yankisi_'))"),false);
+ run("s.flags.teen16_future_goal=true;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('youth17_onceki_secimin_yankisi_'))"),true);
+});
+test('v98 chosen teenager card never repeats after save/load but resets in new game',()=>{
+ const {run}=game();
+ run("s.age=16;s.pendingEventId='youth16_demir_ocaginda_hata_1';s.pendingEventContext={kind:'education',actionId:'smith',age:16,year:s.year+16,month:3};chooseContextEvent(1);save();load();");
+ assert.equal(run("s.eventHistory.includes('youth16_demir_ocaginda_hata_1')"),true);
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:3}).some(e=>e.id==='youth16_demir_ocaginda_hata_1')"),false);
+ run("createLife();s.age=16;");
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:3}).some(e=>e.id==='youth16_demir_ocaginda_hata_1')"),true);
+});
+test('v98 sixteen and seventeen year olds do not bypass adult responsibilities',()=>{
+ const {run}=game();run("s.age=16;");
+ assert.notEqual(run("accessIssue({kind:'marry'})"),'');
+ assert.notEqual(run("accessIssue({kind:'military',id:'horse'})"),'');
+ assert.notEqual(run("accessIssue({kind:'asset',id:'yurt',sell:false})"),'');
+ run("s.age=17;");
+ assert.notEqual(run("accessIssue({kind:'marry'})"),'');
+});
