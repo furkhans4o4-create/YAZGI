@@ -3421,5 +3421,5 @@ test('v97 a youth trade choice applies skill and never recurs after reload',()=>
 test('v97 training cannot trigger irrelevant yearly events as monthly cards',()=>{
  const {run}=game();run('s.age=10;');
  assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:2}).some(e=>e.id.startsWith('youth10_gelecek_düşü_'))"),false);
- assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:2}).some(e=>e.id.startsWith('youth10_ilk_ustalık_'))"),true);
+ assert.equal(run("eligibleContextEvents({kind:'education',id:'smith',month:2}).some(e=>e.id.startsWith('youth10_ilk_ustalik_'))"),true);
 });
