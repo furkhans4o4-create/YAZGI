@@ -3582,3 +3582,54 @@ test('v100 adult-elder story is recorded permanently after save and resets for n
  run("createLife();s.age=50;");
  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='senior50_yeni_yilin_hesabi_1')"),true);
 });
+
+// v101 — 65+ yaş: 500 bağımsız olay, yaş sınırı, aile/tecrübe eylemi, miras ve tek seferlik geçmiş.
+test('v101 five elder bands have 100 detailed unique story cards each',()=>{
+ const {run}=game();const bands=[[65,69],[70,74],[75,79],[80,89],[90,130]];
+ assert.equal(run("EVENT_DECK.filter(e=>/^elder(65|70|75|80|90)_/.test(e.id)).length"),500);
+ for(const [min,max] of bands){
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('elder"+min+"_')).length"),100);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('elder"+min+"_')).every(e=>e.min==="+min+"&&e.max==="+max+"&&e.once===true&&e.choices.length===2&&e.text.length>=170)"),true);
+ }
+ assert.equal(run("new Set(EVENT_DECK.filter(e=>/^elder(65|70|75|80|90)_/.test(e.id)).map(e=>e.text)).size"),500);
+ assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size===EVENT_DECK.length"),true);
+});
+test('v101 elder events are limited to their correct age ranges',()=>{
+ const {run}=game();
+ for(const age of [49,64,131]){run('s.age='+age);assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>/^elder(65|70|75|80|90)_/.test(e.id))"),false);}
+ for(const [age,id] of [[65,'elder65_'],[70,'elder70_'],[75,'elder75_'],[80,'elder80_'],[90,'elder90_']]){
+  run('s.age='+age);
+  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('"+id+"'))"),true);
+  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).filter(e=>/^elder(65|70|75|80|90)_/.test(e.id)).every(e=>e.min<=s.age&&e.max>=s.age)"),true);
+ }
+});
+test('v101 family-bound elder stories require actual family members',()=>{
+ const {run}=game();run("s.age=65;s.partner=null;s.married=false;s.children=[];");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('elder65_esle_yaslanan_ortaklik_'))"),false);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('elder65_torunla_ilk_yol_'))"),false);
+ run("s.partner=normalizeNPC({name:'Ayca',gender:'female',age:67,alive:true,rel:80,type:'Eş'});s.married=true;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('elder65_esle_yaslanan_ortaklik_'))"),true);
+ run("window.__g=normalizeNPC({name:'Esin',age:12,alive:true,rel:65,type:'Torun'});s.children=[normalizeNPC({name:'Bora',age:35,alive:true,rel:80,type:'Çocuk',descendants:[__g]})];");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('elder65_torunla_ilk_yol_'))"),true);
+});
+test('v101 council and mentorship cards arise only from elder activities',()=>{
+ const {run}=game();run("s.age=65;");
+ assert.equal(run("eligibleContextEvents({kind:'elder',id:'council',month:3}).some(e=>e.id.startsWith('elder65_boy_meclisinde_tecrube_'))"),true);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:3}).some(e=>e.id.startsWith('elder65_boy_meclisinde_tecrube_'))"),false);
+ run("s.age=70;");
+ assert.equal(run("eligibleContextEvents({kind:'elder',id:'mentor',month:3}).some(e=>e.id.startsWith('elder70_genc_ustaya_yol_'))"),true);
+});
+test('v101 decisions in elder decades unlock later decades through persistent flags',()=>{
+ const {run}=game();const chain=[[70,'elder70_hatira_defteri_1','old65_purpose'],[75,'elder75_hatira_aktarmak_1','old70_memory_project'],[80,'elder80_hatiranin_dogrulugu_1','old75_story_archive'],[90,'elder90_icten_bir_dilek_1','old80_wishes_recorded']];
+ for(const [age,id,flag] of chain){run("s.age="+age+";delete s.flags['"+flag+"'];");assert.equal(run("eventRequirementOK(EVENT_DECK.find(e=>e.id==='"+id+"'))"),false);run("s.flags['"+flag+"']=true;");assert.equal(run("eventRequirementOK(EVENT_DECK.find(e=>e.id==='"+id+"'))"),true);}
+});
+test('v101 late life legacy choice records real succession wishes and history',()=>{
+ const {run}=game();run("s.age=90;s.pendingEventId='elder90_icten_bir_dilek_4';s.pendingEventContext={kind:'year',age:90,year:s.year+90,month:12};chooseContextEvent(0);save();load();");
+ assert.equal(run("s.eventHistory.includes('elder90_icten_bir_dilek_4')"),true);
+ assert.equal(run("s.succession.prepared"),true);
+ assert.ok(run("s.succession.lastWish.length")>15);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='elder90_icten_bir_dilek_4')"),false);
+ run("createLife();s.age=90;");
+ assert.equal(run("s.eventHistory.includes('elder90_icten_bir_dilek_4')"),false);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='elder90_icten_bir_dilek_4')"),true);
+});
