@@ -3609,7 +3609,7 @@ test('v101 family-bound elder stories require actual family members',()=>{
  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('elder65_torunla_ilk_yol_'))"),false);
  run("s.partner=normalizeNPC({name:'Ayca',gender:'female',age:67,alive:true,rel:80,type:'Eş'});s.married=true;");
  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('elder65_esle_yaslanan_ortaklik_'))"),true);
- run("window.__g=normalizeNPC({name:'Esin',age:12,alive:true,rel:65,type:'Torun'});s.children=[normalizeNPC({name:'Bora',age:35,alive:true,rel:80,type:'Çocuk',descendants:[__g]})];");
+ run("window.__g=normalizeNPC({name:'Esin',age:12,alive:true,rel:65,type:'Torun'});s.children=[normalizeNPC({name:'Bora',age:35,alive:true,rel:80,type:'Çocuk',children:1,descendants:[__g]})];");
  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('elder65_torunla_ilk_yol_'))"),true);
 });
 test('v101 council and mentorship cards arise only from elder activities',()=>{
