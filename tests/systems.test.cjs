@@ -191,7 +191,7 @@ test('senior workplace rank creates a junior and mentoring develops that same NP
 test('changing careers archives the old workplace while keeping former coworkers alive',()=>{const {run}=game();run(setup+'window.__a=D.careers.find(x=>x.id==="smith");s.role=__a.name;s.path=__a.path;ensureWorkplaceForRole(true);window.__old=currentWorkplaceContacts().map(x=>x.id);window.__b=D.careers.find(x=>x.id==="bard");s.role=__b.name;s.path=__b.path;ensureWorkplaceForRole(true)');assert.ok(run('s.workplace.formerCircles.some(x=>x.roleId==="smith")'));assert.ok(run('__old.every(id=>allNPCs().some(x=>x.id===id))'));assert.equal(run('s.workplace.roleId'),"bard");});
 test('workplace conflict events modify the same persistent workplace state',()=>{const {run}=game();run(setup+'window.__r=D.careers.find(x=>x.id==="smith");s.role=__r.name;s.path=__r.path;ensureWorkplaceForRole(true);s.workplace.conflict=50;window.__n=workplacePeers()[0];window.__c=s.workplace.conflict;applyWorkplaceEvent("workplace_credit_dispute",0,__n)');assert.ok(run('s.workplace.conflict<__c'));});
 test('v19 saves migrate to v25 with workplace profile and dedicated backup',()=>{const {run,storage}=game();run('s.version=19;delete s.workplace;window.__r=D.careers.find(x=>x.id==="smith");s.role=__r.name;s.path=__r.path;save();load()');assert.equal(run('s.version'),94);assert.ok(storage.has('yazgi_before_v37'));assert.ok(run('s.workplace&&s.workplace.roleId==="smith"&&currentWorkplaceContacts().length>=3'));});
-test('postponed elder family council can return later until a real succession plan is made',()=>{const {run}=game();run(setup+'s.age=65;s.children=[normalizeNPC({name:"Heir",gender:"male",age:30,alive:true,rel:80,type:"Çocuk"})];window.__h=s.children[0];s.pendingEventId="elder_family_council";s.pendingEventContext={age:s.age,year:s.year+s.age,month:1,targetId:__h.id};chooseContextEvent(2)');assert.equal(run('s.succession.prepared'),false);assert.equal(run('s.eventHistory.includes("elder_family_council")'),false);run('s.eventCooldowns.elder_family_council=0');assert.equal(run('eventRequirementOK(EVENT_DECK.find(e=>e.id==="elder_family_council"))'),true);});
+test('postponed elder family council can return later until a real succession plan is made',()=>{const {run}=game();run(setup+'s.age=65;s.children=[normalizeNPC({name:"Heir",gender:"male",age:30,alive:true,rel:80,type:"Çocuk"})];window.__h=s.children[0];s.pendingEventId="elder_family_council";s.pendingEventContext={age:s.age,year:s.year+s.age,month:1,targetId:__h.id};chooseContextEvent(2)');assert.equal(run('s.succession.prepared'),false);assert.equal(run('s.eventHistory.includes("elder_family_council")'),true);run('s.eventCooldowns.elder_family_council=0');assert.equal(run('eligibleContextEvents({kind:"year",month:1}).some(e=>e.id==="elder_family_council")'),false);assert.equal(run('eventRequirementOK(EVENT_DECK.find(e=>e.id==="elder_family_council"))'),true);});
 test('elder family council records a chosen heir and a persistent last wish',()=>{const {run}=game();run(setup+'s.age=65;s.children=[normalizeNPC({name:"Heir",gender:"male",age:30,alive:true,rel:80,type:"Çocuk"}),normalizeNPC({name:"Sibling",gender:"female",age:28,alive:true,rel:70,type:"Çocuk"})];window.__h=s.children[0];s.pendingEventId="elder_family_council";s.pendingEventContext={age:s.age,year:s.year+s.age,month:1,targetId:__h.id};chooseContextEvent(1)');assert.equal(run('s.will'),run('__h.id'));assert.equal(run('s.succession.prepared'),true);assert.ok(run('s.succession.familyHarmony<60'));run('s.pendingEventId="elder_last_wish";s.pendingEventContext={age:s.age,year:s.year+s.age,month:2,targetId:__h.id};chooseContextEvent(0)');assert.equal(run('s.succession.lastWish'),'Aile bir arada kalsın.');assert.ok(run('s.succession.familyHarmony>50'));});
 test('death record stores cause estate and succession plan for the heir screen',()=>{const {run}=game();run(setup+'s.age=72;s.health=20;s.children=[normalizeNPC({name:"Heir",gender:"male",age:30,alive:true,rel:80,type:"Çocuk"})];s.succession={prepared:true,chosenHeirId:s.children[0].id,familyHarmony:66,lastCouncilYear:s.year+s.age,lastWish:"Aile bir arada kalsın.",elderYears:10,history:[]};s.will=s.children[0].id;s.assets=["horse","bow"];die()');assert.equal(run('s.alive'),false);assert.ok(run('s.deathRecord.cause.length>0'));assert.equal(run('s.deathRecord.chosenHeirId'),run('s.children[0].id'));assert.equal(run('s.deathRecord.assets.length'),2);assert.ok(run('s.legacy.past.at(-1).cause.length>0'));});
 test('favored inheritance creates sibling tension and a delayed post-death consequence',()=>{const {run}=game();run(setup+'s.age=70;s.monthsRemaining=5;s.children=[normalizeNPC({name:"Heir",gender:"male",age:32,alive:true,rel:80,type:"Çocuk"}),normalizeNPC({name:"Sibling",gender:"female",age:30,alive:true,rel:75,type:"Çocuk"})];s.will=s.children[0].id;s.succession={prepared:true,chosenHeirId:s.children[0].id,familyHarmony:52,lastCouncilYear:s.year+s.age,lastWish:"Ailenin adı ve emeği sürdürülsün.",elderYears:12,history:[]};s.assets=["horse","bow"];window.__old=s.year+s.age;die();continueAsHeir(0)');assert.equal(run('s.year+s.age'),run('__old'));assert.equal(run('s.wealth'),100);assert.equal(run('s.assets.length'),2);assert.ok(run('s.siblings[0].bonds.grudge>=12'));assert.ok(run('s.delayedEvents.some(x=>x.eventId==="inheritance_aftershock"&&x.targetId===s.siblings[0].id&&x.status==="pending")'));});
@@ -3336,4 +3336,43 @@ test('v95 infant card pools respect age and basic safety',()=>{
   run("s.age="+age+";s.eventHistory=[];");
   assert.equal(run("eligibleContextEvents({kind:'guardian',month:6}).filter(e=>/^infant[0-4]_/.test(e.id)).every(e=>e.min===s.age)"),true);
  }
+});
+
+// v96 — 5–9 yaş: yaşa uygun 500 karar, tetikleyiciler ve tek-oyunluk geçmiş.
+test('v96 exactly 100 original child event cards exist at each age 5 through 9',()=>{
+ const {run}=game();
+ assert.equal(run("EVENT_DECK.filter(e=>/^child[5-9]_/.test(e.id)).length"),500);
+ for(let age=5;age<=9;age++){
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('child"+age+"_')).length"),100);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('child"+age+"_')).every(e=>e.min==="+age+"&&e.max==="+age+"&&e.once&&e.w>0&&e.choices.length===2)"),true);
+ }
+ assert.equal(run("EVENT_DECK.filter(e=>/^child[5-9]_/.test(e.id)).every(e=>e.choices[0][0]!==e.choices[1][0])"),true);
+ assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size"),run("EVENT_DECK.length"));
+});
+test('v96 all 500 new childhood story texts are unique',()=>{
+ const {run}=game();
+ assert.equal(run("new Set(EVENT_DECK.filter(e=>/^child[5-9]_/.test(e.id)).map(e=>e.text)).size"),500);
+ assert.equal(run("EVENT_DECK.filter(e=>/^child[5-9]_/.test(e.id)).every(e=>e.text.length>=120)"),true);
+});
+test('v96 child training cards are limited to age-compatible systems',()=>{
+ const {run}=game();
+ for(let age=5;age<=9;age++){
+  run("s.age="+age+";s.eventHistory=[];");
+  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).filter(e=>/^child[5-9]_/.test(e.id)).every(e=>e.min===s.age)"),true);
+ }
+ run("s.age=5;");assert.equal(run("eligibleContextEvents({kind:'education',id:'archery',month:1}).some(e=>e.id.startsWith('child7_'))"),false);
+ run("s.age=7;");assert.equal(run("eligibleContextEvents({kind:'education',id:'archery',month:1}).some(e=>e.id.startsWith('child7_ok_hedef_'))"),true);
+ run("s.age=8;");assert.equal(run("eligibleContextEvents({kind:'education',id:'wrestling',month:1}).some(e=>e.id.startsWith('child8_gures_tutma_'))"),true);
+});
+test('v96 childhood event never repeats even after save and loading',()=>{
+ const {run}=game();run("s.age=5;s.pendingEventId='child5_oyun_taslari_1';s.pendingEventContext={kind:'activity',actionId:'toy',age:5,year:s.year+5,month:1};chooseContextEvent(0);save();load();");
+ assert.equal(run("s.eventHistory.includes('child5_oyun_taslari_1')"),true);
+ assert.equal(run("eligibleContextEvents({kind:'activity',id:'toy',month:1}).some(e=>e.id==='child5_oyun_taslari_1')"),false);
+ run("createLife();s.age=5;");
+ assert.equal(run("eligibleContextEvents({kind:'activity',id:'toy',month:1}).some(e=>e.id==='child5_oyun_taslari_1')"),true);
+});
+test('v96 choosing a parent-child card affects the actual parent bond',()=>{
+ const {run}=game();run("s.age=6;window.__n=s.parents.find(p=>p.alive);window.__before=__n.rel;s.pendingEventId='child6_aile_yardim_1';s.pendingEventContext={kind:'npc',targetId:__n.id,age:6,year:s.year+6,month:1};chooseContextEvent(0);");
+ assert.ok(run("__n.rel>=__before"));
+ assert.equal(run("s.eventHistory.includes('child6_aile_yardim_1')"),true);
 });
