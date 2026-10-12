@@ -32,5 +32,7 @@ jobs:
         run: node --test --test-name-pattern='v97 ' tests/systems.test.cjs
       - name: Validate 500 age 16-17 events and narrative continuity (v98)
         run: node --test --test-name-pattern='v98 ' tests/systems.test.cjs
+      - name: Validate 500 adulthood event cards and condition rules (v99)
+        run: node --test --test-name-pattern='v99 ' tests/systems.test.cjs
       - name: Run complete regression suite (all versions)
         run: node --test tests/systems.test.cjs
