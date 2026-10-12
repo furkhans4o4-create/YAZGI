@@ -3476,3 +3476,54 @@ test('v98 sixteen and seventeen year olds do not bypass adult responsibilities',
  run("s.age=17;");
  assert.notEqual(run("accessIssue({kind:'marry'})"),'');
 });
+
+// v99 — 18–49 yaş, 500 eşsiz yetişkinlik kartı, kontekst ve tek oyun kaydı.
+test('v99 five adult phases have 100 authored cards each and no duplicate IDs',()=>{
+ const {run}=game();const groups=[['adult18_',18,23],['adult24_',24,29],['adult30_',30,34],['adult35_',35,41],['adult42_',42,49]];
+ assert.equal(run("EVENT_DECK.filter(e=>/^adult(18|24|30|35|42)_/.test(e.id)).length"),500);
+ for(const [prefix,min,max] of groups){
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('"+prefix+"')).length"),100);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('"+prefix+"')).every(e=>e.min==="+min+"&&e.max==="+max+"&&e.once&&e.w>0&&e.choices.length===2&&e.text.length>=170)"),true);
+ }
+ assert.equal(run("new Set(EVENT_DECK.filter(e=>/^adult(18|24|30|35|42)_/.test(e.id)).map(e=>e.text)).size"),500);
+ assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size===EVENT_DECK.length"),true);
+});
+test('v99 18–49 cards do not appear in teenager or elder life phases',()=>{
+ const {run}=game();
+ for(const age of [16,17,50,65]){run('s.age='+age);assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>/^adult(18|24|30|35|42)_/.test(e.id))"),false);}
+ run("s.age=18;");assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('adult18_kazanc_hesabi_'))"),true);
+ run("s.age=25;");assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('adult24_borc_ve_guven_'))"),true);
+ run("s.age=44;");assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('adult42_malin_yonetimi_'))"),true);
+});
+test('v99 marital stories require a living adult spouse',()=>{
+ const {run}=game();run("s.age=31;s.partner=null;s.married=false;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('adult30_esle_sessiz_kirginlik_'))"),false);
+ run("s.partner=normalizeNPC({name:'Ayca',gender:'female',age:30,alive:true,rel:75,type:'Eş'});s.married=true;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('adult30_esle_sessiz_kirginlik_'))"),true);
+});
+test('v99 parenting stories need an actual living child of eligible age',()=>{
+ const {run}=game();run('s.age=32;s.children=[];');
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('adult30_cocugun_ogrenimi_'))"),false);
+ run("s.children=[normalizeNPC({name:'Bora',gender:'male',age:9,alive:true,rel:60,type:'Çocuk'})];");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id.startsWith('adult30_cocugun_ogrenimi_'))"),true);
+});
+test('v99 war stories remain gated behind active military duty',()=>{
+ const {run}=game();run("s.age=21;s.military.active=false;s.military.served=false;");
+ assert.equal(run("eligibleContextEvents({kind:'military',id:'drill',month:1}).some(e=>e.id.startsWith('adult18_ilk_sefer_dersi_'))"),false);
+ run("s.military.active=true;s.military.served=true;");
+ assert.equal(run("eligibleContextEvents({kind:'military',id:'drill',month:1}).some(e=>e.id.startsWith('adult18_ilk_sefer_dersi_'))"),true);
+ run("s.military.active=false;");
+});
+test('v99 career choice can unlock a later adult story without replaying it',()=>{
+ const {run}=game();run("s.age=25;delete s.flags.adult_early_career;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='adult24_meslekte_yon_degistirme_1')"),false);
+ run("s.flags.adult_early_career=true;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='adult24_meslekte_yon_degistirme_1')"),true);
+});
+test('v99 an adult decision changes stats and is saved as seen for the current life',()=>{
+ const {run}=game();run("s.age=23;s.skills.trade=0;s.pendingEventId='adult18_kazanc_hesabi_1';s.pendingEventContext={kind:'year',age:23,year:s.year+23,month:12};chooseContextEvent(1);save();load();");
+ assert.equal(run("s.eventHistory.includes('adult18_kazanc_hesabi_1')"),true);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='adult18_kazanc_hesabi_1')"),false);
+ run("createLife();s.age=23;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='adult18_kazanc_hesabi_1')"),true);
+});
