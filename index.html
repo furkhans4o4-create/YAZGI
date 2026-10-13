@@ -1246,6 +1246,8 @@ function unlock(id){if(!s.achievements.includes(id)){s.achievements.push(id);let
 <script>
 /* Main menu controls are deliberately isolated from all simulator variables. */
 (function(){
+ /* Regression tests run simulator scripts in a DOM-less VM. Do not start menu controls there. */
+ if(!document.body || !document.body.classList)return;
  var hub=document.getElementById("yazgiHub");
  var open=function(){document.body.classList.add("hub-visible");hub.setAttribute("aria-hidden","false");};
  var close=function(){document.body.classList.remove("hub-visible");hub.setAttribute("aria-hidden","true");};
