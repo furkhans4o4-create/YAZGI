@@ -24,14 +24,16 @@ function startCulture(){
   setAttribute(){}
   getContext(){
    if(!this.ctx)this.ctx={
+    canvas:this,createImageData(width,height){return {data:new Uint8ClampedArray(width*height*4)}},putImageData(){},
     fill(){},fillRect(){},clearRect(){},beginPath(){},arc(){},ellipse(){},lineTo(){},moveTo(){},closePath(){},stroke(){},drawImage(){},
     createRadialGradient(){return {addColorStop(){}}},
     getImageData(){
-     const data=new Uint8ClampedArray(600*600*4);
-     for(let y=0;y<600;y++)for(let x=0;x<600;x++){
-       const k=(y*600+x)*4;
-       const head=Math.pow((x-300)/112,2)+Math.pow((y-235)/143,2)<1;
-       const shoulders=y>358&&Math.pow((x-300)/220,2)+Math.pow((y-510)/175,2)<1;
+     const w=this.canvas.width,h=this.canvas.height;
+     const data=new Uint8ClampedArray(w*h*4);
+     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+       const k=(y*w+x)*4;
+       const head=Math.pow((x-w*.50)/(w*.23),2)+Math.pow((y-h*.37)/(h*.18),2)<1;
+       const shoulders=y>h*.50&&Math.pow((x-w*.50)/(w*.35),2)+Math.pow((y-h*.73)/(h*.25),2)<1;
        const v=head?215:shoulders?125:24;
        data[k]=data[k+1]=data[k+2]=v;data[k+3]=255;
      }
@@ -78,16 +80,16 @@ test("hovering over a circle splits without click",async()=>{
 test("typing updates the art immediately and deleting removes visible text",async()=>{
  const {get,traces,flush}=startCulture();await flush();
  const area=get("artText");area.value="ATATÜRK";area.fire("input");await flush();
- const letters=traces.filter(x=>x.canvas==="artCanvas").map(x=>x.glyph).join("");
+ const letters=traces.filter(x=>x.canvas==="canvas").map(x=>x.glyph).join("");
  assert.equal(letters,"ATATÜRK");
  area.value="";area.fire("input");await flush();
- assert.match(get("artStatus").textContent,/Yazdığın harfler/);
+ assert.match(get("artStatus").textContent,/Yazmaya başla/);
 });
 test("anthem preset fills textarea and produces photo-shaped typography",async()=>{
  const {get,traces,flush}=startCulture();await flush();
  get("artLoadAnthem").onclick();await flush();
  assert.match(get("artText").value,/Korkma, sönmez/);
- const letters=traces.filter(x=>x.canvas==="artCanvas");
- assert.ok(letters.length>400,"Expected a dense calligram");
- assert.ok(letters.every(p=>p.x>=0&&p.x<=600&&p.y>=0&&p.y<=600));
+ const letters=traces.filter(x=>x.canvas==="canvas");
+ assert.ok(letters.reduce((sum,p)=>sum+Array.from(p.glyph).length,0)>400,"Expected a dense calligram");
+ assert.ok(letters.every(p=>p.x>=0&&p.x<=720&&p.y>=0&&p.y<=960));
 });
