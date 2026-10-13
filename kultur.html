@@ -46,26 +46,26 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 </nav>
 <section class="view active" id="discover">
 <div class="grid"><div class="panel">
-<h2>Portreyi Keşfet</h2><p class="small">Renkli dairelere tıkla veya dokun. Her bölünmeyle görsel biraz daha belirginleşecek.</p>
+<h2>Portreyi Keşfet</h2><p class="small">Fareyi dairelerin üzerinde gezdir veya parmağınla sürükle. Dokunduğun her daire parçalanıp portreyi açacak.</p>
 <label class="control"><span>Görsel</span><select id="exploreSelect"></select></label>
 <label class="control"><span>Kendi görselini kullan (bilgisayarından)</span><input id="exploreUpload" type="file" accept="image/*"></label>
 <div class="actions"><button class="btn primary" id="exploreStart">Yeni keşif</button><button class="btn" id="exploreAuto">Otomatik tamamla</button><button class="btn" id="exploreSave">PNG kaydet</button></div>
 <progress id="exploreProgress" value="0" max="100"></progress>
 <div class="status" id="exploreStatus" role="status"></div>
 <p class="small">Tarihî portreler Wikimedia Commons üzerinden yüklenir. Fotoğraf yüklenemiyorsa kendi görselini seçebilirsin.</p>
-</div><div class="panel"><canvas id="exploreCanvas" width="600" height="600" aria-label="Dairelere dokunarak portreyi ortaya çıkar"></canvas></div></div>
+</div><div class="panel"><canvas id="exploreCanvas" width="600" height="600" aria-label="Fareyi gezdirerek veya parmağınla sürükleyerek portreyi ortaya çıkar"></canvas></div></div>
 </section>
 <section class="view" id="calligram">
 <div class="grid"><div class="panel">
-<h2>Yazıyla Sanat</h2><p class="small">İstiklâl Marşı veya kendi seçtiğin metin, portrenin ışık ve gölgelerine dönüşsün.</p>
+<h2>Yazıyla Sanat</h2><p class="small">Yazdığın her harf anında portreye eklensin. Metin satır satır portre silüetini oluştursun.</p>
 <label class="control"><span>Portre / bayrak</span><select id="artSelect"></select></label>
 <label class="control"><span>Kendi fotoğrafını kullan</span><input id="artUpload" type="file" accept="image/*"></label>
-<label class="control"><span>Kullanılacak metin</span><textarea id="artText" spellcheck="false"></textarea></label>
+<label class="control"><span>Yazmaya başla — harfler anında portrede belirecek</span><textarea id="artText" spellcheck="false" placeholder="Buraya yazmaya başla... İstiklâl Marşı ya da kendi metnini yazabilirsin." aria-describedby="artStatus"></textarea></label><button class="btn" type="button" id="artLoadAnthem">İstiklâl Marşı’nı doldur</button>
 <label class="control"><span>Harf yoğunluğu <output id="densityValue">11</output></span><input type="range" id="density" min="7" max="17" value="11"></label>
 <label class="control"><span>Harf rengi</span><select id="artPalette"><option value="ivory">Fildişi</option><option value="turquoise">Turkuaz</option><option value="gold">Altın</option><option value="red">Kırmızı</option></select></label>
 <label class="control"><input type="checkbox" id="brushMode"> Harflerle serbest çizim</label>
-<div class="actions"><button class="btn primary" id="artGenerate">Portre oluştur</button><button class="btn" id="artSave">PNG kaydet</button><button class="btn" id="artGallery">Galeriye ekle</button><button class="btn" id="artClear">Temizle</button></div>
-<div class="status" id="artStatus" role="status"></div>
+<div class="actions"><button class="btn primary" id="artGenerate">Portreyi yenile</button><button class="btn" id="artSave">PNG kaydet</button><button class="btn" id="artGallery">Galeriye ekle</button><button class="btn" id="artClear">Temizle</button></div>
+<progress id="artProgress" value="0" max="100" aria-label="Portreye yazılan metin oranı"></progress><div class="status" id="artStatus" role="status"></div>
 </div><div class="panel"><canvas id="artCanvas" width="600" height="600" aria-label="Yazılarla oluşturulan eser"></canvas><p class="small">Serbest çizim seçiliyken parmağınla veya farenle sürükleyerek harfler bırakabilirsin.</p></div></div>
 </section>
 <section class="view" id="memorial"><div class="memorial">
@@ -142,59 +142,191 @@ const sources=[
 {id:"kg",name:"Kırgızistan bayrağı",type:"flag",colors:["#dc293d"],flag:"kg"},
 {id:"uz",name:"Özbekistan bayrağı",type:"flag",colors:["#0099b5","#ffffff","#1baa76"],flag:"uz"}];
 for(const target of ["exploreSelect","artSelect"]) for(const source of sources){const option=document.createElement("option");option.value=source.id;option.textContent=source.name;el(target).appendChild(option)}
-el("artText").value=el("anthem").textContent.trim();
+el("artText").value="";
 const explore=el("exploreCanvas"),ec=explore.getContext("2d"), art=el("artCanvas"),ac=art.getContext("2d"), sourceCanvas=document.createElement("canvas");
 sourceCanvas.width=sourceCanvas.height=W;const sc=sourceCanvas.getContext("2d",{willReadFrequently:true});
+const artSourceCanvas=document.createElement("canvas");artSourceCanvas.width=artSourceCanvas.height=W;
+const asc=artSourceCanvas.getContext("2d",{willReadFrequently:true});
 let sourcePixels=null, nodes=[], splits=0, autoId=null, customExplore=null,customArt=null,letterPos=0,drawMouse=false;
+let lastHoverPoint=null, artPixels=null,artRequest=0,renderQueued=false;
+const brushStrokes=[];
 const colorAt=(x,y)=>{const n=((Math.min(W-1,Math.max(0,y|0))*W)+Math.min(W-1,Math.max(0,x|0)))*4,d=sourcePixels.data;return "rgb("+d[n]+","+d[n+1]+","+d[n+2]+")"};
 function circle(ctx,x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fillStyle=color;ctx.fill()}
 function star(ctx,x,y,outer,inner,n,fill){ctx.beginPath();for(let k=0;k<2*n;k++){const a=-Math.PI/2+k*Math.PI/n,rad=k%2?inner:outer;if(!k)ctx.moveTo(x+Math.cos(a)*rad,y+Math.sin(a)*rad);else ctx.lineTo(x+Math.cos(a)*rad,y+Math.sin(a)*rad)}ctx.closePath();ctx.fillStyle=fill;ctx.fill()}
 function moon(ctx,x,y,r,fg,bg){circle(ctx,x,y,r,fg);circle(ctx,x+r*.35,y-r*.04,r*.79,bg)}
-function makeFlag(item){const x=sc;x.clearRect(0,0,W,W);x.fillStyle=item.colors[0];x.fillRect(0,0,W,W);
+function makeFlag(item,ctx=sc){const x=ctx;x.clearRect(0,0,W,W);x.fillStyle=item.colors[0];x.fillRect(0,0,W,W);
 if(item.colors.length===3)for(let i=0;i<3;i++){x.fillStyle=item.colors[i];x.fillRect(0,i*W/3,W,W/3+1)}
 if(item.flag==="tr"){moon(x,230,300,106,"white","#dc2035");star(x,355,299,55,22,5,"white")}
 if(item.flag==="az"){moon(x,265,300,65,"white","#e33842");star(x,369,300,35,16,8,"white")}
 if(item.flag==="kz"){circle(x,315,310,74,"#ffcb36");for(let i=0;i<28;i++){const a=i*Math.PI/14;star(x,315+Math.cos(a)*100,310+Math.sin(a)*100,8,3,4,"#ffcb36")}}
 if(item.flag==="kg"){circle(x,300,300,96,"#fbd440");x.strokeStyle="#dc293d";x.lineWidth=18;x.beginPath();x.ellipse(300,300,65,30,0,0,2*Math.PI);x.stroke()}
 if(item.flag==="uz"){x.fillStyle="#cc3445";x.fillRect(0,198,W,6);x.fillRect(0,396,W,6);moon(x,138,105,45,"white","#0099b5");for(let i=0;i<12;i++)star(x,225+(i%4)*50,60+Math.floor(i/4)*37,8,4,5,"white")}}
-function fallback(name){sc.fillStyle="#17292e";sc.fillRect(0,0,W,W);let g=sc.createRadialGradient(300,200,20,300,295,370);g.addColorStop(0,"#bbab8b");g.addColorStop(1,"#243d40");sc.fillStyle=g;sc.fillRect(0,0,W,W);sc.fillStyle="#172329";sc.beginPath();sc.ellipse(300,550,255,190,0,0,2*Math.PI);sc.fill();sc.fillStyle="#ba9a76";sc.beginPath();sc.ellipse(300,270,115,150,0,0,2*Math.PI);sc.fill();sc.fillStyle="#27353b";sc.beginPath();sc.ellipse(300,180,121,78,0,Math.PI,Math.PI*2);sc.fill();sc.textAlign="center";sc.fillStyle="#eadab8";sc.font="21px Georgia";sc.fillText(name,300,560);sc.textAlign="start"}
-async function loadSource(id,custom,statusId){const item=sources.find(a=>a.id===id)||sources[0];
-if(custom){sc.clearRect(0,0,W,W);coverDraw(custom);return true}
-if(item.type==="flag"){makeFlag(item);return true}
-return await new Promise(resolve=>{const im=new Image;im.crossOrigin="anonymous";im.onload=()=>{try{sc.clearRect(0,0,W,W);coverDraw(im);sc.getImageData(0,0,1,1);resolve(true)}catch{fallback(item.name);el(statusId).textContent="Fotoğraf izni kısıtlı. Örnek çizim kullanılıyor; kendi fotoğrafını yükleyebilirsin.";resolve(false)}};im.onerror=()=>{fallback(item.name);el(statusId).textContent="Fotoğraf yüklenemedi. Örnek çizim kullanılıyor; kendi fotoğrafını yükleyebilirsin.";resolve(false)};im.src=item.url})}
-function coverDraw(img){const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,z=Math.max(W/w,W/h);sc.drawImage(img,(W-w*z)/2,(W-h*z)/2,w*z,h*z)}
+function fallback(name,ctx=sc){ctx.fillStyle="#17292e";ctx.fillRect(0,0,W,W);let g=ctx.createRadialGradient(300,200,20,300,295,370);g.addColorStop(0,"#bbab8b");g.addColorStop(1,"#243d40");ctx.fillStyle=g;ctx.fillRect(0,0,W,W);ctx.fillStyle="#172329";ctx.beginPath();ctx.ellipse(300,550,255,190,0,0,2*Math.PI);ctx.fill();ctx.fillStyle="#ba9a76";ctx.beginPath();ctx.ellipse(300,270,115,150,0,0,2*Math.PI);ctx.fill();ctx.fillStyle="#27353b";ctx.beginPath();ctx.ellipse(300,180,121,78,0,Math.PI,Math.PI*2);ctx.fill();ctx.textAlign="center";ctx.fillStyle="#eadab8";ctx.font="21px Georgia";ctx.fillText(name,300,560);ctx.textAlign="start"}
+async function loadSource(id,custom,statusId,ctx=sc){
+ const item=sources.find(a=>a.id===id)||sources[0];
+ if(custom){ctx.clearRect(0,0,W,W);coverDraw(custom,ctx);return true}
+ if(item.type==="flag"){makeFlag(item,ctx);return true}
+ return await new Promise(resolve=>{
+  const im=new Image;im.crossOrigin="anonymous";
+  im.onload=()=>{try{ctx.clearRect(0,0,W,W);coverDraw(im,ctx);ctx.getImageData(0,0,1,1);resolve(true)}
+   catch{fallback(item.name,ctx);el(statusId).textContent="Görsele erişilemedi; temsili çizim kullanılıyor. Kendi görselini de yükleyebilirsin.";resolve(false)}};
+  im.onerror=()=>{fallback(item.name,ctx);el(statusId).textContent="Fotoğraf yüklenemedi; temsili çizim kullanılıyor. Kendi görselini de yükleyebilirsin.";resolve(false)};
+  im.src=item.url;
+ });
+}
+function coverDraw(img,ctx=sc){const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,z=Math.max(W/w,W/h);ctx.drawImage(img,(W-w*z)/2,(W-h*z)/2,w*z,h*z)}
 function customFile(file,cb){if(!file||!file.type.startsWith("image/")||file.size>12e6){alert("En fazla 12 MB boyutunda resim seç.");return}const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);cb(im)};im.onerror=()=>{URL.revokeObjectURL(u);alert("Görsel açılamadı.")};im.src=u}
 function pos(ev,canvas){const r=canvas.getBoundingClientRect();return {x:(ev.clientX-r.left)*W/r.width,y:(ev.clientY-r.top)*W/r.height}}
 function paintExplore(){ec.fillStyle="#0c171a";ec.fillRect(0,0,W,W);for(const n of nodes)circle(ec,n.x,n.y,n.r,colorAt(n.x,n.y));const max=1360;const value=Math.min(100,Math.round(splits/max*100));el("exploreProgress").value=value;el("exploreStatus").textContent=nodes.every(n=>n.r<=6)?"Keşif tamamlandı!":("Bölünen daire: "+splits)}
 function splitOne(i){const n=nodes[i];if(!n||n.r<=6)return false;nodes.splice(i,1);const r=n.r/2;for(const dx of [-r,r])for(const dy of [-r,r])nodes.push({x:n.x+dx,y:n.y+dy,r});splits++;return true}
-function trySplit(ev){const p=pos(ev,explore);for(let i=nodes.length-1;i>=0;i--){const n=nodes[i];if(n.r>6&&Math.hypot(p.x-n.x,p.y-n.y)<=n.r){splitOne(i);paintExplore();break}}}
+function revealCircleAt(p){
+ let best=-1,largest=0;
+ for(let i=0;i<nodes.length;i++){
+  const n=nodes[i];if(n.r<=6||n.r<largest)continue;
+  if(Math.abs(p.x-n.x)>n.r||Math.abs(p.y-n.y)>n.r)continue;
+  if(Math.hypot(p.x-n.x,p.y-n.y)<=n.r){largest=n.r;best=i}
+ }
+ return best>=0&&splitOne(best);
+}
+function hoverReveal(ev){
+ if(!sourcePixels)return;
+ const p=pos(ev,explore),prior=lastHoverPoint||p;
+ const distance=Math.hypot(p.x-prior.x,p.y-prior.y);
+ const steps=Math.max(1,Math.min(40,Math.ceil(distance/13)));
+ let changed=0;
+ for(let i=0;i<=steps;i++){
+  const t=i/steps;
+  if(revealCircleAt({x:prior.x+(p.x-prior.x)*t,y:prior.y+(p.y-prior.y)*t}))changed++;
+ }
+ lastHoverPoint=p;
+ if(changed)paintExplore();
+}
 function stopAuto(){if(autoId){cancelAnimationFrame(autoId);autoId=null}}
-async function newExplore(){stopAuto();el("exploreStatus").textContent="Görsel hazırlanıyor…";await loadSource(el("exploreSelect").value,customExplore,"exploreStatus");sourcePixels=sc.getImageData(0,0,W,W);nodes=[];splits=0;for(let y=75;y<W;y+=150)for(let x=75;x<W;x+=150)nodes.push({x,y,r:75});paintExplore()}
-el("exploreCanvas").addEventListener("pointerdown",trySplit);
+let exploreRequest=0;
+async function newExplore(){
+ const token=++exploreRequest;stopAuto();lastHoverPoint=null;sourcePixels=null;
+ el("exploreStatus").textContent="Görsel hazırlanıyor…";
+ await loadSource(el("exploreSelect").value,customExplore,"exploreStatus");
+ if(token!==exploreRequest)return;
+ sourcePixels=sc.getImageData(0,0,W,W);nodes=[];splits=0;
+ for(let y=75;y<W;y+=150)for(let x=75;x<W;x+=150)nodes.push({x,y,r:75});
+ paintExplore();
+}
+explore.addEventListener("pointerenter",hoverReveal);
+explore.addEventListener("pointermove",hoverReveal);
+explore.addEventListener("pointerdown",hoverReveal);
+explore.addEventListener("pointerleave",()=>{lastHoverPoint=null});
 el("exploreStart").onclick=newExplore;
 el("exploreSelect").onchange=()=>{customExplore=null;el("exploreUpload").value="";newExplore()};
 el("exploreUpload").onchange=e=>customFile(e.target.files[0],im=>{customExplore=im;newExplore()});
 el("exploreAuto").onclick=()=>{if(autoId){stopAuto();return}let frames=0;function step(){const indices=[];for(let i=0;i<nodes.length;i++)if(nodes[i].r>6)indices.push(i);if(!indices.length){autoId=null;paintExplore();return}for(let i=0;i<8&&indices.length;i++){splitOne(indices[Math.floor(Math.random()*indices.length)]);indices.length=0;for(let j=0;j<nodes.length;j++)if(nodes[j].r>6)indices.push(j)}paintExplore();if(++frames<2000)autoId=requestAnimationFrame(step)}autoId=requestAnimationFrame(step)};
 function download(canvas,name){const a=document.createElement("a");a.href=canvas.toDataURL("image/png");a.download=name+".png";a.click()}
 el("exploreSave").onclick=()=>download(explore,"yazgi-kesif");
-const colorMap={ivory:[238,229,207],turquoise:[108,223,201],gold:[228,194,115],red:[234,101,103]};
-function clearArt(){ac.fillStyle="#081015";ac.fillRect(0,0,W,W);el("artStatus").textContent=""}
-function colorFor(bright){const c=colorMap[el("artPalette").value]||colorMap.ivory;return "rgba("+c.join(",")+","+Math.max(.09,bright).toFixed(3)+")"}
-async function createArt(){el("artStatus").textContent="Harfler yerleştiriliyor…";await loadSource(el("artSelect").value,customArt,"artStatus");
-const pixels=sc.getImageData(0,0,W,W).data;let text=el("artText").value.replace(/\s+/g," ").trim();if(!text){el("artStatus").textContent="Önce bir metin yaz.";return}
-clearArt();const unit=Number(el("density").value),stride=Math.max(5,unit),font=Math.max(7,unit-1);ac.font=font+"px Georgia,serif";ac.textBaseline="middle";ac.textAlign="center";let count=0;
-for(let y=stride/2;y<W;y+=stride){for(let x=stride/2;x<W;x+=stride){const p=((y|0)*W+(x|0))*4;const bright=(pixels[p]*.2126+pixels[p+1]*.7152+pixels[p+2]*.0722)/255;if(bright<.19)continue;const index=count++%text.length;ac.fillStyle=colorFor(Math.pow(bright,1.28));ac.fillText(text[index],x,y)}}
-letterPos=0;el("artStatus").textContent=count.toLocaleString("tr-TR")+" harf yerleştirildi. İstersen PNG kaydet."}
-el("artGenerate").onclick=createArt;
-el("artSelect").onchange=()=>{customArt=null;el("artUpload").value="";createArt()};
-el("artUpload").onchange=e=>customFile(e.target.files[0],im=>{customArt=im;createArt()});
-el("density").oninput=()=>el("densityValue").textContent=el("density").value;
-el("artClear").onclick=clearArt;el("artSave").onclick=()=>download(art,"yazgi-harf-portresi");
-function addLetter(ev){if(!el("brushMode").checked||!drawMouse)return;const p=pos(ev,art),txt=el("artText").value.replace(/\s+/g," ")||"YAZGI";ac.font="16px Georgia";ac.textBaseline="middle";ac.textAlign="center";ac.fillStyle=colorFor(.9);ac.fillText(txt[letterPos++%txt.length],p.x,p.y)}
-art.addEventListener("pointerdown",ev=>{drawMouse=true;try{art.setPointerCapture(ev.pointerId)}catch{}addLetter(ev)});
+const colorMap={ivory:[242,235,218],turquoise:[128,239,221],gold:[242,206,135],red:[242,107,111]};
+function clearArt(){ac.fillStyle="#07090c";ac.fillRect(0,0,W,W)}
+function colorFor(alpha){const c=colorMap[el("artPalette").value]||colorMap.ivory;return "rgba("+c.join(",")+","+Math.max(.27,Math.min(1,alpha)).toFixed(3)+")"}
+function artOutline(y,isFlag){
+ if(isFlag)return y>=28&&y<574?[33,567]:null;
+ // A recognisable head, narrow neck and shoulder silhouette, intentionally
+ // separate from the image luminance used for the eyes, facial contours and coat.
+ if(y<54||y>574)return null;
+ if(y<337){
+  const n=(y-195)/143;
+  const half=108*Math.sqrt(Math.max(0,1-n*n));
+  return half>=5?[302-half,302+half]:null;
+ }
+ if(y<377)return [267,337];
+ const t=Math.min(1,(y-377)/109);
+ let half=35+212*(.5-.5*Math.cos(Math.PI*t));
+ if(y>510)half-=(y-510)*.37;
+ return [302-half,302+half];
+}
+function shadeAt(pixels,x,y){
+ const cx=Math.max(0,Math.min(W-1,x|0)),cy=Math.max(0,Math.min(W-1,y|0));
+ const k=(cy*W+cx)*4,d=pixels;
+ const lum=(d[k]*.2126+d[k+1]*.7152+d[k+2]*.0722)/255;
+ // Dark hair and clothing remain text, while the face catches more light.
+ return .32+.68*Math.pow(lum,.85);
+}
+let brushIndex=0;
+function renderTextPortrait(){
+ if(!artPixels)return;
+ clearArt();
+ const text=el("artText").value.replace(/\s+/g," ");
+ const chars=Array.from(text),total=chars.length;
+ const selected=sources.find(v=>v.id===el("artSelect").value),isFlag=!customArt&&selected?.type==="flag";
+ const font=Number(el("density").value),lineHeight=font*1.21;
+ ac.font=font+"px Georgia, 'Times New Roman', serif";ac.textBaseline="middle";ac.textAlign="left";
+ let cursor=0,rendered=0,rows=0;
+ for(let y=55;y<572&&cursor<total;y+=lineHeight){
+  const bounds=artOutline(y,isFlag);if(!bounds)continue;
+  let x=bounds[0]+3;const max=bounds[1]-3, start=x;
+  while(cursor<total){
+   const ch=chars[cursor];
+   if(ch===" "&&x===start){cursor++;continue}
+   const width=ac.measureText(ch).width;
+   if(ch!==" "&&(cursor===0||chars[cursor-1]===" ")){
+    let end=cursor,word="";
+    while(end<total&&chars[end]!==" "&&word.length<120){word+=chars[end];end++}
+    if(x>start&&x+ac.measureText(word).width>max)break;
+   }
+   if(x+width>max)break;
+   if(ch!==" "){
+    const alpha=shadeAt(artPixels,x+width*.5,y);
+    ac.fillStyle=colorFor(alpha);
+    ac.fillText(ch,x,y);rendered++;
+   }
+   x+=width;cursor++;
+  }
+  rows++;
+ }
+ ac.textAlign="center";
+ for(const stroke of brushStrokes){
+  ac.font="16px Georgia, serif";ac.fillStyle=colorFor(.95);
+  ac.fillText(stroke.glyph,stroke.x,stroke.y);
+ }
+ ac.textAlign="left";
+ const p=el("artProgress");p.value=total?Math.min(100,Math.round(cursor/total*100)):0;
+ if(!total){el("artStatus").textContent="Yazmaya başla: her harf portrede anında belirecek.";return}
+ if(cursor<total){el("artStatus").textContent=rendered.toLocaleString("tr-TR")+" harf portrede · Metnin tamamı sığmadı. Harf yoğunluğunu azaltabilirsin."}
+ else el("artStatus").textContent=rendered.toLocaleString("tr-TR")+" harf, "+rows+" satır: portre yazdıkça oluşuyor.";
+}
+function requestArtRender(){
+ if(renderQueued)return;
+ renderQueued=true;
+ requestAnimationFrame(()=>{renderQueued=false;renderTextPortrait()});
+}
+async function prepareArt(){
+ const token=++artRequest;artPixels=null;clearArt();
+ el("artStatus").textContent="Portre hazırlanıyor…";
+ await loadSource(el("artSelect").value,customArt,"artStatus",asc);
+ if(token!==artRequest)return;
+ artPixels=asc.getImageData(0,0,W,W).data;requestArtRender();
+}
+el("artText").addEventListener("input",requestArtRender);
+el("artText").addEventListener("compositionend",requestArtRender);
+el("artLoadAnthem").onclick=()=>{el("artText").value=el("anthem").textContent.trim();requestArtRender()};
+el("artGenerate").onclick=()=>{if(!artPixels)prepareArt();else requestArtRender()};
+el("artSelect").onchange=()=>{customArt=null;el("artUpload").value="";brushStrokes.length=0;prepareArt()};
+el("artUpload").onchange=e=>customFile(e.target.files[0],im=>{customArt=im;brushStrokes.length=0;prepareArt()});
+el("density").oninput=()=>{el("densityValue").textContent=el("density").value;requestArtRender()};
+el("artPalette").onchange=requestArtRender;
+el("artClear").onclick=()=>{el("artText").value="";brushStrokes.length=0;letterPos=0;requestArtRender()};
+el("artSave").onclick=()=>download(art,"yazgi-harf-portresi");
+let lastBrush=null;
+function addLetter(ev){
+ if(!el("brushMode").checked||!drawMouse)return;
+ const p=pos(ev,art);
+ if(lastBrush&&Math.hypot(p.x-lastBrush.x,p.y-lastBrush.y)<10)return;
+ const txt=Array.from(el("artText").value.replace(/\s+/g," ")||"YAZGI");
+ const glyph=txt[letterPos++%txt.length];
+ brushStrokes.push({x:p.x,y:p.y,glyph});lastBrush=p;requestArtRender();
+}
+art.addEventListener("pointerdown",ev=>{if(!el("brushMode").checked)return;drawMouse=true;lastBrush=null;try{art.setPointerCapture(ev.pointerId)}catch{}addLetter(ev)});
 art.addEventListener("pointermove",addLetter);
-art.addEventListener("pointerup",()=>drawMouse=false);
-art.addEventListener("pointercancel",()=>drawMouse=false);
+art.addEventListener("pointerup",()=>{drawMouse=false;lastBrush=null});
+art.addEventListener("pointercancel",()=>{drawMouse=false;lastBrush=null});
+
 function getGallery(){try{return JSON.parse(localStorage.getItem(galleryKey)||"[]")}catch{return []}}
 function drawGallery(){const list=getGallery(),root=el("galleryItems");root.replaceChildren();if(!list.length){const p=document.createElement("p");p.textContent="Henüz kayıtlı eserin yok.";root.appendChild(p)}for(const entry of list){const figure=document.createElement("figure"),img=new Image(),caption=document.createElement("figcaption");img.src=entry.image;img.alt="Yazıyla oluşturulan portre";caption.textContent=entry.label;figure.append(img,caption);root.appendChild(figure)}}
 el("artGallery").onclick=()=>{try{const thumb=document.createElement("canvas");thumb.width=thumb.height=260;thumb.getContext("2d").drawImage(art,0,0,260,260);const all=getGallery();all.unshift({image:thumb.toDataURL("image/jpeg",.65),label:new Date().toLocaleString("tr-TR")});localStorage.setItem(galleryKey,JSON.stringify(all.slice(0,8)));el("artStatus").textContent="Çalışma galerine kaydedildi."}catch{el("artStatus").textContent="Galeri kaydedilemedi. PNG olarak indirebilirsin."}};
@@ -202,6 +334,6 @@ el("clearGallery").onclick=()=>{if(confirm("Kültür galerindeki kayıtları sil
 el("lightCandle").onclick=()=>el("memStatus").textContent="Hatıraları önünde saygıyla eğiliyoruz. ✦";
 function navigate(id){if(!el(id))id="discover";for(const v of document.querySelectorAll(".view"))v.classList.toggle("active",v.id===id);for(const b of document.querySelectorAll("[data-view]"))b.setAttribute("aria-selected",String(b.dataset.view===id));if(id==="gallery")drawGallery()}
 for(const b of document.querySelectorAll("[data-view]"))b.onclick=()=>{history.replaceState(null,"","#"+b.dataset.view);navigate(b.dataset.view)};
-window.addEventListener("hashchange",()=>navigate(location.hash.slice(1)));navigate(location.hash.slice(1)||"discover");clearArt();newExplore();
+window.addEventListener("hashchange",()=>navigate(location.hash.slice(1)));navigate(location.hash.slice(1)||"discover");clearArt();newExplore();prepareArt();
 </script>
 </body></html>
