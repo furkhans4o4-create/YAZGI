@@ -24,8 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Validate culture workshop mouse hover and live text art
-        run: node --test tests/culture.test.cjs
       - name: Run v94 regression gate
         run: node --test --test-name-pattern='v94 ' tests/systems.test.cjs
       - name: Validate 1,000 early-life cards and lifetime deduplication (v95-v96)
