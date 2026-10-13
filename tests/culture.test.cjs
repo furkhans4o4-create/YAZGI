@@ -81,9 +81,9 @@ test("typing updates the art immediately and deleting removes visible text",asyn
  const letters=traces.filter(x=>x.canvas==="artCanvas").map(x=>x.glyph).join("");
  assert.equal(letters,"ATATÜRK");
  area.value="";area.fire("input");await flush();
- assert.match(get("artStatus").textContent,/Yazmaya başla/);
+ assert.match(get("artStatus").textContent,/Yazdığın harfler/);
 });
-test("anthem preset fills textarea and produces many text glyphs in bust area",async()=>{
+test("anthem preset fills textarea and produces photo-shaped typography",async()=>{
  const {get,traces,flush}=startCulture();await flush();
  get("artLoadAnthem").onclick();await flush();
  assert.match(get("artText").value,/Korkma, sönmez/);
