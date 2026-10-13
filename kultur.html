@@ -132,10 +132,10 @@ Hakkıdır, Hakk'a tapan milletimin istiklâl!</script>
 "use strict";
 const el=id=>document.getElementById(id), W=600, galleryKey="yazgi_culture_gallery_v1";
 const sources=[
-{id:"ataturk",name:"Mustafa Kemal Atatürk",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/5/5e/Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg"},
-{id:"fatih",name:"Fatih Sultan Mehmet",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/8/8d/Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg"},
-{id:"yavuz",name:"Yavuz Sultan Selim",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/0/0f/Selim_I_by_John_Young.jpg"},
-{id:"ismail",name:"Şah İsmail",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/0/01/Shah_Ismail_I_portrait%2C_Chehel_Sotoun%2C_painted_circa_1647.jpg"},
+{id:"ataturk",name:"Mustafa Kemal Atatürk",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg/500px-Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg"},
+{id:"fatih",name:"Fatih Sultan Mehmet",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg/500px-Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg"},
+{id:"yavuz",name:"Yavuz Sultan Selim",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Selim_I_by_John_Young.jpg/500px-Selim_I_by_John_Young.jpg"},
+{id:"ismail",name:"Şah İsmail",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Shah_Ismail_I_portrait%2C_Chehel_Sotoun%2C_painted_circa_1647.jpg/500px-Shah_Ismail_I_portrait%2C_Chehel_Sotoun%2C_painted_circa_1647.jpg"},
 {id:"tr",name:"Türkiye bayrağı",type:"flag",colors:["#dc2035"],flag:"tr"},
 {id:"az",name:"Azerbaycan bayrağı",type:"flag",colors:["#00a8dc","#e33842","#00a65d"],flag:"az"},
 {id:"kz",name:"Kazakistan bayrağı",type:"flag",colors:["#26a9c2"],flag:"kz"},
@@ -165,7 +165,7 @@ return await new Promise(resolve=>{const im=new Image;im.crossOrigin="anonymous"
 function coverDraw(img){const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,z=Math.max(W/w,W/h);sc.drawImage(img,(W-w*z)/2,(W-h*z)/2,w*z,h*z)}
 function customFile(file,cb){if(!file||!file.type.startsWith("image/")||file.size>12e6){alert("En fazla 12 MB boyutunda resim seç.");return}const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);cb(im)};im.onerror=()=>{URL.revokeObjectURL(u);alert("Görsel açılamadı.")};im.src=u}
 function pos(ev,canvas){const r=canvas.getBoundingClientRect();return {x:(ev.clientX-r.left)*W/r.width,y:(ev.clientY-r.top)*W/r.height}}
-function paintExplore(){ec.fillStyle="#0c171a";ec.fillRect(0,0,W,W);for(const n of nodes)circle(ec,n.x,n.y,n.r,colorAt(n.x,n.y));const max=400;const value=Math.min(100,Math.round(splits/max*100));el("exploreProgress").value=value;el("exploreStatus").textContent=nodes.every(n=>n.r<=6)?"Keşif tamamlandı!":("Bölünen daire: "+splits)}
+function paintExplore(){ec.fillStyle="#0c171a";ec.fillRect(0,0,W,W);for(const n of nodes)circle(ec,n.x,n.y,n.r,colorAt(n.x,n.y));const max=1360;const value=Math.min(100,Math.round(splits/max*100));el("exploreProgress").value=value;el("exploreStatus").textContent=nodes.every(n=>n.r<=6)?"Keşif tamamlandı!":("Bölünen daire: "+splits)}
 function splitOne(i){const n=nodes[i];if(!n||n.r<=6)return false;nodes.splice(i,1);const r=n.r/2;for(const dx of [-r,r])for(const dy of [-r,r])nodes.push({x:n.x+dx,y:n.y+dy,r});splits++;return true}
 function trySplit(ev){const p=pos(ev,explore);for(let i=nodes.length-1;i>=0;i--){const n=nodes[i];if(n.r>6&&Math.hypot(p.x-n.x,p.y-n.y)<=n.r){splitOne(i);paintExplore();break}}}
 function stopAuto(){if(autoId){cancelAnimationFrame(autoId);autoId=null}}
