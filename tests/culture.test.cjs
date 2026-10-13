@@ -13,7 +13,7 @@ function startCulture(){
    this.id=id;this.listeners={};this.dataset={};this.children=[];this.style={};
    this.value=id==="density"?"11":id==="artSelect"||id==="exploreSelect"?"ataturk":"";
    this.textContent=id==="anthem"?anthem:"";this.checked=false;this.width=600;this.height=600;
-   this.classList={toggle(){}};this.files=[];
+   const classes=new Set();this.classList={toggle(c,on){if(on===undefined)on=!classes.has(c);if(on)classes.add(c);else classes.delete(c);return on},add(...xs){xs.forEach(x=>classes.add(x))},remove(...xs){xs.forEach(x=>classes.delete(x))},contains(c){return classes.has(c)}};this.files=[];
   }
   addEventListener(type,fn){(this.listeners[type]??=[]).push(fn)}
   fire(type,ev={}){for(const fn of this.listeners[type]||[])fn(ev)}
@@ -26,7 +26,17 @@ function startCulture(){
    if(!this.ctx)this.ctx={
     fill(){},fillRect(){},clearRect(){},beginPath(){},arc(){},ellipse(){},lineTo(){},moveTo(){},closePath(){},stroke(){},drawImage(){},
     createRadialGradient(){return {addColorStop(){}}},
-    getImageData(){return {data:new Uint8ClampedArray(600*600*4).fill(160)}},
+    getImageData(){
+     const data=new Uint8ClampedArray(600*600*4);
+     for(let y=0;y<600;y++)for(let x=0;x<600;x++){
+       const k=(y*600+x)*4;
+       const head=Math.pow((x-300)/112,2)+Math.pow((y-235)/143,2)<1;
+       const shoulders=y>358&&Math.pow((x-300)/220,2)+Math.pow((y-510)/175,2)<1;
+       const v=head?215:shoulders?125:24;
+       data[k]=data[k+1]=data[k+2]=v;data[k+3]=255;
+     }
+     return {data};
+    },
     measureText(value){return {width:Array.from(value).length*6}},
     fillText:(glyph,x,y)=>traces.push({canvas:this.id,glyph,x,y})
    };
