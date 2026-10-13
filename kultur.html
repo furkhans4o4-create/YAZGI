@@ -134,7 +134,7 @@ const el=id=>document.getElementById(id), W=600, galleryKey="yazgi_culture_galle
 const sources=[
 {id:"ataturk",name:"Mustafa Kemal Atatürk · 1930 fotoğrafı",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg/960px-Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg",credit:"https://commons.wikimedia.org/wiki/File:Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg"},
 {id:"fatih",name:"Fatih Sultan Mehmet · Bellini, 1480",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg/960px-Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg",credit:"https://commons.wikimedia.org/wiki/File:Bellini,_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery,_London.jpg"},
-{id:"yavuz",name:"Yavuz Sultan Selim · tarihî gravür",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Selim_I_by_John_Young.jpg/960px-Selim_I_by_John_Young.jpg",credit:"https://commons.wikimedia.org/wiki/File:Selim_I_by_John_Young.jpg"},
+{id:"yavuz",name:"Yavuz Sultan Selim · tarihî gravür",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Selim_I_by_John_Young.jpg/960px-Selim_I_by_John_Young.jpg",credit:"https://commons.wikimedia.org/wiki/File:Selim_I_by_John_Young.jpg"},
 {id:"ismail",name:"Şah İsmail · Behzad portre detayı",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Shah_Ismail_I_Safavid%2C_Behzad_%28portrait_detail%29.jpg/500px-Shah_Ismail_I_Safavid%2C_Behzad_%28portrait_detail%29.jpg",credit:"https://commons.wikimedia.org/wiki/File:Shah_Ismail_I_Safavid,_Behzad_(portrait_detail).jpg"},
 {id:"tr",name:"Türkiye bayrağı",type:"flag",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/960px-Flag_of_Turkey.svg.png",credit:"https://commons.wikimedia.org/wiki/File:Flag_of_Turkey.svg"},
 {id:"az",name:"Azerbaycan bayrağı",type:"flag",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Flag_of_Azerbaijan.svg/960px-Flag_of_Azerbaijan.svg.png",credit:"https://commons.wikimedia.org/wiki/File:Flag_of_Azerbaijan.svg"},
@@ -148,7 +148,7 @@ const explore=el("exploreCanvas"),ec=explore.getContext("2d"), art=el("artCanvas
 sourceCanvas.width=sourceCanvas.height=W;const sc=sourceCanvas.getContext("2d",{willReadFrequently:true});
 const artSourceCanvas=document.createElement("canvas");artSourceCanvas.width=artSourceCanvas.height=W;
 const asc=artSourceCanvas.getContext("2d",{willReadFrequently:true});
-let sourcePixels=null, nodes=[], splits=0, autoId=null, customExplore=null,customArt=null,letterPos=0,drawMouse=false, imageReady=true;
+let sourcePixels=null, nodes=[], splits=0, autoId=null, customExplore=null,customArt=null,letterPos=0,drawMouse=false, imageReady=true, loadedExploreImage=null;
 let lastHoverPoint=null, artPixels=null,artRequest=0,renderQueued=false;
 const brushStrokes=[];
 const colorAt=(x,y)=>{const n=((Math.min(W-1,Math.max(0,y|0))*W)+Math.min(W-1,Math.max(0,x|0)))*4,d=sourcePixels.data;return "rgb("+d[n]+","+d[n+1]+","+d[n+2]+")"};
@@ -165,10 +165,10 @@ if(item.flag==="uz"){x.fillStyle="#cc3445";x.fillRect(0,198,W,6);x.fillRect(0,39
 function fallback(name,ctx=sc){ctx.fillStyle="#17292e";ctx.fillRect(0,0,W,W);let g=ctx.createRadialGradient(300,200,20,300,295,370);g.addColorStop(0,"#bbab8b");g.addColorStop(1,"#243d40");ctx.fillStyle=g;ctx.fillRect(0,0,W,W);ctx.fillStyle="#172329";ctx.beginPath();ctx.ellipse(300,550,255,190,0,0,2*Math.PI);ctx.fill();ctx.fillStyle="#ba9a76";ctx.beginPath();ctx.ellipse(300,270,115,150,0,0,2*Math.PI);ctx.fill();ctx.fillStyle="#27353b";ctx.beginPath();ctx.ellipse(300,180,121,78,0,Math.PI,Math.PI*2);ctx.fill();ctx.textAlign="center";ctx.fillStyle="#eadab8";ctx.font="21px Georgia";ctx.fillText(name,300,560);ctx.textAlign="start"}
 async function loadSource(id,custom,statusId,ctx=sc){
  const item=sources.find(a=>a.id===id)||sources[0];
- if(custom){ctx.clearRect(0,0,W,W);coverDraw(custom,ctx,item.type);return true}
+ if(custom){ctx.clearRect(0,0,W,W);coverDraw(custom,ctx,item.type);if(ctx===sc)loadedExploreImage=custom;return true}
  return await new Promise(resolve=>{
   const im=new Image;im.crossOrigin="anonymous";
-  im.onload=()=>{try{ctx.clearRect(0,0,W,W);coverDraw(im,ctx,item.type);ctx.getImageData(0,0,1,1);resolve(true)}
+  im.onload=()=>{try{ctx.clearRect(0,0,W,W);coverDraw(im,ctx,item.type);ctx.getImageData(0,0,1,1);if(ctx===sc)loadedExploreImage=im;resolve(true)}
   catch{ctx.clearRect(0,0,W,W);el(statusId).textContent="Görselin telif sunucusu Canvas erişimine izin vermedi. Görseli indirip kendi görselin olarak yükleyebilirsin.";resolve(false)}};
   im.onerror=()=>{ctx.clearRect(0,0,W,W);el(statusId).textContent="Kaynak görüntü yüklenemedi. Görseli kaynak bağlantısından indirip kendi görselin olarak yükleyebilirsin.";resolve(false)};
   im.src=item.url;
@@ -226,7 +226,7 @@ function hoverReveal(ev){
 function stopAuto(){if(autoId){cancelAnimationFrame(autoId);autoId=null}}
 let exploreRequest=0;
 async function newExplore(){
- const token=++exploreRequest;stopAuto();lastHoverPoint=null;sourcePixels=null;
+ const token=++exploreRequest;stopAuto();lastHoverPoint=null;sourcePixels=null;loadedExploreImage=null;
  el("exploreStatus").textContent="Görsel hazırlanıyor…";
  imageReady=await loadSource(el("exploreSelect").value,customExplore,"exploreStatus");
  if(token!==exploreRequest)return;
@@ -246,75 +246,110 @@ el("exploreSelect").onchange=()=>{customExplore=null;el("exploreUpload").value="
 el("exploreUpload").onchange=e=>customFile(e.target.files[0],im=>{customExplore=im;newExplore()});
 el("exploreAuto").onclick=()=>{if(!sourcePixels)return;if(autoId){stopAuto();return}let frames=0;function step(){const indices=[];for(let i=0;i<nodes.length;i++)if(nodes[i].r>6)indices.push(i);if(!indices.length){autoId=null;paintExplore();return}for(let i=0;i<8&&indices.length;i++){splitOne(indices[Math.floor(Math.random()*indices.length)]);indices.length=0;for(let j=0;j<nodes.length;j++)if(nodes[j].r>6)indices.push(j)}paintExplore();if(++frames<2000)autoId=requestAnimationFrame(step)}autoId=requestAnimationFrame(step)};
 function download(canvas,name){const a=document.createElement("a");a.href=canvas.toDataURL("image/png");a.download=name+".png";a.click()}
-el("exploreSave").onclick=()=>download(explore,"yazgi-kesif");
+el("exploreSave").onclick=()=>{
+ const full=el("exploreHD").classList.contains("show");
+ if(!full||!loadedExploreImage){download(explore,"yazgi-kesif");return}
+ const out=document.createElement("canvas");out.width=out.height=1400;
+ const cx=out.getContext("2d"),im=loadedExploreImage,w=im.naturalWidth||im.width,h=im.naturalHeight||im.height;
+ const flag=!customExplore&&(sources.find(a=>a.id===el("exploreSelect").value)?.type==="flag");
+ const z=flag?Math.min(1400/w,1400/h):Math.max(1400/w,1400/h);
+ cx.fillStyle="#080b0d";cx.fillRect(0,0,1400,1400);
+ cx.drawImage(im,(1400-w*z)/2,(1400-h*z)/2,w*z,h*z);
+ download(out,"yazgi-kesif-HD");
+};
 const colorMap={ivory:[242,235,218],turquoise:[128,239,221],gold:[242,206,135],red:[242,107,111]};
 function clearArt(){ac.fillStyle="#07090c";ac.fillRect(0,0,W,W)}
 function colorFor(alpha){const c=colorMap[el("artPalette").value]||colorMap.ivory;return "rgba("+c.join(",")+","+Math.max(.27,Math.min(1,alpha)).toFixed(3)+")"}
-function artOutline(y,isFlag){
- if(isFlag)return y>=28&&y<574?[33,567]:null;
- // A recognisable head, narrow neck and shoulder silhouette, intentionally
- // separate from the image luminance used for the eyes, facial contours and coat.
- if(y<54||y>574)return null;
- if(y<337){
-  const n=(y-195)/143;
-  const half=108*Math.sqrt(Math.max(0,1-n*n));
-  return half>=5?[302-half,302+half]:null;
+// Unlike the first prototype, the letter silhouette is taken from the
+// ACTUAL photograph's pixel contrast, never from a hard-coded head outline.
+let artMask=null;
+function buildArtMask(pixels,isFlag){
+ const mask=new Float32Array(W*W);
+ if(isFlag){for(let y=150;y<450;y++)for(let x=16;x<W-16;x++)mask[y*W+x]=1;return mask}
+ const samplePoints=[[7,7],[W-8,7],[7,70],[W-8,70],[7,W-8],[W-8,W-8]];
+ let r=0,g=0,b=0;
+ for(const [x,y] of samplePoints){const p=(y*W+x)*4;r+=pixels[p];g+=pixels[p+1];b+=pixels[p+2]}
+ r/=samplePoints.length;g/=samplePoints.length;b/=samplePoints.length;
+ const gray=(.2126*r+.7152*g+.0722*b);
+ const colorDifference=(pr,pg,pb)=>Math.max(
+  Math.abs(.2126*pr+.7152*pg+.0722*pb-gray)*1.6,
+  (Math.abs(pr-r)+Math.abs(pg-g)+Math.abs(pb-b))/3*1.15
+ );
+ for(let y=12;y<W-12;y++)for(let x=12;x<W-12;x++){
+  const k=(y*W+x)*4;
+  const contrast=colorDifference(pixels[k],pixels[k+1],pixels[k+2]);
+  mask[y*W+x]=Math.max(0,Math.min(1,(contrast-11)/110));
  }
- if(y<377)return [267,337];
- const t=Math.min(1,(y-377)/109);
- let half=35+212*(.5-.5*Math.cos(Math.PI*t));
- if(y>510)half-=(y-510)*.37;
- return [302-half,302+half];
+ return mask;
 }
-function shadeAt(pixels,x,y){
- const cx=Math.max(0,Math.min(W-1,x|0)),cy=Math.max(0,Math.min(W-1,y|0));
- const k=(cy*W+cx)*4,d=pixels;
- const lum=(d[k]*.2126+d[k+1]*.7152+d[k+2]*.0722)/255;
- // Dark hair and clothing remain text, while the face catches more light.
- return .32+.68*Math.pow(lum,.85);
+function artSpans(y,isFlag){
+ if(isFlag)return y>155&&y<446?[[19,580]]:[];
+ const runs=[];let first=-1,last=-1,gap=0;
+ for(let x=20;x<W-19;x+=2){
+  let strength=0;
+  for(let dy=-2;dy<=2;dy+=2)strength+=artMask[(Math.max(0,Math.min(W-1,Math.round(y+dy))))*W+x];
+  const present=(strength/3)>.16;
+  if(present){if(first<0)first=x;last=x;gap=0}
+  else if(first>=0&&++gap>10){if(last-first>43)runs.push([first,last]);first=-1;last=-1;gap=0}
+ }
+ if(first>=0&&last-first>43)runs.push([first,last]);
+ return runs;
 }
-let brushIndex=0;
+function artStrength(x,y){
+ if(!artMask)return 0;
+ let sum=0,n=0;
+ for(const dy of [-2,0,2])for(const dx of [-2,0,2]){
+  const xi=Math.max(0,Math.min(W-1,Math.round(x+dx))),yi=Math.max(0,Math.min(W-1,Math.round(y+dy)));
+  sum+=artMask[yi*W+xi];n++;
+ }
+ return sum/n;
+}
 function renderTextPortrait(){
- if(!artPixels)return;
+ if(!artPixels||!artMask)return;
  clearArt();
- const text=el("artText").value.replace(/\s+/g," ");
+ const text=el("artText").value.replace(/\r/g,"").replace(/\s+/g," ").trim();
  const chars=Array.from(text),total=chars.length;
- const selected=sources.find(v=>v.id===el("artSelect").value),isFlag=!customArt&&selected?.type==="flag";
- const font=Number(el("density").value),lineHeight=font*1.21;
+ const item=sources.find(x=>x.id===el("artSelect").value);
+ const isFlag=!customArt&&item?.type==="flag";
+ const font=Number(el("density").value),lineHeight=font*1.23;
  ac.font=font+"px Georgia, 'Times New Roman', serif";ac.textBaseline="middle";ac.textAlign="left";
  let cursor=0,rendered=0,rows=0;
- for(let y=55;y<572&&cursor<total;y+=lineHeight){
-  const bounds=artOutline(y,isFlag);if(!bounds)continue;
-  let x=bounds[0]+3;const max=bounds[1]-3, start=x;
-  while(cursor<total){
-   const ch=chars[cursor];
-   if(ch===" "&&x===start){cursor++;continue}
-   const width=ac.measureText(ch).width;
-   if(ch!==" "&&(cursor===0||chars[cursor-1]===" ")){
-    let end=cursor,word="";
-    while(end<total&&chars[end]!==" "&&word.length<120){word+=chars[end];end++}
-    if(x>start&&x+ac.measureText(word).width>max)break;
+ for(let y=25;y<575&&cursor<total;y+=lineHeight){
+  const spans=artSpans(y,isFlag);
+  for(const [left,right] of spans){
+   if(cursor>=total)break;
+   let x=left+2, max=right-2, began=false;
+   while(cursor<total){
+    const ch=chars[cursor];
+    if(ch===" "&&!began){cursor++;continue}
+    const width=ac.measureText(ch).width;
+    if(began&&ch!==" "&&(cursor===0||chars[cursor-1]===" ")){
+     let end=cursor,word="";
+     while(end<total&&chars[end]!==" "&&word.length<100){word+=chars[end];end++}
+     if(x+ac.measureText(word).width>max)break;
+    }
+    if(x+width>max)break;
+    if(ch!==" "){
+     const strength=artStrength(x+width/2,y);
+     ac.fillStyle=colorFor(Math.min(1,.23+strength*.83));
+     ac.fillText(ch,x,y);
+     rendered++;began=true;
+    }
+    x+=width;cursor++;
    }
-   if(x+width>max)break;
-   if(ch!==" "){
-    const alpha=shadeAt(artPixels,x+width*.5,y);
-    ac.fillStyle=colorFor(alpha);
-    ac.fillText(ch,x,y);rendered++;
-   }
-   x+=width;cursor++;
+   if(began)rows++;
   }
-  rows++;
  }
  ac.textAlign="center";
  for(const stroke of brushStrokes){
   ac.font="16px Georgia, serif";ac.fillStyle=colorFor(.95);
-  ac.fillText(stroke.glyph,stroke.x,stroke.y);
+  ac.fillText(stroke.glyph,stroke.x,stroke.y)
  }
  ac.textAlign="left";
- const p=el("artProgress");p.value=total?Math.min(100,Math.round(cursor/total*100)):0;
- if(!total){el("artStatus").textContent="Yazmaya başla: her harf portrede anında belirecek.";return}
- if(cursor<total){el("artStatus").textContent=rendered.toLocaleString("tr-TR")+" harf portrede · Metnin tamamı sığmadı. Harf yoğunluğunu azaltabilirsin."}
- else el("artStatus").textContent=rendered.toLocaleString("tr-TR")+" harf, "+rows+" satır: portre yazdıkça oluşuyor.";
+ el("artProgress").value=total?Math.min(100,Math.round(cursor/total*100)):0;
+ if(!total){el("artStatus").textContent="Yazdığın harfler görselin gerçek çizgileri üzerinde anında belirecek.";return}
+ if(!rendered){el("artStatus").textContent="Bu fotoğrafın zemin/özne ayrımı yetersiz. Daha kontrastlı bir portre seç.";return}
+ el("artStatus").textContent=rendered.toLocaleString("tr-TR")+" harf · "+rows+" satır · "+(cursor<total?"Metnin devamı sığmadı; harf boyutunu küçült.":"Gerçek görselin hatlarıyla oluşturuldu.");
 }
 function requestArtRender(){
  if(renderQueued)return;
@@ -322,11 +357,15 @@ function requestArtRender(){
  requestAnimationFrame(()=>{renderQueued=false;renderTextPortrait()});
 }
 async function prepareArt(){
- const token=++artRequest;artPixels=null;clearArt();
+ const token=++artRequest;artPixels=null;artMask=null;clearArt();
  el("artStatus").textContent="Portre hazırlanıyor…";
- await loadSource(el("artSelect").value,customArt,"artStatus",asc);
+ const ready=await loadSource(el("artSelect").value,customArt,"artStatus",asc);
  if(token!==artRequest)return;
- artPixels=asc.getImageData(0,0,W,W).data;requestArtRender();
+ sourceLink(el("artSelect").value,customArt,"artCredit");
+ if(!ready)return;
+ artPixels=asc.getImageData(0,0,W,W).data;
+ const flag=!customArt&&sources.find(x=>x.id===el("artSelect").value)?.type==="flag";
+ artMask=buildArtMask(artPixels,flag);requestArtRender();
 }
 el("artText").addEventListener("input",requestArtRender);
 el("artText").addEventListener("compositionend",requestArtRender);
