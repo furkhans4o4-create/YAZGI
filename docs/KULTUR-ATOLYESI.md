@@ -9,14 +9,30 @@ Ana menü, YAZGI'nın mevcut `index.html` dosyasındaki **yalnızca arayüz katm
 - **Şehitlerimiz:** `kultur.html#memorial`. Saygı alanı; veri tabanı kopyası veya teyitsiz kişi bilgisi yoktur. Arşiv bağımsız siteye açılır.
 - **Galeri:** `kultur.html#gallery`. Tarayıcının yerel depolamasında en fazla 8 küçültülmüş görüntü saklanır.
 
-## Görsel kaynakları / hak kontrolü
-Tarihî portre görselleri Wikimedia Commons üzerinden **canlı** yüklenir, yükleme başarısızsa kullanıcıya örnek çizim ve kendi fotoğrafını yükleme sunulur. Steam'e paketlemeden önce kaynakların lisans sayfalarını tek tek inceleyip uygun fotoğraf dosyalarını çevrimdışı dağıtıma hazırlayın:
-- [Atatürk askerî portre fotoğrafı (1930)](https://commons.wikimedia.org/wiki/File:Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg)
-- [Gentile Bellini — II. Mehmed portresi](https://commons.wikimedia.org/wiki/File:Bellini,_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery,_London.jpg)
-- [John Young — I. Selim portresi](https://commons.wikimedia.org/wiki/File:Selim_I_by_John_Young.jpg)
-- [Şah İsmail portresi, Çehel Sütun (yaklaşık 1647; ölümünden sonra yapılmış)](https://commons.wikimedia.org/wiki/File:Shah_Ismail_I_portrait,_Chehel_Sotoun,_painted_circa_1647.jpg)
+## Görsel kaynakları / hak kontrolü (güncel)
 
-**Kaynak gösterimi, lisans denetiminin yerini tutmaz.** Bayraklar özgün Canvas çizimleridir; bu prototipin basitleştirilmiş temsilleri resmî bayrak ölçülerine göre son sürümde doğrulanmalıdır. Koalas to the Max, Paint Toys ve sehitlerimiz.org.tr kodu/içeriği kopyalanmamıştır. Sadece genel etkileşim ilkelerinden esinlenilmiştir.
+Görsel kaynakları Wikimedia Commons dosya sayfalarından seçildi; hata durumunda başka bir kişiye ait temsili çizim **gösterilmez**. Oyuncu kaynak bağlantısından doğru görseli kontrol edebilir veya kendi görselini yükleyebilir. Ağ üzerinden yüklenen görselleri Steam sürümünde çevrimdışı dağıtabilmek için görsel lisanslarının ve yargı alanlarının ayrıca doğrulanması gerekir.
+
+### Tarihî portreler
+- [Mustafa Kemal Atatürk, 1930 tarihli gerçek fotoğraf](https://commons.wikimedia.org/wiki/File:Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg)
+- [II. Mehmed (Fatih), Gentile Bellini'nin 1480 tarihli portresi](https://commons.wikimedia.org/wiki/File:Bellini,_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery,_London.jpg)
+- [I. Selim (Yavuz), John Young'un 1815'te yayımladığı tarihî portre](https://commons.wikimedia.org/wiki/File:Selim_I_by_John_Young.jpg)
+- [Şah İsmail I, Behzad'a atfedilen dönemiyle ilişkili portre detayı](https://commons.wikimedia.org/wiki/File:Shah_Ismail_I_Safavid,_Behzad_(portrait_detail).jpg)
+
+**Not:** Atatürk bir fotoğraf; diğerleri sanatçıların tarihî portreleridir. Fotoğrafmış gibi sunulmamalı ve çizimlerin tarihî birebir doğruluk iddiası olmamalıdır.
+
+### Bayraklar (eskiz değil, Wikimedia üzerinden alınan resmî tasarım görselleri)
+- [Türkiye](https://commons.wikimedia.org/wiki/File:Flag_of_Turkey.svg)
+- [Azerbaycan](https://commons.wikimedia.org/wiki/File:Flag_of_Azerbaijan.svg)
+- [Kazakistan (sol süsleme, güneş, kartal)](https://commons.wikimedia.org/wiki/File:Flag_of_Kazakhstan.svg)
+- [Kırgızistan (güncel bayrak)](https://commons.wikimedia.org/wiki/File:Flag_of_Kyrgyzstan.svg)
+- [Özbekistan](https://commons.wikimedia.org/wiki/File:Flag_of_Uzbekistan.svg)
+
+### Uygulama
+- Portreyi Keşfet'te fare üzerinde gezince daireler bölünür, son nokta tamamlandığında katman kaldırılır ve net kaynak görseli gösterilir; HD PNG dışa aktarılır.
+- Yazıyla Sanat artık sabit, yapay bir kafa/omuz kalıbı kullanmaz. Harflerin sınırı kaynak görüntünün zemin-özne kontrastından hesaplanır. Bu, her tarihî resimde aynı derecede güçlü çalışmayabilir.
+- `yazgi_full_v1` kayıt anahtarı değişmez.
+- Koalas to the Max ve Paint Toys kodu/arayüzü veya şehit arşivi kopyalanmaz; yalnız genel etkileşim fikri yorumlanır.
 
 ## Henüz yapılmadı
 - Steam masaüstü paketi ve Steamworks entegrasyonu
