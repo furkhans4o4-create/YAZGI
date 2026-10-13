@@ -333,13 +333,62 @@ select,input{padding:10px;border:1px solid #c8b68a;border-radius:9px;background:
 }
 
 
+
+/* YAZGI hub v1: standalone cover; simulator UI/state remain unchanged */
+body.hub-visible{overflow:hidden}
+body.hub-visible>.app,body.hub-visible>.modalwrap{visibility:hidden}
+#yazgiHub{display:none;position:fixed;inset:0;overflow:auto;z-index:2147483000;background:radial-gradient(ellipse at 70% 15%,#23504b 0,#111e1b 48%,#0a1416 100%);color:#e9f0e9;font:15px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+body.hub-visible #yazgiHub{display:block}
+#yazgiHub *,#yazgiHub *:before,#yazgiHub *:after{box-sizing:border-box}
+#yazgiHub .h-wrap{max-width:1170px;margin:auto;padding:25px 28px 55px;min-height:100vh}
+#yazgiHub .h-bar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;border-bottom:1px solid #78cbb747;padding-bottom:18px}
+#yazgiHub .h-logo{color:#e2c27d;font:bold 25px Georgia,serif;letter-spacing:.2em}
+#yazgiHub .h-pill{border:1px solid #78cbb763;border-radius:99px;color:#a6cfca;padding:7px 14px;font-size:12px}
+#yazgiHub .h-intro{margin:42px 0 30px;display:grid;grid-template-columns:1.2fr .8fr;gap:30px;align-items:center}
+#yazgiHub .h-kicker{color:#d2b87c;font-size:11px;letter-spacing:4px}
+#yazgiHub h1{font:clamp(56px,8vw,105px)/.98 Georgia,serif;letter-spacing:.12em;margin:12px 0 20px;color:#f3e6c5}
+#yazgiHub .h-copy{max-width:570px;color:#bdd0c9;font-size:16px;line-height:1.8}
+#yazgiHub .h-emblem{font:clamp(90px,13vw,180px) Georgia,serif;text-align:center;color:#84dccc;text-shadow:0 0 80px #79d5c461;border-radius:50%;border:2px solid #78cbb735;aspect-ratio:1;display:grid;place-items:center;max-width:310px;margin:auto;width:100%;background:radial-gradient(circle,#45746b33,#0e191a55 70%)}
+#yazgiHub .h-quick{display:flex;gap:12px;flex-wrap:wrap;margin-top:25px}
+#yazgiHub a,#yazgiHub button{font:inherit;text-decoration:none;cursor:pointer}
+#yazgiHub .h-action{border:1px solid #76ccbf;background:#80d7c6;color:#102b29;padding:13px 22px;border-radius:12px;font-weight:800;min-height:47px}
+#yazgiHub .h-action.outline{background:transparent;color:#d6e9e2;border-color:#85bcb2}
+#yazgiHub .h-section{color:#cfb780;font-size:12px;letter-spacing:2.5px;margin:40px 0 15px}
+#yazgiHub .h-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}
+#yazgiHub .h-card{display:flex;flex-direction:column;min-height:226px;gap:11px;border:1px solid #52756b;background:linear-gradient(145deg,#1c3432dd,#152725ee);padding:25px;border-radius:16px;transition:transform .2s,border-color .2s}
+#yazgiHub .h-card:hover{transform:translateY(-3px);border-color:#87d9c8}
+#yazgiHub .h-card .h-symbol{color:#bfeee2;font-size:33px}
+#yazgiHub .h-card strong{font:24px Georgia,serif;color:#f2e4c9}
+#yazgiHub .h-card span{color:#a9c5bd;font-size:13px}
+#yazgiHub .h-footer{margin-top:30px;color:#87a8a1;font-size:12px;border-top:1px solid #5a878047;padding-top:16px}
+#hubHomeButton{margin-right:8px}
+@media(max-width:790px){#yazgiHub .h-intro{grid-template-columns:1fr}#yazgiHub .h-emblem{display:none}#yazgiHub .h-cards{grid-template-columns:1fr}#yazgiHub .h-card{min-height:145px}#yazgiHub .h-wrap{padding:20px}#yazgiHub h1{letter-spacing:.07em}}
+
 </style>
 </head>
-<body>
+<body class="hub-visible">
+<div id="yazgiHub" role="dialog" aria-modal="true" aria-label="YAZGI ana menü">
+<div class="h-wrap">
+ <div class="h-bar"><div class="h-logo">𐰖 YAZGI</div><div class="h-pill">TÜRK TARİHİ · YAŞAM · SANAT</div></div>
+ <div class="h-intro"><div>
+  <div class="h-kicker">BOZKIRDAN BUGÜNE</div>
+  <h1>YAZGI</h1>
+  <div class="h-copy">Bir ömür yaşa, kendi yolunu çiz. Türk tarihinin izlerini portreler ve kelimelerle keşfet.</div>
+  <div class="h-quick"><button type="button" class="h-action" id="hubPlay">▶ Yaşam Simülasyonuna Gir</button><button type="button" class="h-action outline" id="hubNewLife">＋ Yeni Hayat</button></div>
+ </div><div class="h-emblem" aria-hidden="true">𐰃</div></div>
+ <div class="h-section">TARİH & SANAT ATÖLYESİ</div>
+ <div class="h-cards">
+  <a class="h-card" href="./kultur.html#discover"><span class="h-symbol">◉</span><strong>Portreyi Keşfet</strong><span>Renkli daireleri parçala; tarihî kişileri ve Türk dünyasının bayraklarını ortaya çıkar.</span></a>
+  <a class="h-card" href="./kultur.html#calligram"><span class="h-symbol">✒</span><strong>Yazıyla Sanat</strong><span>İstiklâl Marşı'nın harfleriyle Atatürk portresi ve kendi kelime sanatını oluştur.</span></a>
+  <a class="h-card" href="./kultur.html#memorial"><span class="h-symbol">✦</span><strong>Şehitlerimiz</strong><span>Saygı ve hatırlama alanı. Doğrulanmamış isim veya puanlama içermez.</span></a>
+ </div>
+ <div class="h-footer">YAZGI · Ana menü · Simülasyon kayıtları korunur; sanat galerisi ayrıdır.</div>
+</div></div>
+
 <div class="app">
  <div class="top">
   <div><div class="brand">YAZGI</div><div class="tag">İslamiyet öncesi Türk dünyasında bir ömür</div></div>
-  <button onclick="openNew()">+ Yeni Yazgı</button>
+  <div><button id="hubHomeButton" type="button">☰ Ana Menü</button><button onclick="openNew()">+ Yeni Yazgı</button></div>
  </div>
  <div class="layout">
   <aside class="panel profile" id="profile">
@@ -1194,4 +1243,16 @@ function unlock(id){if(!s.achievements.includes(id)){s.achievements.push(id);let
 <script src="elder-events-80-89.js"></script>
 <script src="elder-events-90-plus.js"></script>
 <script src="systems.js"></script>
+<script>
+/* Main menu controls are deliberately isolated from all simulator variables. */
+(function(){
+ var hub=document.getElementById("yazgiHub");
+ var open=function(){document.body.classList.add("hub-visible");hub.setAttribute("aria-hidden","false");};
+ var close=function(){document.body.classList.remove("hub-visible");hub.setAttribute("aria-hidden","true");};
+ document.getElementById("hubPlay").addEventListener("click",close);
+ document.getElementById("hubNewLife").addEventListener("click",function(){close();if(typeof window.openNew==="function")window.openNew();});
+ document.getElementById("hubHomeButton").addEventListener("click",function(){if(typeof window.save==="function")window.save();open();});
+ if(new URLSearchParams(location.search).has("play"))close();
+})();
+</script>
 </body></html>
