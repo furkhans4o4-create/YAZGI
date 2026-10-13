@@ -1238,7 +1238,7 @@ function unlock(id){if(!s.achievements.includes(id)){s.achievements.push(id);let
  var hub=document.getElementById("yazgiHub");
  var open=function(){document.body.classList.add("hub-visible");hub.setAttribute("aria-hidden","false");};
  var close=function(){document.body.classList.remove("hub-visible");hub.setAttribute("aria-hidden","true");};
- document.getElementById("hubPlay").addEventListener("click",close);
+ document.getElementById("hubPlay").addEventListener("click",function(){close();if(typeof s==="undefined"||!s){if(typeof window.openNew==="function")window.openNew();}});
  document.getElementById("hubNewLife").addEventListener("click",function(){close();if(typeof window.openNew==="function")window.openNew();});
  document.getElementById("hubHomeButton").addEventListener("click",function(){if(typeof window.save==="function")window.save();open();});
  if(new URLSearchParams(location.search).has("play"))close();
