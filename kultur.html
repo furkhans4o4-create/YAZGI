@@ -23,7 +23,7 @@ h1{font:clamp(30px,4vw,47px) Georgia,serif;margin:0}h2{font:26px Georgia,serif;m
 select,textarea,input[type="text"]{background:#0c1c20;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);width:100%}
 textarea{resize:vertical;min-height:172px}input[type=range]{width:100%;accent-color:var(--accent)}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:17px}.small{font-size:12px;color:var(--muted)}
-canvas{display:block;width:100%;height:auto;aspect-ratio:1;background:#101b20;border:1px solid var(--line);border-radius:12px;touch-action:none;cursor:crosshair;max-width:680px;margin:auto}.explore-stage{position:relative;max-width:680px;margin:auto}.explore-stage #exploreHD{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#090c0d;border:1px solid var(--line);border-radius:12px}.explore-stage #exploreHD.show{display:block}.explore-stage #exploreHD.flag{object-fit:contain}.sourceError{color:#f2b18c}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1;background:#101b20;border:1px solid var(--line);border-radius:12px;touch-action:none;cursor:crosshair;max-width:680px;margin:auto}#artCanvas{aspect-ratio:3/4;max-width:720px;background:#050506}.explore-stage{position:relative;max-width:680px;margin:auto}.explore-stage #exploreHD{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#090c0d;border:1px solid var(--line);border-radius:12px}.explore-stage #exploreHD.show{display:block}.explore-stage #exploreHD.flag{object-fit:contain}.sourceError{color:#f2b18c}
 progress{display:block;margin:15px 0 0;width:100%;height:9px;accent-color:var(--accent)}
 .status{min-height:24px;font-size:13px;color:var(--gold);margin-top:10px}
 .memorial{max-width:760px;text-align:center;margin:35px auto;padding:45px 24px;border:1px solid #96785180;border-radius:20px;background:radial-gradient(ellipse at 50% 10%,#393127 0,#172628 75%)}.flame{font-size:75px;color:var(--gold)}.memorial p{line-height:1.9}
@@ -62,11 +62,11 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <label class="control"><span>Kendi fotoğrafını kullan</span><input id="artUpload" type="file" accept="image/*"></label>
 <label class="control"><span>Yazmaya başla — harfler anında portrede belirecek</span><textarea id="artText" spellcheck="false" placeholder="Buraya yazmaya başla... İstiklâl Marşı ya da kendi metnini yazabilirsin." aria-describedby="artStatus"></textarea></label><button class="btn" type="button" id="artLoadAnthem">İstiklâl Marşı’nı doldur</button>
 <label class="control"><span>Harf yoğunluğu <output id="densityValue">11</output></span><input type="range" id="density" min="7" max="17" value="11"></label>
-<label class="control"><span>Harf rengi</span><select id="artPalette"><option value="ivory">Fildişi</option><option value="turquoise">Turkuaz</option><option value="gold">Altın</option><option value="red">Kırmızı</option></select></label>
+<label class="control"><input type="checkbox" id="artRepeat"> Metni portre dolana kadar tekrar et (yazdıkça belirginleşsin)</label><label class="control"><span>Harf rengi</span><select id="artPalette"><option value="ivory">Fildişi</option><option value="turquoise">Turkuaz</option><option value="gold">Altın</option><option value="red">Kırmızı</option></select></label>
 <label class="control"><input type="checkbox" id="brushMode"> Harflerle serbest çizim</label>
 <div class="actions"><button class="btn primary" id="artGenerate">Portreyi yenile</button><button class="btn" id="artSave">PNG kaydet</button><button class="btn" id="artGallery">Galeriye ekle</button><button class="btn" id="artClear">Temizle</button></div>
 <progress id="artProgress" value="0" max="100" aria-label="Portreye yazılan metin oranı"></progress><div class="status" id="artStatus" role="status"></div><a id="artCredit" class="small" href="#" target="_blank" rel="noopener noreferrer">Portre kaynağı ↗</a>
-</div><div class="panel"><canvas id="artCanvas" width="600" height="600" aria-label="Yazılarla oluşturulan eser"></canvas><p class="small">Serbest çizim seçiliyken parmağınla veya farenle sürükleyerek harfler bırakabilirsin.</p></div></div>
+</div><div class="panel"><canvas id="artCanvas" width="720" height="960" aria-label="Fotoğrafın silüetinde okunabilir satırlarla oluşturulan yazı portresi"></canvas><p class="small">Bu yöntem örneğindeki gibi: yazılar fotoğrafın gerçek yüz ve kıyafet hatlarının içinde okunabilir satırlar halinde görünür. Metin uzunluğu arttıkça portre aşağı doğru tamamlanır.</p></div></div>
 </section>
 <section class="view" id="memorial"><div class="memorial">
 <div class="eyebrow">Saygıyla ve minnetle</div><div class="flame" aria-hidden="true">✦</div>
@@ -130,7 +130,7 @@ Hakkıdır, hür yaşamış bayrağımın hürriyet;
 Hakkıdır, Hakk'a tapan milletimin istiklâl!</script>
 <script>
 "use strict";
-const el=id=>document.getElementById(id), W=600, galleryKey="yazgi_culture_gallery_v1";
+const el=id=>document.getElementById(id), W=600, AW=720, AH=960, galleryKey="yazgi_culture_gallery_v1";
 const sources=[
 {id:"ataturk",name:"Mustafa Kemal Atatürk · 1930 fotoğrafı",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg/960px-Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg",credit:"https://commons.wikimedia.org/wiki/File:Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg"},
 {id:"fatih",name:"Fatih Sultan Mehmet · Bellini, 1480",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg/960px-Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg",credit:"https://commons.wikimedia.org/wiki/File:Bellini,_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery,_London.jpg"},
@@ -146,7 +146,7 @@ for(const target of ["exploreSelect","artSelect"]) for(const source of sources){
 el("artText").value="";
 const explore=el("exploreCanvas"),ec=explore.getContext("2d"), art=el("artCanvas"),ac=art.getContext("2d"), sourceCanvas=document.createElement("canvas");
 sourceCanvas.width=sourceCanvas.height=W;const sc=sourceCanvas.getContext("2d",{willReadFrequently:true});
-const artSourceCanvas=document.createElement("canvas");artSourceCanvas.width=artSourceCanvas.height=W;
+const artSourceCanvas=document.createElement("canvas");artSourceCanvas.width=AW;artSourceCanvas.height=AH;
 const asc=artSourceCanvas.getContext("2d",{willReadFrequently:true});
 let sourcePixels=null, nodes=[], splits=0, autoId=null, customExplore=null,customArt=null,letterPos=0,drawMouse=false, imageReady=true, loadedExploreImage=null;
 let lastHoverPoint=null, artPixels=null,artRequest=0,renderQueued=false;
@@ -155,20 +155,21 @@ const colorAt=(x,y)=>{const n=((Math.min(W-1,Math.max(0,y|0))*W)+Math.min(W-1,Ma
 function circle(ctx,x,y,r,color){ctx.beginPath();ctx.arc(x,y,r,0,2*Math.PI);ctx.fillStyle=color;ctx.fill()}
 async function loadSource(id,custom,statusId,ctx=sc){
  const item=sources.find(a=>a.id===id)||sources[0];
- if(custom){ctx.clearRect(0,0,W,W);coverDraw(custom,ctx,item.type);if(ctx===sc)loadedExploreImage=custom;return true}
+ if(custom){ctx.clearRect(0,0,ctx.canvas?.width||W,ctx.canvas?.height||W);coverDraw(custom,ctx,item.type);if(ctx===sc)loadedExploreImage=custom;return true}
  return await new Promise(resolve=>{
   const im=new Image;im.crossOrigin="anonymous";
-  im.onload=()=>{try{ctx.clearRect(0,0,W,W);coverDraw(im,ctx,item.type);ctx.getImageData(0,0,1,1);if(ctx===sc)loadedExploreImage=im;resolve(true)}
-  catch{ctx.clearRect(0,0,W,W);el(statusId).textContent="Görselin telif sunucusu Canvas erişimine izin vermedi. Görseli indirip kendi görselin olarak yükleyebilirsin.";resolve(false)}};
-  im.onerror=()=>{ctx.clearRect(0,0,W,W);el(statusId).textContent="Kaynak görüntü yüklenemedi. Görseli kaynak bağlantısından indirip kendi görselin olarak yükleyebilirsin.";resolve(false)};
+  im.onload=()=>{try{ctx.clearRect(0,0,ctx.canvas?.width||W,ctx.canvas?.height||W);coverDraw(im,ctx,item.type);ctx.getImageData(0,0,1,1);if(ctx===sc)loadedExploreImage=im;resolve(true)}
+  catch{ctx.clearRect(0,0,ctx.canvas?.width||W,ctx.canvas?.height||W);el(statusId).textContent="Görselin telif sunucusu Canvas erişimine izin vermedi. Görseli indirip kendi görselin olarak yükleyebilirsin.";resolve(false)}};
+  im.onerror=()=>{ctx.clearRect(0,0,ctx.canvas?.width||W,ctx.canvas?.height||W);el(statusId).textContent="Kaynak görüntü yüklenemedi. Görseli kaynak bağlantısından indirip kendi görselin olarak yükleyebilirsin.";resolve(false)};
   im.src=item.url;
  })
 }
 function coverDraw(img,ctx=sc,type="portrait"){
  const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
- const z=type==="flag"?Math.min(W/w,W/h):Math.max(W/w,W/h);
- ctx.fillStyle="#080b0d";ctx.fillRect(0,0,W,W);
- ctx.drawImage(img,(W-w*z)/2,(W-h*z)/2,w*z,h*z)
+ const cw=ctx.canvas?.width||(ctx===asc?AW:W),ch=ctx.canvas?.height||(ctx===asc?AH:W);
+ const z=type==="flag"?Math.min(cw/w,ch/h):Math.max(cw/w,ch/h);
+ ctx.fillStyle="#080b0d";ctx.fillRect(0,0,cw,ch);
+ ctx.drawImage(img,(cw-w*z)/2,(ch-h*z)/2,w*z,h*z)
 }
 function sourceLink(id,custom,element){
  const item=sources.find(a=>a.id===id)||sources[0];
@@ -178,7 +179,7 @@ function sourceLink(id,custom,element){
 }
 
 function customFile(file,cb){if(!file||!file.type.startsWith("image/")||file.size>12e6){alert("En fazla 12 MB boyutunda resim seç.");return}const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);cb(im)};im.onerror=()=>{URL.revokeObjectURL(u);alert("Görsel açılamadı.")};im.src=u}
-function pos(ev,canvas){const r=canvas.getBoundingClientRect();return {x:(ev.clientX-r.left)*W/r.width,y:(ev.clientY-r.top)*W/r.height}}
+function pos(ev,canvas){const r=canvas.getBoundingClientRect();return {x:(ev.clientX-r.left)*canvas.width/r.width,y:(ev.clientY-r.top)*canvas.height/r.height}}
 function paintExplore(){
  const done=!!sourcePixels&&nodes.length>0&&nodes.every(n=>n.r<=6);
  ec.fillStyle="#0c171a";ec.fillRect(0,0,W,W);
@@ -247,124 +248,151 @@ el("exploreSave").onclick=()=>{
  cx.drawImage(im,(1400-w*z)/2,(1400-h*z)/2,w*z,h*z);
  download(out,"yazgi-kesif-HD");
 };
-const colorMap={ivory:[242,235,218],turquoise:[128,239,221],gold:[242,206,135],red:[242,107,111]};
-function clearArt(){ac.fillStyle="#07090c";ac.fillRect(0,0,W,W)}
-function colorFor(alpha){const c=colorMap[el("artPalette").value]||colorMap.ivory;return "rgba("+c.join(",")+","+Math.max(.27,Math.min(1,alpha)).toFixed(3)+")"}
-// Unlike the first prototype, the letter silhouette is taken from the
-// ACTUAL photograph's pixel contrast, never from a hard-coded head outline.
-let artMask=null;
+const colorMap={ivory:[245,240,231],turquoise:[145,235,222],gold:[245,208,150],red:[245,126,126]};
+const glyphCanvas=document.createElement("canvas"), maskCanvas=document.createElement("canvas");
+glyphCanvas.width=maskCanvas.width=AW;glyphCanvas.height=maskCanvas.height=AH;
+const gc=glyphCanvas.getContext("2d"),mc=maskCanvas.getContext("2d");
+let artMask=null,artMaskReady=false,artMaskMode="portrait";
+function clearArt(){ac.fillStyle="#050507";ac.fillRect(0,0,AW,AH)}
+function colorFor(alpha=1){const c=colorMap[el("artPalette").value]||colorMap.ivory;return "rgba("+c.join(",")+","+Math.max(.06,Math.min(1,alpha)).toFixed(3)+")"}
 function buildArtMask(pixels,isFlag){
- const mask=new Float32Array(W*W);
- if(isFlag){for(let y=150;y<450;y++)for(let x=16;x<W-16;x++)mask[y*W+x]=1;return mask}
- const samplePoints=[[7,7],[W-8,7],[7,70],[W-8,70],[7,W-8],[W-8,W-8]];
- let r=0,g=0,b=0;
- for(const [x,y] of samplePoints){const p=(y*W+x)*4;r+=pixels[p];g+=pixels[p+1];b+=pixels[p+2]}
- r/=samplePoints.length;g/=samplePoints.length;b/=samplePoints.length;
- const gray=(.2126*r+.7152*g+.0722*b);
- const colorDifference=(pr,pg,pb)=>Math.max(
-  Math.abs(.2126*pr+.7152*pg+.0722*pb-gray)*1.6,
-  (Math.abs(pr-r)+Math.abs(pg-g)+Math.abs(pb-b))/3*1.15
- );
- for(let y=12;y<W-12;y++)for(let x=12;x<W-12;x++){
-  const k=(y*W+x)*4;
-  const contrast=colorDifference(pixels[k],pixels[k+1],pixels[k+2]);
-  mask[y*W+x]=Math.max(0,Math.min(1,(contrast-11)/110));
+ const data=pixels.data||pixels;
+ const mask=new Uint8ClampedArray(AW*AH), luma=(i)=>data[i]*.2126+data[i+1]*.7152+data[i+2]*.0722;
+ // Estimate background from the corners and upper outer bands.
+ let bg=0,samples=0;
+ for(let y=18;y<Math.floor(AH*.20);y+=18)
+   for(const x of [18,35,AW-36,AW-19]){bg+=luma((y*AW+x)*4);samples++}
+ bg/=Math.max(1,samples);
+ let center=0,num=0;
+ for(let y=Math.floor(AH*.32);y<Math.floor(AH*.65);y+=30)
+   for(let x=Math.floor(AW*.35);x<Math.floor(AW*.65);x+=25){center+=luma((y*AW+x)*4);num++}
+ center/=Math.max(1,num);
+ const direction=center>=bg?1:-1;
+ const out=mc.createImageData(AW,AH);
+ for(let y=0;y<AH;y++)for(let x=0;x<AW;x++){
+  const p=y*AW+x,k=p*4;
+  let a;
+  if(isFlag){a=x>8&&x<AW-8&&y>8&&y<AH-8?255:0}
+  else{
+   const value=direction*(luma(k)-bg);
+   // Dark backdrop disappears; lit face, jacket and facial gradients remain.
+   a=Math.round(Math.max(0,Math.min(1,(value-9)/62))*255);
+   if(x<12||x>AW-13||y<10||y>AH-10)a=0;
+  }
+  mask[p]=a;out.data[k]=out.data[k+1]=out.data[k+2]=255;out.data[k+3]=a;
  }
+ mc.clearRect(0,0,AW,AH);mc.putImageData(out,0,0);
+ artMask=mask;artMaskReady=true;artMaskMode=isFlag?"flag":"portrait";
  return mask;
 }
-function artSpans(y,isFlag){
- if(isFlag)return y>155&&y<446?[[19,580]]:[];
- const runs=[];let first=-1,last=-1,gap=0;
- for(let x=20;x<W-19;x+=2){
+function artSpans(y){
+ if(!artMaskReady)return [];
+ if(artMaskMode==="flag")return [[26,AW-26]];
+ const runs=[];let open=-1,last=-1,gap=0;
+ for(let x=18;x<AW-18;x+=2){
   let strength=0;
-  for(let dy=-2;dy<=2;dy+=2)strength+=artMask[(Math.max(0,Math.min(W-1,Math.round(y+dy))))*W+x];
-  const present=(strength/3)>.16;
-  if(present){if(first<0)first=x;last=x;gap=0}
-  else if(first>=0&&++gap>10){if(last-first>43)runs.push([first,last]);first=-1;last=-1;gap=0}
+  for(const dy of [-4,0,4]){
+   const py=Math.max(0,Math.min(AH-1,Math.round(y+dy)));
+   strength+=artMask[py*AW+x];
+  }
+  const active=strength/3>45;
+  if(active){if(open<0)open=x;last=x;gap=0}
+  else if(open>=0&&++gap>9){
+   if(last-open>44)runs.push([open,last]);
+   open=-1;last=-1;gap=0;
+  }
  }
- if(first>=0&&last-first>43)runs.push([first,last]);
+ if(open>=0&&last-open>44)runs.push([open,last]);
  return runs;
 }
-function artStrength(x,y){
- if(!artMask)return 0;
- let sum=0,n=0;
- for(const dy of [-2,0,2])for(const dx of [-2,0,2]){
-  const xi=Math.max(0,Math.min(W-1,Math.round(x+dx))),yi=Math.max(0,Math.min(W-1,Math.round(y+dy)));
-  sum+=artMask[yi*W+xi];n++;
- }
- return sum/n;
-}
 function renderTextPortrait(){
- if(!artPixels||!artMask)return;
- clearArt();
- const text=el("artText").value.replace(/\r/g,"").replace(/\s+/g," ").trim();
- const chars=Array.from(text),total=chars.length;
- const item=sources.find(x=>x.id===el("artSelect").value);
- const isFlag=!customArt&&item?.type==="flag";
- const font=Number(el("density").value),lineHeight=font*1.23;
- ac.font=font+"px Georgia, 'Times New Roman', serif";ac.textBaseline="middle";ac.textAlign="left";
- let cursor=0,rendered=0,rows=0;
- for(let y=25;y<575&&cursor<total;y+=lineHeight){
-  const spans=artSpans(y,isFlag);
-  for(const [left,right] of spans){
-   if(cursor>=total)break;
-   let x=left+2, max=right-2, began=false;
-   while(cursor<total){
+ if(!artMaskReady)return;
+ clearArt();gc.clearRect(0,0,AW,AH);
+ const text=el("artText").value.replace(/\r/g,"").replace(/[ \t]+/g," ").replace(/\n+/g," \n ").trim();
+ const chars=Array.from(text),total=chars.length,repeat=el("artRepeat").checked;
+ const font=Number(el("density").value);
+ gc.textBaseline="middle";gc.textAlign="left";gc.font=font+"px Georgia, 'Times New Roman',serif";
+ gc.fillStyle=colorFor(1);
+ let cursor=0,rendered=0,rows=0,consumed=0;
+ // A short phrase should not magically reveal the entire figure:
+ // repeated text is progressively unlocked as the player types.
+ const revealRatio=repeat?Math.min(1,total/1650):1;
+ const maxY=24+(AH-46)*revealRatio;
+ outer:for(let y=22;y<maxY;y+=font*1.18){
+  for(const [left,right] of artSpans(y)){
+   if(!total)break outer;
+   let x=left+3,began=false;
+   while(x<right-6){
+    if(cursor>=total){
+     if(repeat){cursor=0;if(!began&&rendered>0)x+=font*.45}
+     else break outer;
+    }
     const ch=chars[cursor];
-    if(ch===" "&&!began){cursor++;continue}
-    const width=ac.measureText(ch).width;
-    if(began&&ch!==" "&&(cursor===0||chars[cursor-1]===" ")){
-     let end=cursor,word="";
-     while(end<total&&chars[end]!==" "&&word.length<100){word+=chars[end];end++}
-     if(x+ac.measureText(word).width>max)break;
+    if(ch===undefined)break outer;
+    if(ch==="\n"){cursor++;break}
+    const tokenIsBlank=ch===" ";
+    if(tokenIsBlank){
+     cursor++;
+     if(began)x+=Math.max(2,gc.measureText(" ").width);
+     continue;
     }
-    if(x+width>max)break;
-    if(ch!==" "){
-     const strength=artStrength(x+width/2,y);
-     ac.fillStyle=colorFor(Math.min(1,.23+strength*.83));
-     ac.fillText(ch,x,y);
-     rendered++;began=true;
+    let wordEnd=cursor;
+    while(wordEnd<total&&!/[\s]/.test(chars[wordEnd]))wordEnd++;
+    const word=chars.slice(cursor,wordEnd).join("");
+    const wordWidth=gc.measureText(word).width;
+    if(wordWidth<=right-x-4){
+     gc.fillText(word,x,y);x+=wordWidth;rendered+=Array.from(word).length;cursor=wordEnd;began=true;consumed++;
+    }else if(began)break;
+    else{
+     // Really long words wrap character by character rather than stall.
+     gc.fillText(ch,x,y);x+=gc.measureText(ch).width;cursor++;rendered++;began=true;
     }
-    x+=width;cursor++;
+    if(consumed>18000)break outer;
    }
    if(began)rows++;
   }
  }
- ac.textAlign="center";
- for(const stroke of brushStrokes){
-  ac.font="16px Georgia, serif";ac.fillStyle=colorFor(.95);
-  ac.fillText(stroke.glyph,stroke.x,stroke.y)
- }
+ gc.globalCompositeOperation="destination-in";
+ gc.drawImage(maskCanvas,0,0);
+ gc.globalCompositeOperation="source-over";
+ ac.drawImage(glyphCanvas,0,0);
+ ac.textBaseline="middle";ac.textAlign="center";ac.font="16px Georgia,serif";
+ for(const stroke of brushStrokes){ac.fillStyle=colorFor(.9);ac.fillText(stroke.glyph,stroke.x,stroke.y)}
  ac.textAlign="left";
- el("artProgress").value=total?Math.min(100,Math.round(cursor/total*100)):0;
- if(!total){el("artStatus").textContent="Yazdığın harfler görselin gerçek çizgileri üzerinde anında belirecek.";return}
- if(!rendered){el("artStatus").textContent="Bu fotoğrafın zemin/özne ayrımı yetersiz. Daha kontrastlı bir portre seç.";return}
- el("artStatus").textContent=rendered.toLocaleString("tr-TR")+" harf · "+rows+" satır · "+(cursor<total?"Metnin devamı sığmadı; harf boyutunu küçült.":"Gerçek görselin hatlarıyla oluşturuldu.");
+ el("artProgress").value=total?Math.min(100,Math.round((repeat?revealRatio:cursor/total)*100)):0;
+ if(!total)el("artStatus").textContent="Yazmaya başla: gerçek portre, kelimelerle satır satır oluşacak.";
+ else if(!rendered)el("artStatus").textContent="Görsel ayrıştırılamadı. Siyah fonlu bir portre veya farklı bir fotoğraf deneyebilirsin.";
+ else el("artStatus").textContent=rendered.toLocaleString("tr-TR")+" görünür harf · "+rows+" satır · "+(repeat?"Yazdıkça portre belirginleşiyor.":cursor<total?"Metin sığmadı, harf boyutunu küçült.":"Fotoğrafın hatlarını takip ediyor.");
 }
 function requestArtRender(){
- if(renderQueued)return;
- renderQueued=true;
+ if(renderQueued)return;renderQueued=true;
  requestAnimationFrame(()=>{renderQueued=false;renderTextPortrait()});
 }
 async function prepareArt(){
- const token=++artRequest;artPixels=null;artMask=null;clearArt();
- el("artStatus").textContent="Portre hazırlanıyor…";
+ const token=++artRequest;artPixels=null;artMaskReady=false;clearArt();
+ el("artStatus").textContent="Fotoğraf ve yazı maskesi hazırlanıyor…";
  const ready=await loadSource(el("artSelect").value,customArt,"artStatus",asc);
  if(token!==artRequest)return;
  sourceLink(el("artSelect").value,customArt,"artCredit");
  if(!ready)return;
- artPixels=asc.getImageData(0,0,W,W).data;
+ const image=asc.getImageData(0,0,AW,AH);
+ artPixels=image.data;
  const flag=!customArt&&sources.find(x=>x.id===el("artSelect").value)?.type==="flag";
- artMask=buildArtMask(artPixels,flag);requestArtRender();
+ buildArtMask(image,flag);requestArtRender();
 }
 el("artText").addEventListener("input",requestArtRender);
 el("artText").addEventListener("compositionend",requestArtRender);
-el("artLoadAnthem").onclick=()=>{el("artText").value=el("anthem").textContent.trim();requestArtRender()};
-el("artGenerate").onclick=()=>{if(!artPixels)prepareArt();else requestArtRender()};
+el("artLoadAnthem").onclick=()=>{
+ el("artText").value=el("anthem").textContent.trim();
+ el("artRepeat").checked=true;
+ requestArtRender()
+};
+el("artGenerate").onclick=()=>artMaskReady?requestArtRender():prepareArt();
 el("artSelect").onchange=()=>{customArt=null;el("artUpload").value="";brushStrokes.length=0;prepareArt()};
 el("artUpload").onchange=e=>customFile(e.target.files[0],im=>{customArt=im;brushStrokes.length=0;prepareArt()});
 el("density").oninput=()=>{el("densityValue").textContent=el("density").value;requestArtRender()};
 el("artPalette").onchange=requestArtRender;
+el("artRepeat").onchange=requestArtRender;
 el("artClear").onclick=()=>{el("artText").value="";brushStrokes.length=0;letterPos=0;requestArtRender()};
 el("artSave").onclick=()=>download(art,"yazgi-harf-portresi");
 let lastBrush=null;
@@ -380,7 +408,6 @@ art.addEventListener("pointerdown",ev=>{if(!el("brushMode").checked)return;drawM
 art.addEventListener("pointermove",addLetter);
 art.addEventListener("pointerup",()=>{drawMouse=false;lastBrush=null});
 art.addEventListener("pointercancel",()=>{drawMouse=false;lastBrush=null});
-
 function getGallery(){try{return JSON.parse(localStorage.getItem(galleryKey)||"[]")}catch{return []}}
 function drawGallery(){const list=getGallery(),root=el("galleryItems");root.replaceChildren();if(!list.length){const p=document.createElement("p");p.textContent="Henüz kayıtlı eserin yok.";root.appendChild(p)}for(const entry of list){const figure=document.createElement("figure"),img=new Image(),caption=document.createElement("figcaption");img.src=entry.image;img.alt="Yazıyla oluşturulan portre";caption.textContent=entry.label;figure.append(img,caption);root.appendChild(figure)}}
 el("artGallery").onclick=()=>{try{const thumb=document.createElement("canvas");thumb.width=thumb.height=260;thumb.getContext("2d").drawImage(art,0,0,260,260);const all=getGallery();all.unshift({image:thumb.toDataURL("image/jpeg",.65),label:new Date().toLocaleString("tr-TR")});localStorage.setItem(galleryKey,JSON.stringify(all.slice(0,8)));el("artStatus").textContent="Çalışma galerine kaydedildi."}catch{el("artStatus").textContent="Galeri kaydedilemedi. PNG olarak indirebilirsin."}};
