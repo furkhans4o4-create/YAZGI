@@ -23,7 +23,7 @@ h1{font:clamp(30px,4vw,47px) Georgia,serif;margin:0}h2{font:26px Georgia,serif;m
 select,textarea,input[type="text"]{background:#0c1c20;border:1px solid var(--line);border-radius:9px;padding:10px;color:var(--text);width:100%}
 textarea{resize:vertical;min-height:172px}input[type=range]{width:100%;accent-color:var(--accent)}
 .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:17px}.small{font-size:12px;color:var(--muted)}
-canvas{display:block;width:100%;height:auto;aspect-ratio:1;background:#101b20;border:1px solid var(--line);border-radius:12px;touch-action:none;cursor:crosshair;max-width:680px;margin:auto}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1;background:#101b20;border:1px solid var(--line);border-radius:12px;touch-action:none;cursor:crosshair;max-width:680px;margin:auto}.explore-stage{position:relative;max-width:680px;margin:auto}.explore-stage #exploreHD{display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#090c0d;border:1px solid var(--line);border-radius:12px}.explore-stage #exploreHD.show{display:block}.explore-stage #exploreHD.flag{object-fit:contain}.sourceError{color:#f2b18c}
 progress{display:block;margin:15px 0 0;width:100%;height:9px;accent-color:var(--accent)}
 .status{min-height:24px;font-size:13px;color:var(--gold);margin-top:10px}
 .memorial{max-width:760px;text-align:center;margin:35px auto;padding:45px 24px;border:1px solid #96785180;border-radius:20px;background:radial-gradient(ellipse at 50% 10%,#393127 0,#172628 75%)}.flame{font-size:75px;color:var(--gold)}.memorial p{line-height:1.9}
@@ -51,9 +51,9 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <label class="control"><span>Kendi görselini kullan (bilgisayarından)</span><input id="exploreUpload" type="file" accept="image/*"></label>
 <div class="actions"><button class="btn primary" id="exploreStart">Yeni keşif</button><button class="btn" id="exploreAuto">Otomatik tamamla</button><button class="btn" id="exploreSave">PNG kaydet</button></div>
 <progress id="exploreProgress" value="0" max="100"></progress>
-<div class="status" id="exploreStatus" role="status"></div>
+<div class="status" id="exploreStatus" role="status"></div><a id="exploreCredit" class="small" href="#" target="_blank" rel="noopener noreferrer">Görsel kaynağı ↗</a>
 <p class="small">Tarihî portreler Wikimedia Commons üzerinden yüklenir. Fotoğraf yüklenemiyorsa kendi görselini seçebilirsin.</p>
-</div><div class="panel"><canvas id="exploreCanvas" width="600" height="600" aria-label="Fareyi gezdirerek veya parmağınla sürükleyerek portreyi ortaya çıkar"></canvas></div></div>
+</div><div class="panel"><div class="explore-stage"><canvas id="exploreCanvas" width="600" height="600" aria-label="Fareyi gezdirerek veya parmağınla sürükleyerek portreyi ortaya çıkar"></canvas><img id="exploreHD" alt="Tamamlanan portre veya bayrağın net orijinal görüntüsü"></div><div class="status" id="exploreComplete" aria-live="polite"></div></div></div>
 </section>
 <section class="view" id="calligram">
 <div class="grid"><div class="panel">
@@ -65,7 +65,7 @@ footer{border-top:1px solid var(--line);padding:22px;text-align:center;color:var
 <label class="control"><span>Harf rengi</span><select id="artPalette"><option value="ivory">Fildişi</option><option value="turquoise">Turkuaz</option><option value="gold">Altın</option><option value="red">Kırmızı</option></select></label>
 <label class="control"><input type="checkbox" id="brushMode"> Harflerle serbest çizim</label>
 <div class="actions"><button class="btn primary" id="artGenerate">Portreyi yenile</button><button class="btn" id="artSave">PNG kaydet</button><button class="btn" id="artGallery">Galeriye ekle</button><button class="btn" id="artClear">Temizle</button></div>
-<progress id="artProgress" value="0" max="100" aria-label="Portreye yazılan metin oranı"></progress><div class="status" id="artStatus" role="status"></div>
+<progress id="artProgress" value="0" max="100" aria-label="Portreye yazılan metin oranı"></progress><div class="status" id="artStatus" role="status"></div><a id="artCredit" class="small" href="#" target="_blank" rel="noopener noreferrer">Portre kaynağı ↗</a>
 </div><div class="panel"><canvas id="artCanvas" width="600" height="600" aria-label="Yazılarla oluşturulan eser"></canvas><p class="small">Serbest çizim seçiliyken parmağınla veya farenle sürükleyerek harfler bırakabilirsin.</p></div></div>
 </section>
 <section class="view" id="memorial"><div class="memorial">
@@ -132,22 +132,23 @@ Hakkıdır, Hakk'a tapan milletimin istiklâl!</script>
 "use strict";
 const el=id=>document.getElementById(id), W=600, galleryKey="yazgi_culture_gallery_v1";
 const sources=[
-{id:"ataturk",name:"Mustafa Kemal Atatürk",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg/500px-Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg"},
-{id:"fatih",name:"Fatih Sultan Mehmet",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg/500px-Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg"},
-{id:"yavuz",name:"Yavuz Sultan Selim",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Selim_I_by_John_Young.jpg/500px-Selim_I_by_John_Young.jpg"},
-{id:"ismail",name:"Şah İsmail",type:"portrait",url:"https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/Shah_Ismail_I_portrait%2C_Chehel_Sotoun%2C_painted_circa_1647.jpg/500px-Shah_Ismail_I_portrait%2C_Chehel_Sotoun%2C_painted_circa_1647.jpg"},
-{id:"tr",name:"Türkiye bayrağı",type:"flag",colors:["#dc2035"],flag:"tr"},
-{id:"az",name:"Azerbaycan bayrağı",type:"flag",colors:["#00a8dc","#e33842","#00a65d"],flag:"az"},
-{id:"kz",name:"Kazakistan bayrağı",type:"flag",colors:["#26a9c2"],flag:"kz"},
-{id:"kg",name:"Kırgızistan bayrağı",type:"flag",colors:["#dc293d"],flag:"kg"},
-{id:"uz",name:"Özbekistan bayrağı",type:"flag",colors:["#0099b5","#ffffff","#1baa76"],flag:"uz"}];
+{id:"ataturk",name:"Mustafa Kemal Atatürk · 1930 fotoğrafı",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5e/Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg/960px-Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg",credit:"https://commons.wikimedia.org/wiki/File:Portrait_photograph_of_Mustafa_Kemal_in_military_uniform_1930.jpg"},
+{id:"fatih",name:"Fatih Sultan Mehmet · Bellini, 1480",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg/960px-Bellini%2C_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery%2C_London.jpg",credit:"https://commons.wikimedia.org/wiki/File:Bellini,_Gentile_-_Portrait_of_Mehmed_II_-_National_Gallery,_London.jpg"},
+{id:"yavuz",name:"Yavuz Sultan Selim · tarihî gravür",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/9/9d/Selim_I_by_John_Young.jpg/960px-Selim_I_by_John_Young.jpg",credit:"https://commons.wikimedia.org/wiki/File:Selim_I_by_John_Young.jpg"},
+{id:"ismail",name:"Şah İsmail · Behzad portre detayı",type:"portrait",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d2/Shah_Ismail_I_Safavid%2C_Behzad_%28portrait_detail%29.jpg/500px-Shah_Ismail_I_Safavid%2C_Behzad_%28portrait_detail%29.jpg",credit:"https://commons.wikimedia.org/wiki/File:Shah_Ismail_I_Safavid,_Behzad_(portrait_detail).jpg"},
+{id:"tr",name:"Türkiye bayrağı",type:"flag",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/960px-Flag_of_Turkey.svg.png",credit:"https://commons.wikimedia.org/wiki/File:Flag_of_Turkey.svg"},
+{id:"az",name:"Azerbaycan bayrağı",type:"flag",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Flag_of_Azerbaijan.svg/960px-Flag_of_Azerbaijan.svg.png",credit:"https://commons.wikimedia.org/wiki/File:Flag_of_Azerbaijan.svg"},
+{id:"kz",name:"Kazakistan bayrağı",type:"flag",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d3/Flag_of_Kazakhstan.svg/960px-Flag_of_Kazakhstan.svg.png",credit:"https://commons.wikimedia.org/wiki/File:Flag_of_Kazakhstan.svg"},
+{id:"kg",name:"Kırgızistan bayrağı (güncel)",type:"flag",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Flag_of_Kyrgyzstan.svg/960px-Flag_of_Kyrgyzstan.svg.png",credit:"https://commons.wikimedia.org/wiki/File:Flag_of_Kyrgyzstan.svg"},
+{id:"uz",name:"Özbekistan bayrağı",type:"flag",url:"https://thumb.wikimedia.org/wikipedia/commons/thumb/8/84/Flag_of_Uzbekistan.svg/960px-Flag_of_Uzbekistan.svg.png",credit:"https://commons.wikimedia.org/wiki/File:Flag_of_Uzbekistan.svg"}
+];
 for(const target of ["exploreSelect","artSelect"]) for(const source of sources){const option=document.createElement("option");option.value=source.id;option.textContent=source.name;el(target).appendChild(option)}
 el("artText").value="";
 const explore=el("exploreCanvas"),ec=explore.getContext("2d"), art=el("artCanvas"),ac=art.getContext("2d"), sourceCanvas=document.createElement("canvas");
 sourceCanvas.width=sourceCanvas.height=W;const sc=sourceCanvas.getContext("2d",{willReadFrequently:true});
 const artSourceCanvas=document.createElement("canvas");artSourceCanvas.width=artSourceCanvas.height=W;
 const asc=artSourceCanvas.getContext("2d",{willReadFrequently:true});
-let sourcePixels=null, nodes=[], splits=0, autoId=null, customExplore=null,customArt=null,letterPos=0,drawMouse=false;
+let sourcePixels=null, nodes=[], splits=0, autoId=null, customExplore=null,customArt=null,letterPos=0,drawMouse=false, imageReady=true;
 let lastHoverPoint=null, artPixels=null,artRequest=0,renderQueued=false;
 const brushStrokes=[];
 const colorAt=(x,y)=>{const n=((Math.min(W-1,Math.max(0,y|0))*W)+Math.min(W-1,Math.max(0,x|0)))*4,d=sourcePixels.data;return "rgb("+d[n]+","+d[n+1]+","+d[n+2]+")"};
@@ -164,20 +165,41 @@ if(item.flag==="uz"){x.fillStyle="#cc3445";x.fillRect(0,198,W,6);x.fillRect(0,39
 function fallback(name,ctx=sc){ctx.fillStyle="#17292e";ctx.fillRect(0,0,W,W);let g=ctx.createRadialGradient(300,200,20,300,295,370);g.addColorStop(0,"#bbab8b");g.addColorStop(1,"#243d40");ctx.fillStyle=g;ctx.fillRect(0,0,W,W);ctx.fillStyle="#172329";ctx.beginPath();ctx.ellipse(300,550,255,190,0,0,2*Math.PI);ctx.fill();ctx.fillStyle="#ba9a76";ctx.beginPath();ctx.ellipse(300,270,115,150,0,0,2*Math.PI);ctx.fill();ctx.fillStyle="#27353b";ctx.beginPath();ctx.ellipse(300,180,121,78,0,Math.PI,Math.PI*2);ctx.fill();ctx.textAlign="center";ctx.fillStyle="#eadab8";ctx.font="21px Georgia";ctx.fillText(name,300,560);ctx.textAlign="start"}
 async function loadSource(id,custom,statusId,ctx=sc){
  const item=sources.find(a=>a.id===id)||sources[0];
- if(custom){ctx.clearRect(0,0,W,W);coverDraw(custom,ctx);return true}
- if(item.type==="flag"){makeFlag(item,ctx);return true}
+ if(custom){ctx.clearRect(0,0,W,W);coverDraw(custom,ctx,item.type);return true}
  return await new Promise(resolve=>{
   const im=new Image;im.crossOrigin="anonymous";
-  im.onload=()=>{try{ctx.clearRect(0,0,W,W);coverDraw(im,ctx);ctx.getImageData(0,0,1,1);resolve(true)}
-   catch{fallback(item.name,ctx);el(statusId).textContent="Görsele erişilemedi; temsili çizim kullanılıyor. Kendi görselini de yükleyebilirsin.";resolve(false)}};
-  im.onerror=()=>{fallback(item.name,ctx);el(statusId).textContent="Fotoğraf yüklenemedi; temsili çizim kullanılıyor. Kendi görselini de yükleyebilirsin.";resolve(false)};
+  im.onload=()=>{try{ctx.clearRect(0,0,W,W);coverDraw(im,ctx,item.type);ctx.getImageData(0,0,1,1);resolve(true)}
+  catch{ctx.clearRect(0,0,W,W);el(statusId).textContent="Görselin telif sunucusu Canvas erişimine izin vermedi. Görseli indirip kendi görselin olarak yükleyebilirsin.";resolve(false)}};
+  im.onerror=()=>{ctx.clearRect(0,0,W,W);el(statusId).textContent="Kaynak görüntü yüklenemedi. Görseli kaynak bağlantısından indirip kendi görselin olarak yükleyebilirsin.";resolve(false)};
   im.src=item.url;
- });
+ })
 }
-function coverDraw(img,ctx=sc){const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,z=Math.max(W/w,W/h);ctx.drawImage(img,(W-w*z)/2,(W-h*z)/2,w*z,h*z)}
+function coverDraw(img,ctx=sc,type="portrait"){
+ const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+ const z=type==="flag"?Math.min(W/w,W/h):Math.max(W/w,W/h);
+ ctx.fillStyle="#080b0d";ctx.fillRect(0,0,W,W);
+ ctx.drawImage(img,(W-w*z)/2,(W-h*z)/2,w*z,h*z)
+}
+function sourceLink(id,custom,element){
+ const item=sources.find(a=>a.id===id)||sources[0];
+ const link=el(element);
+ link.href=custom?"#":item.credit;link.textContent=custom?"Kendi yüklediğin görsel":"Görsel ve lisans kaynağını aç ↗";
+ link.style.pointerEvents=custom?"none":"auto";
+}
+
 function customFile(file,cb){if(!file||!file.type.startsWith("image/")||file.size>12e6){alert("En fazla 12 MB boyutunda resim seç.");return}const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{URL.revokeObjectURL(u);cb(im)};im.onerror=()=>{URL.revokeObjectURL(u);alert("Görsel açılamadı.")};im.src=u}
 function pos(ev,canvas){const r=canvas.getBoundingClientRect();return {x:(ev.clientX-r.left)*W/r.width,y:(ev.clientY-r.top)*W/r.height}}
-function paintExplore(){ec.fillStyle="#0c171a";ec.fillRect(0,0,W,W);for(const n of nodes)circle(ec,n.x,n.y,n.r,colorAt(n.x,n.y));const max=1360;const value=Math.min(100,Math.round(splits/max*100));el("exploreProgress").value=value;el("exploreStatus").textContent=nodes.every(n=>n.r<=6)?"Keşif tamamlandı!":("Bölünen daire: "+splits)}
+function paintExplore(){
+ const done=!!sourcePixels&&nodes.length>0&&nodes.every(n=>n.r<=6);
+ ec.fillStyle="#0c171a";ec.fillRect(0,0,W,W);
+ if(done)ec.drawImage(sourceCanvas,0,0,W,W);
+ else for(const n of nodes)circle(ec,n.x,n.y,n.r,colorAt(n.x,n.y));
+ const max=1360;
+ el("exploreProgress").value=done?100:Math.min(99,Math.round(splits/max*100));
+ el("exploreStatus").textContent=done?"Keşif tamamlandı: orijinal, net görsel açıldı.":"Bölünen daire: "+splits;
+ el("exploreHD").classList.toggle("show",done);
+ el("exploreComplete").textContent=done?"✓ Portre tamamen açıldı. Görüntüyü büyütebilir veya PNG kaydedebilirsin.":"";
+}
 function splitOne(i){const n=nodes[i];if(!n||n.r<=6)return false;nodes.splice(i,1);const r=n.r/2;for(const dx of [-r,r])for(const dy of [-r,r])nodes.push({x:n.x+dx,y:n.y+dy,r});splits++;return true}
 function revealCircleAt(p){
  let best=-1,largest=0;
@@ -189,7 +211,7 @@ function revealCircleAt(p){
  return best>=0&&splitOne(best);
 }
 function hoverReveal(ev){
- if(!sourcePixels)return;
+ if(!sourcePixels||el("exploreHD").classList.contains("show"))return;
  const p=pos(ev,explore),prior=lastHoverPoint||p;
  const distance=Math.hypot(p.x-prior.x,p.y-prior.y);
  const steps=Math.max(1,Math.min(40,Math.ceil(distance/13)));
@@ -206,9 +228,12 @@ let exploreRequest=0;
 async function newExplore(){
  const token=++exploreRequest;stopAuto();lastHoverPoint=null;sourcePixels=null;
  el("exploreStatus").textContent="Görsel hazırlanıyor…";
- await loadSource(el("exploreSelect").value,customExplore,"exploreStatus");
+ imageReady=await loadSource(el("exploreSelect").value,customExplore,"exploreStatus");
  if(token!==exploreRequest)return;
- sourcePixels=sc.getImageData(0,0,W,W);nodes=[];splits=0;
+ if(!imageReady){sourcePixels=null;nodes=[];el("exploreProgress").value=0;ec.clearRect(0,0,W,W);sourceLink(el("exploreSelect").value,customExplore,"exploreCredit");return;}
+ sourcePixels=sc.getImageData(0,0,W,W);nodes=[];splits=0;sourceLink(el("exploreSelect").value,customExplore,"exploreCredit");
+ const item=sources.find(a=>a.id===el("exploreSelect").value)||sources[0];const hd=el("exploreHD");hd.classList.remove("show","flag");if(item.type==="flag"&&!customExplore)hd.classList.add("flag");
+ hd.src=customExplore?sourceCanvas.toDataURL("image/png"):item.url;
  for(let y=75;y<W;y+=150)for(let x=75;x<W;x+=150)nodes.push({x,y,r:75});
  paintExplore();
 }
@@ -219,7 +244,7 @@ explore.addEventListener("pointerleave",()=>{lastHoverPoint=null});
 el("exploreStart").onclick=newExplore;
 el("exploreSelect").onchange=()=>{customExplore=null;el("exploreUpload").value="";newExplore()};
 el("exploreUpload").onchange=e=>customFile(e.target.files[0],im=>{customExplore=im;newExplore()});
-el("exploreAuto").onclick=()=>{if(autoId){stopAuto();return}let frames=0;function step(){const indices=[];for(let i=0;i<nodes.length;i++)if(nodes[i].r>6)indices.push(i);if(!indices.length){autoId=null;paintExplore();return}for(let i=0;i<8&&indices.length;i++){splitOne(indices[Math.floor(Math.random()*indices.length)]);indices.length=0;for(let j=0;j<nodes.length;j++)if(nodes[j].r>6)indices.push(j)}paintExplore();if(++frames<2000)autoId=requestAnimationFrame(step)}autoId=requestAnimationFrame(step)};
+el("exploreAuto").onclick=()=>{if(!sourcePixels)return;if(autoId){stopAuto();return}let frames=0;function step(){const indices=[];for(let i=0;i<nodes.length;i++)if(nodes[i].r>6)indices.push(i);if(!indices.length){autoId=null;paintExplore();return}for(let i=0;i<8&&indices.length;i++){splitOne(indices[Math.floor(Math.random()*indices.length)]);indices.length=0;for(let j=0;j<nodes.length;j++)if(nodes[j].r>6)indices.push(j)}paintExplore();if(++frames<2000)autoId=requestAnimationFrame(step)}autoId=requestAnimationFrame(step)};
 function download(canvas,name){const a=document.createElement("a");a.href=canvas.toDataURL("image/png");a.download=name+".png";a.click()}
 el("exploreSave").onclick=()=>download(explore,"yazgi-kesif");
 const colorMap={ivory:[242,235,218],turquoise:[128,239,221],gold:[242,206,135],red:[242,107,111]};
