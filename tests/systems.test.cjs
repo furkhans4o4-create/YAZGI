@@ -3633,3 +3633,83 @@ test('v101 late life legacy choice records real succession wishes and history',(
  assert.equal(run("s.eventHistory.includes('elder90_icten_bir_dilek_4')"),false);
  assert.equal(run("eligibleContextEvents({kind:'year',month:1}).some(e=>e.id==='elder90_icten_bir_dilek_4')"),true);
 });
+
+// v102 — 500 state-driven life events across illness, famine, kinship, work and conflict.
+test('v102 registers 500 distinct state-driven cards in five groups',()=>{
+ const {run}=game();
+ assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('conditional_')).length"),500);
+ for(const type of ['health','economy','family','trade','conflict']){
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('conditional_"+type+"_')).length"),100);
+  assert.equal(run("EVENT_DECK.filter(e=>e.id.startsWith('conditional_"+type+"_')).every(e=>e.min>=10&&e.max===130&&e.once===true&&e.choices.length===2&&e.text.length>=160)"),true);
+ }
+ assert.equal(run("new Set(EVENT_DECK.filter(e=>e.id.startsWith('conditional_')).map(e=>e.text)).size"),500);
+ assert.equal(run("new Set(EVENT_DECK.map(e=>e.id)).size===EVENT_DECK.length"),true);
+});
+test('v102 health events respond to real health and injury state',()=>{
+ const {run}=game();run("s.age=24;s.health=85;s.ailments=[];");
+ assert.equal(run("eligibleContextEvents({kind:'health',id:'rest',month:3}).some(e=>e.id.startsWith('conditional_health_dusuk_saglikta_secenek_'))"),false);
+ run("s.health=43;");
+ assert.equal(run("eligibleContextEvents({kind:'health',id:'rest',month:3}).some(e=>e.id.startsWith('conditional_health_dusuk_saglikta_secenek_'))"),true);
+ run("s.health=85;s.ailments=[];");
+ assert.equal(run("eligibleContextEvents({kind:'health',id:'rest',month:3}).some(e=>e.id.startsWith('conditional_health_suren_rahatsizlik_'))"),false);
+ run("s.ailments=[{id:'injury',severity:1}];");
+ assert.equal(run("eligibleContextEvents({kind:'health',id:'rest',month:3}).some(e=>e.id.startsWith('conditional_health_suren_rahatsizlik_'))"),true);
+});
+test('v102 famine events require actual food shortages or high pressure',()=>{
+ const {run}=game();run("s.age=28;ensureEconomy().shortageMonths=0;ensureEconomy().foodPressure=25;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:12}).some(e=>e.id.startsWith('conditional_economy_erzak_darbogazi_'))"),false);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:12}).some(e=>e.id.startsWith('conditional_economy_agir_kitlik_karari_'))"),false);
+ run("ensureEconomy().shortageMonths=3;ensureEconomy().foodPressure=85;");
+ assert.equal(run("eligibleContextEvents({kind:'year',month:12}).some(e=>e.id.startsWith('conditional_economy_erzak_darbogazi_'))"),true);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:12}).some(e=>e.id.startsWith('conditional_economy_agir_kitlik_karari_'))"),true);
+});
+test('v102 market demand and high prices gate actual trading context',()=>{
+ const {run}=game();run("s.age=30;ensureEconomy().tradeDemand=40;ensureEconomy().marketIndex=100;");
+ assert.equal(run("eligibleContextEvents({kind:'period',id:'market',month:5}).some(e=>e.id.startsWith('conditional_trade_artan_talep_takas_'))"),false);
+ run("ensureEconomy().tradeDemand=83;ensureEconomy().marketIndex=130;");
+ assert.equal(run("eligibleContextEvents({kind:'period',id:'market',month:5}).some(e=>e.id.startsWith('conditional_trade_artan_talep_takas_'))"),true);
+ assert.equal(run("eligibleContextEvents({kind:'period',id:'market',month:5}).some(e=>e.id.startsWith('conditional_trade_pazar_dalgalanmasi_'))"),true);
+ assert.equal(run("eligibleContextEvents({kind:'period',id:'market',month:5}).some(e=>e.id.startsWith('conditional_trade_at_bakiminin_masrafi_'))"),false);
+});
+test('v102 family tensions do not show without a matching live relationship',()=>{
+ const {run}=game();run("s.age=25;s.partner=null;s.married=false;");
+ assert.equal(run("eligibleContextEvents({kind:'romance',id:'time',month:4}).some(e=>e.id.startsWith('conditional_family_iliskide_gerginlik_'))"),false);
+ run("s.partner=normalizeNPC({name:'Tuna',gender:'male',age:25,alive:true,rel:65,type:'Sevgili'});s.romance=s.romance||{};");
+ assert.equal(run("eligibleContextEvents({kind:'romance',id:'time',month:4}).some(e=>e.id.startsWith('conditional_family_iliskide_gerginlik_'))"),false);
+ run("currentRomance().tension=65;");
+ assert.equal(run("eligibleContextEvents({kind:'romance',id:'time',month:4}).some(e=>e.id.startsWith('conditional_family_iliskide_gerginlik_'))"),true);
+});
+test('v102 warfare event cards require real military campaign',()=>{
+ const {run}=game();run("s.age=26;s.military.active=false;s.military.served=false;");
+ assert.equal(run("eligibleContextEvents({kind:'military',id:'drill',month:4}).some(e=>e.id.startsWith('conditional_conflict_nobette_belirsizlik_'))"),false);
+ run("s.military.active=true;s.military.served=true;");
+ assert.equal(run("eligibleContextEvents({kind:'military',id:'drill',month:4}).some(e=>e.id.startsWith('conditional_conflict_nobette_belirsizlik_'))"),true);
+ run("s.military.active=false;");
+});
+test('v102 captivity and exile events stay in their respective conditions',()=>{
+ const {run}=game();run("s.age=27;s.captive=false;s.exile=false;");
+ assert.equal(run("eligibleContextEvents({kind:'captivity',id:'wait',month:3}).some(e=>e.id.startsWith('conditional_conflict_tutsaklikta_guvenlik_'))"),false);
+ assert.equal(run("eligibleContextEvents({kind:'exile',id:'wait',month:3}).some(e=>e.id.startsWith('conditional_conflict_surgunde_yeni_duzen_'))"),false);
+ run("s.captive=true;");
+ assert.equal(run("eligibleContextEvents({kind:'captivity',id:'wait',month:3}).some(e=>e.id.startsWith('conditional_conflict_tutsaklikta_guvenlik_'))"),true);
+ run("s.captive=false;s.exile=true;");
+ assert.equal(run("eligibleContextEvents({kind:'exile',id:'wait',month:3}).some(e=>e.id.startsWith('conditional_conflict_surgunde_yeni_duzen_'))"),true);
+});
+test('v102 famine response creates follow-up trade consequences and is saved',()=>{
+ const {run}=game();run("s.age=23;ensureEconomy().shortageMonths=3;s.pendingEventId='conditional_economy_erzak_darbogazi_1';s.pendingEventContext={kind:'year',age:23,year:s.year+23,month:12};chooseContextEvent(0);save();load();");
+ assert.equal(run("s.flags.crisis_shared_rations"),true);
+ assert.equal(run("s.eventHistory.includes('conditional_economy_erzak_darbogazi_1')"),true);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:12}).some(e=>e.id==='conditional_economy_erzak_darbogazi_1')"),false);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:12}).some(e=>e.id.startsWith('conditional_trade_kitlik_sonrasi_pazar_'))"),true);
+ run("createLife();s.age=23;");
+ assert.equal(run("s.eventHistory.includes('conditional_economy_erzak_darbogazi_1')"),false);
+ assert.equal(run("eligibleContextEvents({kind:'year',month:12}).some(e=>e.id.startsWith('conditional_trade_kitlik_sonrasi_pazar_'))"),false);
+});
+test('v102 age-independent stories have broad lifetime windows but protect minors',()=>{
+ const {run}=game();run("s.age=8;s.health=42;");
+ assert.equal(run("eligibleContextEvents({kind:'health',id:'rest',month:3}).some(e=>e.id.startsWith('conditional_health_dusuk_saglikta_secenek_'))"),false);
+ run("s.age=18;");
+ assert.equal(run("eligibleContextEvents({kind:'health',id:'rest',month:3}).some(e=>e.id.startsWith('conditional_health_dusuk_saglikta_secenek_'))"),true);
+ run("s.age=68;");
+ assert.equal(run("eligibleContextEvents({kind:'health',id:'rest',month:3}).some(e=>e.id.startsWith('conditional_health_dusuk_saglikta_secenek_'))"),true);
+});
